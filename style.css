@@ -1,0 +1,157 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap");
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:"Poppins",sans-serif;
+}
+
+body{
+background:#f5f5f5;
+}
+
+/* HEADER */
+
+.header{
+position:fixed;
+height:80px;
+width:100%;
+background:#772bdb;
+padding:0 20px;
+}
+
+.nav{
+max-width:1100px;
+margin:auto;
+height:100%;
+display:flex;
+align-items:center;
+justify-content:space-between;
+}
+
+.nav_logo{
+font-size:22px;
+color:white;
+text-decoration:none;
+}
+
+.nav_items{
+display:flex;
+gap:25px;
+list-style:none;
+}
+
+.nav_link{
+color:white;
+text-decoration:none;
+}
+
+.button{
+padding:6px 20px;
+border:2px solid white;
+background:transparent;
+color:white;
+border-radius:6px;
+cursor:pointer;
+}
+
+/* CONTEÚDO */
+
+.home{
+padding-top:120px;
+}
+
+.main_container{
+display:flex;
+gap:20px;
+max-width:1200px;
+margin:auto;
+}
+
+/* FORM */
+
+.form_area{
+background:white;
+padding:25px;
+width:40%;
+border-radius:10px;
+box-shadow:0 2px 10px rgba(0,0,0,0.1);
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
+.form_area select{
+padding:10px;
+}
+
+/* RESULTADO */
+
+.resultado_area{
+background:rgb(255, 255, 255);
+width:60%;
+padding:25px;
+border-radius:10px;
+box-shadow:0 2px 10px rgba(0,0,0,0.1);
+display:flex;
+flex-direction:column;
+}
+
+.resultado_header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+textarea{
+margin-top:10px;
+height:400px;
+padding:15px;
+resize:none;
+border:1px solid #030303;
+border-radius:6px;
+}
+
+.copy-btn{
+background:none;
+border:none;
+cursor:pointer;
+font-size:22px;
+}
+
+.autocomplete{
+position:relative;
+width:300px;
+}
+
+#cargoInput{
+width:100%;
+padding:10px;
+border:1px solid #ccc;
+border-radius:6px;
+}
+
+.listaCargos{
+position:absolute;
+top:100%;
+left:0;
+right:0;
+
+background:white;
+border:1px solid #ccc;
+
+max-height:200px;
+overflow-y:auto;
+
+display:none;
+}
+
+.listaCargos div{
+padding:8px;
+cursor:pointer;
+}
+
+.listaCargos div:hover{
+background:#eee;
+}

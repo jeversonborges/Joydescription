@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Gerador de Descrição de Cargos</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Ícones -->
+  <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
+</head>
+
+<body>
+
+<header class="header">
+  <nav class="nav">
+
+    <a href="#" class="nav_logo">Gerador de Cargos</a>
+
+    <ul class="nav_items">
+      <li class="nav_item">
+        <a href="#" class="nav_link">Início</a>
+        <a href="#" class="nav_link">Cargos</a>
+        <a href="#" class="nav_link">Documentação</a>
+        <a href="#" class="nav_link">Contato</a>
+      </li>
+    </ul>
+
+    <button class="button" id="form-open">Entrar</button>
+
+  </nav>
+</header>
+
+<section class="home">
+
+<div class="main_container">
+
+<!-- FORMULÁRIO -->
+<div class="form_area">
+
+<h2>Gerar descrição de cargo</h2>
+
+<label>Cargo</label>
+
+<input type="text" id="cargoInput" placeholder="Digite o cargo">
+
+</div>
+
+<label>Área</label>
+<select id="area">
+<option>TI</option>
+<option>RH</option>
+<option>Financeiro</option>
+</select>
+
+<label>Nível</label>
+<select id="nivel">
+<option>Junior</option>
+<option>Pleno</option>
+<option>Senior</option>
+</select>
+
+<button onclick="gerarDescricao()" class="button">Gerar descrição</button>
+
+</div>
+
+<!-- RESULTADO IA -->
+<div class="resultado_area">
+
+<div class="resultado_header">
+<h3>Texto gerado pela IA</h3>
+
+<button class="copy-btn" onclick="copiarTexto()">
+<i class="uil uil-copy"></i>
+</button>
+
+</div>
+
+<textarea id="resultado" readonly></textarea>
+
+</div>
+
+</div>
+
+</section>
+
+<script src="script.js"></script>
+
+</body>
+</html>
