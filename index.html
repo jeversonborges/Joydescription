@@ -4,90 +4,180 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>Gerador de Descrição de Cargos</title>
-
+  <title>JoyDescription – Gerador de Descrição de Cargos</title>
   <link rel="stylesheet" href="style.css">
-
-  <!-- Ícones -->
+  <!-- Unicons: biblioteca de ícones open source -->
   <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
 </head>
 
 <body>
 
-<header class="header">
-  <nav class="nav">
+  <!-- Toast: notificações temporárias (sucesso / erro) -->
+  <div id="toast" class="toast" aria-live="polite"></div>
 
-    <a href="#" class="nav_logo">Gerador de Cargos</a>
+  <!-- HEADER — fixo no topo, contém logo e status da IA -->
+  <header class="header">
+    <nav class="nav">
 
-    <ul class="nav_items">
-      <li class="nav_item">
-        <a href="#" class="nav_link">Início</a>
-        <a href="#" class="nav_link">Cargos</a>
-        <a href="#" class="nav_link">Documentação</a>
-        <a href="#" class="nav_link">Contato</a>
-      </li>
-    </ul>
+      <a href="#" class="nav_logo">
+        <span class="logo_joy">Joy</span><span class="logo_desc">Description</span>
+      </a>
 
-    <button class="button" id="form-open">Entrar</button>
+      <ul class="nav_items">
+        <li><a href="#" class="nav_link">Início</a></li>
+        <li><a href="#" class="nav_link">Sobre a CBO</a></li>
+        <li><a href="#" class="nav_link">Contato</a></li>
+      </ul>
 
-  </nav>
-</header>
+      <!-- Indicador visual de que a IA está disponível -->
+      <div class="nav_badge">
+        <span class="badge_dot"></span>
+        IA ativa
+      </div>
 
-<section class="home">
+    </nav>
+  </header>
 
-<div class="main_container">
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="main">
+    <div class="container">
 
-<!-- FORMULÁRIO -->
-<div class="form_area">
+      <!-- Hero: título e subtítulo da ferramenta -->
+      <div class="hero">
+        <h1 class="hero_title">
+          Descrições de cargo <span class="gradient_text">profissionais em segundos</span>
+        </h1>
+        <p class="hero_subtitle">
+          Powered by OpenAI · Baseado na Classificação Brasileira de Ocupações (CBO 2002)
+        </p>
+      </div>
 
-<h2>Gerar descrição de cargo</h2>
+      <!-- Layout: formulário + resultado em duas colunas -->
+      <div class="layout">
 
-<label>Cargo</label>
+        <!-- FORMULÁRIO — configuração do cargo -->
+        <div class="card form_card">
 
-<input type="text" id="cargoInput" placeholder="Digite o cargo">
+          <div class="card_header">
+            <i class="uil uil-sliders-v-alt"></i>
+            <h2>Configurar cargo</h2>
+          </div>
 
-</div>
+          <!-- Campo: Cargo com autocomplete CBO -->
+          <div class="field">
+            <label for="cargoInput">Cargo</label>
+            <div class="autocomplete_wrapper">
+              <i class="uil uil-briefcase-alt field_icon"></i>
+              <input
+                type="text"
+                id="cargoInput"
+                class="field_input"
+                placeholder="Ex: Analista de Dados"
+                autocomplete="off"
+                spellcheck="false"
+              >
+              <!-- Dropdown de sugestões preenchido via JS -->
+              <ul id="listaCargos" class="listaCargos" role="listbox"></ul>
+            </div>
+          </div>
 
-<label>Área</label>
-<select id="area">
-<option>TI</option>
-<option>RH</option>
-<option>Financeiro</option>
-</select>
+          <!-- Campo: Área / Departamento -->
+          <div class="field">
+            <label for="area">Área / Departamento</label>
+            <div class="select_wrapper">
+              <i class="uil uil-layer-group field_icon"></i>
+              <select id="area" class="field_input">
+                <option value="TI">TI – Tecnologia da Informação</option>
+                <option value="Armazém de Açúcar">Armazém de Açúcar</option>
+                <option value="RH">RH – Recursos Humanos</option>
+                <option value="CFTV">CFTV – Segurança e Monitoramento</option>
+                <option value="Financeiro">Financeiro</option>
+                <option value="Almoxarifado Industrial">Almoxarifado Industrial</option>
+              </select>
+            </div>
+          </div>
 
-<label>Nível</label>
-<select id="nivel">
-<option>Junior</option>
-<option>Pleno</option>
-<option>Senior</option>
-</select>
+          <!-- Campo: Nível de senioridade -->
+          <div class="field">
+            <label for="nivel">Nível de senioridade</label>
+            <div class="select_wrapper">
+              <i class="uil uil-chart-bar field_icon"></i>
+              <select id="nivel" class="field_input">
+                <option value="Estágio">Estágio</option>
+                <option value="Trainee">Trainee</option>
+                <option value="Junior">Junior</option>
+                <option value="Pleno" selected>Pleno</option>
+                <option value="Senior">Senior</option>
+                <option value="Especialista">Especialista</option>
+                <option value="Coordenador">Coordenador</option>
+                <option value="Gerente">Gerente</option>
+                <option value="Diretor">Diretor</option>
+              </select>
+            </div>
+          </div>
 
-<button onclick="gerarDescricao()" class="button">Gerar descrição</button>
+          <!-- Botão: dispara a geração com IA -->
+          <button id="btn_gerar" class="btn_primary" onclick="gerarDescricao()">
+            <i class="uil uil-processor"></i>
+            <span>Gerar com IA</span>
+          </button>
 
-</div>
+          <!-- Info: contexto sobre a base de dados utilizada -->
+          <div class="info_box">
+            <i class="uil uil-database"></i>
+            <span>Busca semântica em +16.000 ocupações da CBO 2002</span>
+          </div>
 
-<!-- RESULTADO IA -->
-<div class="resultado_area">
+        </div>
 
-<div class="resultado_header">
-<h3>Texto gerado pela IA</h3>
+        <!-- RESULTADO — exibe o texto gerado em streaming -->
+        <div class="card result_card">
 
-<button class="copy-btn" onclick="copiarTexto()">
-<i class="uil uil-copy"></i>
-</button>
+          <div class="result_header">
+            <div class="result_title_area">
+              <!-- Ponto colorido indica o estado atual da geração -->
+              <span id="status_dot" class="status_dot idle"></span>
+              <h3>Descrição gerada pela IA</h3>
+            </div>
+            <div class="result_actions">
+              <button class="action_btn" onclick="copiarTexto()" title="Copiar texto">
+                <i class="uil uil-copy"></i>
+              </button>
+              <button class="action_btn" onclick="baixarTexto()" title="Baixar como .txt">
+                <i class="uil uil-download-alt"></i>
+              </button>
+            </div>
+          </div>
 
-</div>
+          <!-- Badge: mostra o cargo CBO identificado -->
+          <div id="cbo_badge" class="cbo_badge" style="display:none">
+            <i class="uil uil-tag-alt"></i>
+            <span id="cbo_badge_text"></span>
+          </div>
 
-<textarea id="resultado" readonly></textarea>
+          <!-- Loading: visível até o primeiro token chegar -->
+          <div id="loading_state" class="loading_state" style="display:none">
+            <div class="spinner_ring"></div>
+            <p>A IA está elaborando a descrição<span class="dots"><span>.</span><span>.</span><span>.</span></span></p>
+          </div>
 
-</div>
+          <!-- Placeholder: exibido antes de qualquer geração -->
+          <div id="resultado_placeholder" class="resultado_placeholder">
+            <i class="uil uil-file-edit-alt"></i>
+            <p>Preencha o formulário e clique em <strong>"Gerar com IA"</strong></p>
+            <span>O texto aparecerá aqui em tempo real, palavra por palavra</span>
+          </div>
 
-</div>
+          <!-- Conteúdo: preenchido via streaming da IA -->
+          <div id="resultado" class="resultado_content" style="display:none"></div>
 
-</section>
+        </div>
 
-<script src="script.js"></script>
+      </div>
+    </div>
+  </main>
+
+  <script src="script.js"></script>
 
 </body>
 </html>

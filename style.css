@@ -1,157 +1,571 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap");
+/* ═══════════════════════════════════════════════════════════════
+   JoyDescription — Folha de Estilos Principal
+   Design: cards brancos, acentos roxo-violeta, tipografia Poppins
+═══════════════════════════════════════════════════════════════ */
 
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:"Poppins",sans-serif;
+/* ── Fonte ─────────────────────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+/* ── Variáveis de design (tokens) ──────────────────────────── */
+:root {
+  --primary:       #7c3aed;
+  --primary-dark:  #5b21b6;
+  --primary-light: #ede9fe;
+  --primary-glow:  rgba(124, 58, 237, 0.15);
+
+  --bg:            #f5f3ff;
+  --card:          #ffffff;
+  --border:        #e8e3f5;
+
+  --text-1:        #1e1b4b;   /* títulos */
+  --text-2:        #6b7280;   /* subtítulos */
+  --text-3:        #9ca3af;   /* placeholders */
+
+  --success:       #10b981;
+  --error:         #ef4444;
+  --warning:       #f59e0b;
+
+  --radius-sm:     8px;
+  --radius-md:     14px;
+  --radius-lg:     20px;
+
+  --shadow-sm:     0 1px 4px rgba(0,0,0,0.06);
+  --shadow-md:     0 4px 20px rgba(0,0,0,0.08);
+  --shadow-lg:     0 10px 40px rgba(0,0,0,0.12);
+  --shadow-purple: 0 4px 20px var(--primary-glow);
+
+  --transition:    0.2s ease;
 }
 
-body{
-background:#f5f5f5;
+/* ── Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* HEADER */
-
-.header{
-position:fixed;
-height:80px;
-width:100%;
-background:#772bdb;
-padding:0 20px;
+body {
+  font-family: "Poppins", sans-serif;
+  background: var(--bg);
+  color: var(--text-1);
+  min-height: 100vh;
+  line-height: 1.6;
 }
 
-.nav{
-max-width:1100px;
-margin:auto;
-height:100%;
-display:flex;
-align-items:center;
-justify-content:space-between;
+
+/* ═══════════════════════════════════════════════════════════
+   HEADER — barra fixa no topo com gradiente roxo
+═══════════════════════════════════════════════════════════ */
+
+.header {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  height: 66px;
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  box-shadow: 0 2px 20px rgba(91, 33, 182, 0.3);
+  z-index: 1000;
 }
 
-.nav_logo{
-font-size:22px;
-color:white;
-text-decoration:none;
+.nav {
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 100%;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
 }
 
-.nav_items{
-display:flex;
-gap:25px;
-list-style:none;
+/* Logo: "Joy" branco + "Description" lilás */
+.nav_logo   { font-size: 20px; font-weight: 700; text-decoration: none; letter-spacing: -0.3px; }
+.logo_joy   { color: #ffffff; }
+.logo_desc  { color: #c4b5fd; }
+
+.nav_items  { display: flex; list-style: none; gap: 4px; }
+
+.nav_link {
+  color: rgba(255,255,255,0.8);
+  text-decoration: none;
+  font-size: 14px;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+.nav_link:hover { color: white; background: rgba(255,255,255,0.12); }
+
+/* Badge "IA ativa" com ponto pulsante verde */
+.nav_badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #a7f3d0;
+  font-size: 13px;
+  font-weight: 500;
+  background: rgba(16,185,129,0.15);
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(167,243,208,0.3);
 }
 
-.nav_link{
-color:white;
-text-decoration:none;
+.badge_dot {
+  width: 7px;
+  height: 7px;
+  background: var(--success);
+  border-radius: 50%;
+  animation: pulse_green 2s infinite;
 }
 
-.button{
-padding:6px 20px;
-border:2px solid white;
-background:transparent;
-color:white;
-border-radius:6px;
-cursor:pointer;
+@keyframes pulse_green {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(1.3); }
 }
 
-/* CONTEÚDO */
 
-.home{
-padding-top:120px;
+/* ═══════════════════════════════════════════════════════════
+   LAYOUT PRINCIPAL
+═══════════════════════════════════════════════════════════ */
+
+.main {
+  padding-top: 90px;
+  padding-bottom: 60px;
 }
 
-.main_container{
-display:flex;
-gap:20px;
-max-width:1200px;
-margin:auto;
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
 }
 
-/* FORM */
-
-.form_area{
-background:white;
-padding:25px;
-width:40%;
-border-radius:10px;
-box-shadow:0 2px 10px rgba(0,0,0,0.1);
-display:flex;
-flex-direction:column;
-gap:10px;
+/* Hero: título centralizado com gradiente no texto */
+.hero {
+  text-align: center;
+  padding: 42px 0 36px;
 }
 
-.form_area select{
-padding:10px;
+.hero_title {
+  font-size: clamp(22px, 3.5vw, 36px);
+  font-weight: 700;
+  color: var(--text-1);
+  line-height: 1.3;
+  margin-bottom: 10px;
 }
 
-/* RESULTADO */
-
-.resultado_area{
-background:rgb(255, 255, 255);
-width:60%;
-padding:25px;
-border-radius:10px;
-box-shadow:0 2px 10px rgba(0,0,0,0.1);
-display:flex;
-flex-direction:column;
+.gradient_text {
+  background: linear-gradient(135deg, var(--primary) 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.resultado_header{
-display:flex;
-justify-content:space-between;
-align-items:center;
+.hero_subtitle {
+  color: var(--text-2);
+  font-size: 14px;
 }
 
-textarea{
-margin-top:10px;
-height:400px;
-padding:15px;
-resize:none;
-border:1px solid #030303;
-border-radius:6px;
+/* Grid de dois painéis: formulário + resultado */
+.layout {
+  display: grid;
+  grid-template-columns: 370px 1fr;
+  gap: 24px;
+  align-items: start;
 }
 
-.copy-btn{
-background:none;
-border:none;
-cursor:pointer;
-font-size:22px;
+
+/* ═══════════════════════════════════════════════════════════
+   CARDS — base para ambos os painéis
+═══════════════════════════════════════════════════════════ */
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+  padding: 28px;
 }
 
-.autocomplete{
-position:relative;
-width:300px;
+.card_header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
 }
 
-#cargoInput{
-width:100%;
-padding:10px;
-border:1px solid #ccc;
-border-radius:6px;
+.card_header i  { font-size: 20px; color: var(--primary); }
+.card_header h2 { font-size: 17px; font-weight: 600; }
+
+
+/* ═══════════════════════════════════════════════════════════
+   FORMULÁRIO — campos, labels e inputs
+═══════════════════════════════════════════════════════════ */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
 }
 
-.listaCargos{
-position:absolute;
-top:100%;
-left:0;
-right:0;
-
-background:white;
-border:1px solid #ccc;
-
-max-height:200px;
-overflow-y:auto;
-
-display:none;
+.field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+  letter-spacing: 0.2px;
 }
 
-.listaCargos div{
-padding:8px;
-cursor:pointer;
+/* Wrapper com ícone posicionado dentro do input */
+.autocomplete_wrapper,
+.select_wrapper { position: relative; }
+
+.field_icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  font-size: 17px;
+  pointer-events: none;
+  z-index: 1;
 }
 
-.listaCargos div:hover{
-background:#eee;
+.field_input {
+  width: 100%;
+  padding: 11px 14px 11px 38px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: "Poppins", sans-serif;
+  color: var(--text-1);
+  background: white;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  appearance: none;
+}
+
+.field_input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.field_input::placeholder { color: var(--text-3); }
+
+/* Seta customizada do select (triângulo CSS puro) */
+.select_wrapper::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left:  5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top:   6px solid var(--text-3);
+  pointer-events: none;
+}
+
+/* Autocomplete: dropdown de sugestões CBO */
+.listaCargos {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  max-height: 230px;
+  overflow-y: auto;
+  display: none;
+  list-style: none;
+  z-index: 500;
+}
+
+.listaCargos li {
+  padding: 9px 14px;
+  font-size: 13px;
+  color: var(--text-1);
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background var(--transition);
+}
+
+.listaCargos li:last-child   { border-bottom: none; }
+.listaCargos li:hover        { background: var(--primary-light); color: var(--primary-dark); }
+
+/* Código CBO em monospace dentro de cada sugestão */
+.item_codigo {
+  font-size: 11px;
+  color: var(--text-3);
+  font-family: monospace;
+  background: #f3f4f6;
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* Botão principal de geração */
+.btn_primary {
+  width: 100%;
+  padding: 13px 20px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: "Poppins", sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-purple);
+  margin-top: 4px;
+}
+
+.btn_primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px var(--primary-glow);
+}
+
+.btn_primary:active:not(:disabled) { transform: translateY(0); }
+.btn_primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.btn_primary i { font-size: 18px; }
+
+/* Caixa informativa sobre a CBO */
+.info_box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--primary-light);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(124,58,237,0.15);
+}
+
+.info_box i    { color: var(--primary); font-size: 16px; flex-shrink: 0; }
+.info_box span { font-size: 12px; color: var(--primary-dark); font-weight: 500; }
+
+
+/* ═══════════════════════════════════════════════════════════
+   PAINEL DE RESULTADO
+═══════════════════════════════════════════════════════════ */
+
+.result_card {
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+}
+
+.result_header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.result_title_area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.result_title_area h3 { font-size: 17px; font-weight: 600; }
+
+/* Ponto de status: muda cor e animação conforme o estado */
+.status_dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status_dot.idle      { background: var(--text-3); }
+.status_dot.loading   { background: var(--warning); animation: blink_orange 1s infinite; }
+.status_dot.streaming { background: var(--primary); animation: blink_purple 0.7s infinite; }
+.status_dot.done      { background: var(--success); }
+.status_dot.error     { background: var(--error); }
+
+@keyframes blink_orange { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes blink_purple { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+/* Botões de ação: copiar e baixar */
+.result_actions { display: flex; gap: 8px; }
+
+.action_btn {
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-2);
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+
+.action_btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+/* Badge que mostra o cargo CBO identificado pela IA */
+.cbo_badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary-light);
+  border: 1px solid rgba(124,58,237,0.2);
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 14px;
+}
+
+/* Estado de loading: spinner + texto animado */
+.loading_state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--text-2);
+  font-size: 14px;
+  padding: 40px;
+}
+
+/* Spinner de anel giratório */
+.spinner_ring {
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--primary-light);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Animação dos três pontos "..." no loading */
+.dots span { animation: fade_dot 1.4s infinite; opacity: 0; }
+.dots span:nth-child(1) { animation-delay: 0.0s; }
+.dots span:nth-child(2) { animation-delay: 0.2s; }
+.dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes fade_dot { 0%, 80%, 100% { opacity: 0; } 40% { opacity: 1; } }
+
+/* Placeholder inicial antes de qualquer geração */
+.resultado_placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  padding: 40px;
+  color: var(--text-3);
+}
+
+.resultado_placeholder i    { font-size: 52px; opacity: 0.35; }
+.resultado_placeholder p    { font-size: 14px; color: var(--text-2); }
+.resultado_placeholder p strong { color: var(--primary); }
+.resultado_placeholder span { font-size: 12px; }
+
+/* Conteúdo gerado pela IA — texto pré-formatado com scroll */
+.resultado_content {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--text-1);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Cursor piscante durante o streaming */
+.resultado_content.streaming::after {
+  content: "▍";
+  color: var(--primary);
+  animation: cursor_blink 0.8s step-end infinite;
+}
+
+@keyframes cursor_blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* Markdown renderizado após a conclusão do stream */
+.resultado_content h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  margin: 18px 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--primary-light);
+}
+
+.resultado_content strong { font-weight: 600; color: var(--text-1); }
+.resultado_content ul     { padding-left: 18px; }
+.resultado_content li     { margin: 4px 0; }
+.resultado_content hr     { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+.resultado_content em     { font-size: 12px; color: var(--text-3); }
+
+
+/* ═══════════════════════════════════════════════════════════
+   TOAST — notificações temporárias no canto inferior direito
+═══════════════════════════════════════════════════════════ */
+
+.toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+  box-shadow: var(--shadow-lg);
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.toast.show    { opacity: 1; transform: translateY(0); }
+.toast.success { background: var(--success); }
+.toast.error   { background: var(--error); }
+.toast.info    { background: var(--primary); }
+
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVIDADE
+═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+  .layout     { grid-template-columns: 1fr; }
+  .nav_items  { display: none; }
+  .hero_title { font-size: 22px; }
+}
+
+@media (max-width: 600px) {
+  .container { padding: 0 16px; }
+  .card      { padding: 20px; }
+  .hero      { padding: 28px 0 24px; }
+  .toast     { right: 16px; bottom: 16px; left: 16px; }
 }
