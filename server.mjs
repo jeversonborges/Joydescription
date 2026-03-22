@@ -988,8 +988,8 @@ app.post("/auth/registrar", (req, res) => {
   const { empresa, nome, email, senha } = req.body
   if (!empresa?.trim() || !nome?.trim() || !email?.trim() || !senha)
     return res.status(400).json({ erro: "Campos obrigatórios: empresa, nome, email, senha" })
-  if (senha.length < 8)
-    return res.status(400).json({ erro: "A senha deve ter no mínimo 8 caracteres." })
+  if (!/^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}$/.test(senha))
+    return res.status(400).json({ erro: "A senha deve ter no mínimo 8 caracteres, uma letra maiúscula, um número e um símbolo." })
 
   const emailExiste = db.prepare("SELECT id FROM usuarios WHERE email = ?").get(email.trim().toLowerCase())
   if (emailExiste) return res.status(409).json({ erro: "Este e-mail já está cadastrado." })
@@ -1083,8 +1083,8 @@ app.post("/usuarios", (req, res) => {
   const { nome, email, senha, papel = "membro" } = req.body
   if (!nome?.trim() || !email?.trim() || !senha)
     return res.status(400).json({ erro: "Campos obrigatórios: nome, email, senha" })
-  if (senha.length < 6)
-    return res.status(400).json({ erro: "A senha deve ter no mínimo 6 caracteres." })
+  if (!/^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}$/.test(senha))
+    return res.status(400).json({ erro: "A senha deve ter no mínimo 8 caracteres, uma letra maiúscula, um número e um símbolo." })
   if (!["admin","membro"].includes(papel))
     return res.status(400).json({ erro: "Papel inválido. Use 'admin' ou 'membro'." })
 
