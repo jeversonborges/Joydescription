@@ -464,6 +464,7 @@ function renderizarUsuarios() {
             ${u.papel === "admin" ? "Tornar membro" : "Tornar admin"}
           </button>
           ${u.ativo ? `<button class="btn-deletar-area" style="padding:3px 8px;font-size:11px" onclick="desativarUsuario('${u.id}')">Desativar</button>` : ""}
+          <button class="btn-deletar-area" style="padding:3px 8px;font-size:11px;opacity:0.6" onclick="excluirUsuario('${u.id}','${u.nome}')"><i class="uil uil-trash-alt"></i></button>
         ` : `<span style="font-size:11px;color:var(--text-sub)">(você)</span>`}
       </div>`
     lista.appendChild(li)
@@ -517,6 +518,16 @@ async function desativarUsuario(id) {
     showToast("Usuário desativado.", "info")
     await carregarUsuarios()
   } catch { showToast("Erro ao desativar usuário.", "error") }
+}
+
+async function excluirUsuario(id, nome) {
+  if (!confirm(`Excluir permanentemente "${nome}"? Esta ação não pode ser desfeita.`)) return
+  try {
+    const res = await fetch(`/usuarios/${id}/excluir`, { method: "DELETE" })
+    if (!res.ok) { const d = await res.json(); showToast(d.erro || "Erro.", "error"); return }
+    showToast("Usuário excluído.", "info")
+    await carregarUsuarios()
+  } catch { showToast("Erro ao excluir usuário.", "error") }
 }
 
 // ═══════════════════════════════════════════════════════════════

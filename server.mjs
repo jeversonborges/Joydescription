@@ -1015,6 +1015,16 @@ app.delete("/usuarios/:id", (req, res) => {
   res.json({ ok: true })
 })
 
+app.delete("/usuarios/:id/excluir", (req, res) => {
+  if (req.user.papel !== "admin") return res.status(403).json({ erro: "Acesso restrito a administradores." })
+  if (req.params.id === req.user.id) return res.status(400).json({ erro: "Você não pode excluir sua própria conta." })
+  const alvo = db.prepare("SELECT * FROM usuarios WHERE id = ? AND empresa_id = ?").get(req.params.id, req.empresaId)
+  if (!alvo) return res.status(404).json({ erro: "Usuário não encontrado." })
+  db.prepare("DELETE FROM sessoes WHERE usuario_id = ?").run(req.params.id)
+  db.prepare("DELETE FROM usuarios WHERE id = ? AND empresa_id = ?").run(req.params.id, req.empresaId)
+  res.json({ ok: true })
+})
+
 app.get("/cargos", (req, res) => {
   res.json(db.prepare("SELECT * FROM cargos WHERE empresa_id = ? ORDER BY criadoEm DESC").all(req.empresaId))
 })
