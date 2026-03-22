@@ -320,6 +320,8 @@ function atualizarBarraTitulo() {
   if (tabUsuarios) tabUsuarios.style.display = isAdmin ? "" : "none"
   const tabBackup = document.getElementById("tab-backup")
   if (tabBackup) tabBackup.style.display = isAdmin ? "" : "none"
+  const tabSeg = document.getElementById("tab-seguranca")
+  if (tabSeg) tabSeg.style.display = isAdmin ? "" : "none"
 }
 
 async function inicializarApp() {
@@ -580,6 +582,23 @@ async function carregarHistoricoBackup() {
         <i class="uil uil-check-circle" style="color:var(--accent);flex-shrink:0"></i>
       </li>`
     }).join("")
+  } catch {}
+}
+
+async function abrirSeguranca() {
+  try {
+    const res = await fetch("/backup/status")
+    if (!res.ok) return
+    const d = await res.json()
+    const el = document.getElementById("sec-ultimo-backup")
+    if (!el) return
+    if (d.ultimoBackup) {
+      const dt = new Date(d.ultimoBackup.criado_em).toLocaleString("pt-BR")
+      el.textContent = `Último backup realizado em ${dt} por ${d.ultimoBackup.usuario_nome}. Recomendado: semanal.`
+    } else {
+      el.textContent = "Nenhum backup realizado ainda. Acesse a aba Backup e faça o primeiro agora."
+      el.style.color = "var(--error)"
+    }
   } catch {}
 }
 
@@ -1182,11 +1201,11 @@ function limparResultado() {
 
 function trocarAba(aba) {
   abaAtiva = aba
-  ;["descricao","cargos","areas","conhecimento","niveis","usuarios","backup"].forEach(id => {
+  ;["descricao","cargos","areas","conhecimento","niveis","usuarios","backup","seguranca"].forEach(id => {
     const tabEl    = document.getElementById("tab-"    + id)
     const painelEl = document.getElementById("painel-" + id)
     if (tabEl)    tabEl.classList.toggle("active", aba === id)
-    if (painelEl) painelEl.style.display = aba === id ? (id === "backup" ? "block" : "flex") : "none"
+    if (painelEl) painelEl.style.display = aba === id ? (["backup","seguranca"].includes(id) ? "block" : "flex") : "none"
   })
   if (aba === "areas")        renderizarListaAreas()
   if (aba === "cargos")       renderizarListaCargos()
@@ -1194,6 +1213,7 @@ function trocarAba(aba) {
   if (aba === "niveis")       renderizarListaNiveis()
   if (aba === "usuarios")     carregarUsuarios()
   if (aba === "backup")       abrirBackup()
+  if (aba === "seguranca")    abrirSeguranca()
 }
 
 

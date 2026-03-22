@@ -2737,3 +2737,105 @@ body.dark .login-tab.active {
 @media (max-width: 700px) {
   .bk-grid { grid-template-columns: 1fr; }
 }
+
+/* ── ABA SEGURANÇA ───────────────────────────────────────────── */
+.sec-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.sec-score-card {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 28px;
+}
+.sec-score-ring {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+}
+.sec-score-num {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 800;
+  color: #10b981;
+}
+.sec-score-num span { font-size: 14px; font-weight: 600; margin-top: 4px; }
+.sec-score-title { font-size: 18px; font-weight: 700; color: var(--text-main); }
+.sec-score-sub   { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.sec-score-tip   { font-size: 12px; color: var(--text-muted); margin-top: 10px; display: flex; align-items: center; gap: 5px; }
+.sec-score-tip i { color: #f59e0b; }
+
+.sec-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.sec-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  border-left: 3px solid transparent;
+}
+.sec-ok   { border-left-color: #10b981; }
+.sec-warn { border-left-color: #f59e0b; }
+
+.sec-item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.sec-ok  .sec-item-icon { background: #10b98118; color: #10b981; }
+.sec-warn .sec-item-icon { background: #f59e0b18; color: #f59e0b; }
+
+.sec-item-body { flex: 1; }
+.sec-item-title { font-size: 12px; font-weight: 600; color: var(--text-main); margin-bottom: 3px; }
+.sec-item-desc  { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+.sec-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 99px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.sec-badge-ok   { background: #10b98120; color: #10b981; }
+.sec-badge-warn { background: #f59e0b20; color: #f59e0b; }
+
+.sec-footer {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 2px;
+}
+.sec-footer i { color: var(--accent); }
+
+@media (max-width: 640px) {
+  .sec-grid { grid-template-columns: 1fr; }
+  .sec-score-card { flex-direction: column; text-align: center; }
+}

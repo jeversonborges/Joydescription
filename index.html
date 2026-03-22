@@ -381,6 +381,10 @@
             <i class="uil uil-database"></i>
             Backup
           </div>
+          <div class="tab" id="tab-seguranca" onclick="trocarAba('seguranca')" style="display:none">
+            <i class="uil uil-shield-check"></i>
+            Segurança
+          </div>
           <div class="tab-bar-right">
             <div id="cbo_badge" class="cbo-badge" style="display:none">
               <i class="uil uil-tag-alt"></i>
@@ -834,6 +838,141 @@
                   <li><i class="uil uil-check-circle"></i> Teste a restauração periodicamente em ambiente separado</li>
                 </ul>
               </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── ABA: SEGURANÇA ──────────────────────────────── -->
+        <div id="painel-seguranca" class="result-area" style="display:none;padding:24px;overflow-y:auto">
+          <div class="sec-wrap">
+
+            <!-- Score geral -->
+            <div class="sec-score-card">
+              <div class="sec-score-ring">
+                <svg width="100" height="100" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border)" stroke-width="8"/>
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="#10b981" stroke-width="8"
+                    stroke-dasharray="264" stroke-dashoffset="26"
+                    stroke-linecap="round" transform="rotate(-90 50 50)"/>
+                </svg>
+                <div class="sec-score-num">90<span>%</span></div>
+              </div>
+              <div class="sec-score-info">
+                <div class="sec-score-title">Score de Segurança</div>
+                <div class="sec-score-sub">10 de 11 proteções ativas</div>
+                <div class="sec-score-tip"><i class="uil uil-info-circle"></i> Backup automático elevaria para 100%</div>
+              </div>
+            </div>
+
+            <!-- Grid de proteções -->
+            <div class="sec-grid">
+
+              <div class="sec-item sec-ok">
+                <div class="sec-item-icon"><i class="uil uil-lock"></i></div>
+                <div class="sec-item-body">
+                  <div class="sec-item-title">HTTPS obrigatório</div>
+                  <div class="sec-item-desc">Toda comunicação é criptografada. Railway força HTTPS em todas as requisições.</div>
+                </div>
+                <div class="sec-badge sec-badge-ok">Ativo</div>
+              </div>
+
+              <div class="sec-item sec-ok">
+                <div class="sec-item-icon"><i class="uil uil-key-skeleton"></i></div>
+                <div class="sec-item-body">
+                  <div class="sec-item-title">Senhas com scrypt + salt</div>
+                  <div class="sec-item-desc">Nenhuma senha é armazenada em texto. Cada uma tem um salt único de 16 bytes com algoritmo scrypt.</div>
+                </div>
+                <div class="sec-badge sec-badge-ok">Ativo</div>
+              </div>
+
+              <div class="sec-item sec-ok">
+                <div class="sec-item-icon"><i class="uil uil-ticket"></i></div>
+                <div class="sec-item-body">
+                  <div class="sec-item-title">Tokens de sessão seguros</div>
+                  <div class="sec-item-desc">Sessões geradas com 32 bytes aleatórios criptográficos (256 bits). Expiram em 30 dias.</div>
+                </div>
+                <div class="sec-badge sec-badge-ok">Ativo</div>
+              </div>
+
+              <div class="sec-item sec-ok">
+                <div class="sec-item-icon"><i class="uil uil-shield"></i></div>
+                <div class="sec-item-body">
+                  <div class="sec-item-title">Cookie HttpOnly + Secure + SameSite</div>
+                  <div class="sec-item-desc">O cookie de sessão não é acessível por JavaScript. Só trafega em HTTPS e na mesma origem.</div>
+                </div>
+                <div class="sec-badge sec-badge-ok">Ativo</div>
+              </div>
+
+              <div class="sec-item sec-ok">
+                <div class="sec-item-icon"><i class="uil uil-ban"></i></div>
+                <div class="sec-item-body">
+                  <div class="sec-item-title">Rate limit no login</div>
+                  <div class="sec-item-desc">Bloqueia o IP após 10 tentativas incorretas em 15 minutos. Previne ataques de força bruta.</div>
+                </div>
+                <div class="sec-badge sec-badge-ok">Ativo</div>
+              </div>
+
+              <div class="sec-item sec-ok">
+                <div class="sec-item-icon"><i class="uil uil-server-network"></i></div>
+                <div class="sec-item-body">
+                  <div class="sec-item-title">Headers de segurança</div>
+                  <div class="sec-item-desc">X-Frame-Options, Content-Security-Policy, X-Content-Type-Options, Referrer-Policy ativos em todas as respostas.</div>
+                </div>
+                <div class="sec-badge sec-badge-ok">Ativo</div>
+              </div>
+
+              <div class="sec-item sec-ok">
+                <div class="sec-item-icon"><i class="uil uil-exchange"></i></div>
+                <div class="sec-item-body">
+                  <div class="sec-item-title">CORS restrito</div>
+                  <div class="sec-item-desc">Em produção, apenas requisições da própria origem são aceitas. Sites externos não conseguem acessar a API.</div>
+                </div>
+                <div class="sec-badge sec-badge-ok">Ativo</div>
+              </div>
+
+              <div class="sec-item sec-ok">
+                <div class="sec-item-icon"><i class="uil uil-building"></i></div>
+                <div class="sec-item-body">
+                  <div class="sec-item-title">Isolamento multi-empresa</div>
+                  <div class="sec-item-desc">Cada empresa acessa somente seus próprios dados. Isolamento garantido em 100% das queries do banco.</div>
+                </div>
+                <div class="sec-badge sec-badge-ok">Ativo</div>
+              </div>
+
+              <div class="sec-item sec-ok">
+                <div class="sec-item-icon"><i class="uil uil-link"></i></div>
+                <div class="sec-item-body">
+                  <div class="sec-item-title">Hash chain de versões</div>
+                  <div class="sec-item-desc">Cada versão de cargo gera um SHA-256 encadeado com a versão anterior. Qualquer adulteração é detectável.</div>
+                </div>
+                <div class="sec-badge sec-badge-ok">Ativo</div>
+              </div>
+
+              <div class="sec-item sec-ok">
+                <div class="sec-item-icon"><i class="uil uil-clock"></i></div>
+                <div class="sec-item-body">
+                  <div class="sec-item-title">Limpeza automática de sessões</div>
+                  <div class="sec-item-desc">Sessões expiradas são removidas do banco automaticamente a cada hora.</div>
+                </div>
+                <div class="sec-badge sec-badge-ok">Ativo</div>
+              </div>
+
+              <div class="sec-item sec-warn">
+                <div class="sec-item-icon"><i class="uil uil-save"></i></div>
+                <div class="sec-item-body">
+                  <div class="sec-item-title">Backup automático</div>
+                  <div class="sec-item-desc">Não configurado. Faça backup manual regularmente na aba Backup para evitar perda de dados.</div>
+                </div>
+                <div class="sec-badge sec-badge-warn">Manual</div>
+              </div>
+
+            </div>
+
+            <!-- Info último backup -->
+            <div class="sec-footer">
+              <i class="uil uil-info-circle"></i>
+              <span id="sec-ultimo-backup">Carregando informações de backup...</span>
             </div>
 
           </div>
