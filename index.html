@@ -1,92 +1,193 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JoyDescription – Gerador de Descrição de Cargos</title>
+  <title>JoyDesc — Gerador de Descrição de Cargos</title>
   <link rel="stylesheet" href="style.css">
-  <!-- Unicons: biblioteca de ícones open source -->
   <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&family=Lato:ital,wght@0,400;0,700;1,400&family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&family=Poppins:ital,wght@0,400;0,500;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=Nunito:ital,wght@0,400;0,600;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Fira+Code&display=swap">
 </head>
-
 <body>
 
-  <!-- Toast: notificações temporárias (sucesso / erro) -->
   <div id="toast" class="toast" aria-live="polite"></div>
 
-  <!-- HEADER — fixo no topo, contém logo e status da IA -->
-  <header class="header">
-    <nav class="nav">
+  <!-- ── SPLASH SCREEN ─────────────────────────────────────────── -->
+  <div id="splash">
+    <div id="sp-content">
+      <div class="sp-wordmark">
+        <span class="sp-wm-joy">Joy</span><span class="sp-wm-desc">Desc</span>
+      </div>
+      <div class="sp-tagline">Gerador de Descrição de Cargos</div>
+      <div class="sp-sep"></div>
+      <div class="sp-loading-msg" id="sp-msg">Inicializando...</div>
+      <div class="sp-bar-track">
+        <div class="sp-bar" id="sp-bar"></div>
+      </div>
+    </div>
+  </div>
 
-      <a href="#" class="nav_logo">
-        <span class="logo_joy">Joy</span><span class="logo_desc">Description</span>
-      </a>
+  <div class="app-window">
 
-      <ul class="nav_items">
-        <li><a href="#" class="nav_link">Início</a></li>
-        <li><a href="#" class="nav_link">Sobre a CBO</a></li>
-        <li><a href="#" class="nav_link">Contato</a></li>
-      </ul>
+    <!-- ── TITLE BAR ────────────────────────────────────────── -->
+    <div class="title-bar">
+      <div class="title-left">
+        <div class="dots-anim" id="dots-anim">
+          <div class="dot dot-1"></div>
+          <div class="dot dot-2"></div>
+          <div class="dot dot-3"></div>
+        </div>
+        <span class="title-logo">
+          <span class="tl-joy">Joy</span><span class="tl-desc">Desc</span>
+        </span>
+        <span class="title-sep">—</span>
+        <span class="title-doc">Gerador de Descrição de Cargos</span>
+      </div>
+      <div class="title-right">
+        <div class="theme-toggle">
+          <button class="theme-btn" id="btn-light" onclick="setTheme('light')" title="Tema claro">Claro</button>
+          <button class="theme-btn" id="btn-dark"  onclick="setTheme('dark')"  title="Tema escuro">Escuro</button>
+        </div>
+        <div class="win-controls">
+          <button class="wc-btn wc-min" title="Minimizar"><i class="uil uil-minus"></i></button>
+          <button class="wc-btn wc-max" title="Maximizar"><i class="uil uil-square-shape"></i></button>
+          <button class="wc-btn wc-close" title="Fechar"><i class="uil uil-times"></i></button>
+        </div>
+      </div>
+    </div>
 
-      <!-- Indicador visual de que a IA está disponível -->
-      <div class="nav_badge">
-        <span class="badge_dot"></span>
-        IA ativa
+    <!-- ── MENU BAR ─────────────────────────────────────────── -->
+    <div class="menu-bar" id="menuBar">
+
+      <div class="menu-group" data-menu="arquivo">
+        <button class="menu-item">Arquivo</button>
+        <div class="menu-dropdown">
+          <button class="menu-dd-item" onclick="menuAcao('novo')"><i class="uil uil-file-alt"></i> Novo</button>
+          <div class="menu-dd-sep"></div>
+          <button class="menu-dd-item" onclick="baixarTexto()"><i class="uil uil-download-alt"></i> Exportar como .txt</button>
+          <div class="menu-dd-sep"></div>
+          <button class="menu-dd-item" onclick="menuAcao('fechar')"><i class="uil uil-times-circle"></i> Fechar</button>
+        </div>
       </div>
 
-    </nav>
-  </header>
-
-  <!-- CONTEÚDO PRINCIPAL -->
-  <main class="main">
-    <div class="container">
-
-      <!-- Hero: título e subtítulo da ferramenta -->
-      <div class="hero">
-        <h1 class="hero_title">
-          Descrições de cargo <span class="gradient_text">profissionais em segundos</span>
-        </h1>
-        <p class="hero_subtitle">
-          Powered by OpenAI · Baseado na Classificação Brasileira de Ocupações (CBO 2002)
-        </p>
+      <div class="menu-group" data-menu="editar">
+        <button class="menu-item">Editar</button>
+        <div class="menu-dropdown">
+          <button class="menu-dd-item" onclick="copiarTexto()"><i class="uil uil-copy"></i> Copiar resultado</button>
+          <button class="menu-dd-item" onclick="limparResultado()"><i class="uil uil-redo"></i> Limpar resultado</button>
+          <div class="menu-dd-sep"></div>
+          <button class="menu-dd-item" onclick="menuAcao('selecionarTudo')"><i class="uil uil-check-square"></i> Selecionar tudo</button>
+        </div>
       </div>
 
-      <!-- Layout: formulário + resultado em duas colunas -->
-      <div class="layout">
+      <div class="menu-group" data-menu="exibir">
+        <button class="menu-item">Exibir</button>
+        <div class="menu-dropdown">
+          <button class="menu-dd-item" onclick="menuAcao('aumentarFonte')"><i class="uil uil-plus"></i> Aumentar fonte</button>
+          <button class="menu-dd-item" onclick="menuAcao('diminuirFonte')"><i class="uil uil-minus"></i> Diminuir fonte</button>
+          <button class="menu-dd-item" onclick="menuAcao('resetFonte')"><i class="uil uil-redo"></i> Redefinir fonte</button>
+          <div class="menu-dd-sep"></div>
+          <div class="menu-dd-label">Família tipográfica</div>
+          <button class="menu-dd-item font-item" onclick="trocarFonte('Inter')"         style="font-family:Inter">         Inter <span class="font-tag">padrão</span></button>
+          <button class="menu-dd-item font-item" onclick="trocarFonte('Roboto')"        style="font-family:Roboto">        Roboto</button>
+          <button class="menu-dd-item font-item" onclick="trocarFonte('Open Sans')"     style="font-family:'Open Sans'">   Open Sans</button>
+          <button class="menu-dd-item font-item" onclick="trocarFonte('Lato')"          style="font-family:Lato">          Lato</button>
+          <button class="menu-dd-item font-item" onclick="trocarFonte('Montserrat')"    style="font-family:Montserrat">    Montserrat</button>
+          <button class="menu-dd-item font-item" onclick="trocarFonte('Poppins')"       style="font-family:Poppins">       Poppins</button>
+          <button class="menu-dd-item font-item" onclick="trocarFonte('Source Sans 3')" style="font-family:'Source Sans 3'">Source Sans 3</button>
+          <button class="menu-dd-item font-item" onclick="trocarFonte('Nunito')"        style="font-family:Nunito">        Nunito</button>
+          <button class="menu-dd-item font-item" onclick="trocarFonte('Merriweather')"  style="font-family:Merriweather">  Merriweather</button>
+          <button class="menu-dd-item font-item" onclick="trocarFonte('Fira Code')"     style="font-family:'Fira Code'">   Fira Code</button>
+        </div>
+      </div>
 
-        <!-- FORMULÁRIO — configuração do cargo -->
-        <div class="card form_card">
+      <div class="menu-group" data-menu="ferramentas">
+        <button class="menu-item">Ferramentas</button>
+        <div class="menu-dropdown">
+          <button class="menu-dd-item" onclick="menuAcao('gerarNovamente')"><i class="uil uil-sync"></i> Gerar novamente</button>
+          <div class="menu-dd-sep"></div>
+          <button class="menu-dd-item" onclick="menuAcao('contarPalavras')"><i class="uil uil-calculator-alt"></i> Contar palavras</button>
+        </div>
+      </div>
 
-          <div class="card_header">
-            <i class="uil uil-sliders-v-alt"></i>
-            <h2>Configurar cargo</h2>
-          </div>
+      <div class="menu-group" data-menu="ajuda">
+        <button class="menu-item">Ajuda</button>
+        <div class="menu-dropdown">
+          <button class="menu-dd-item" onclick="menuAcao('sobre')"><i class="uil uil-info-circle"></i> Sobre o JoyDesc</button>
+          <button class="menu-dd-item" onclick="menuAcao('cbo')"><i class="uil uil-book-alt"></i> Sobre a CBO 2002</button>
+        </div>
+      </div>
 
-          <!-- Campo: Cargo com autocomplete CBO -->
+    </div>
+
+    <!-- ── TOOLBAR ──────────────────────────────────────────── -->
+    <div class="toolbar">
+      <button class="tb-btn tb-primary" onclick="gerarDescricao()" title="Gerar descrição (F5)">
+        <i class="uil uil-play"></i>
+        <span>Gerar</span>
+      </button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" onclick="copiarTexto()" title="Copiar resultado">
+        <i class="uil uil-copy"></i>
+        <span>Copiar</span>
+      </button>
+      <button class="tb-btn" onclick="baixarTexto()" title="Baixar como .txt">
+        <i class="uil uil-download-alt"></i>
+        <span>Exportar</span>
+      </button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" onclick="limparResultado()" title="Limpar">
+        <i class="uil uil-redo"></i>
+        <span>Limpar</span>
+      </button>
+      <div class="tb-spacer"></div>
+      <div class="provedor-selector" id="provedor-selector">
+        <button class="prov-btn prov-btn-ollama" id="prov-ollama" onclick="setProvedor('ollama')" title="Ollama — processamento local">
+          <i class="uil uil-processor"></i>
+          <span>Ollama</span>
+        </button>
+        <button class="prov-btn prov-btn-groq active" id="prov-groq" onclick="setProvedor('groq')" title="Groq — processamento em nuvem">
+          <i class="uil uil-cloud"></i>
+          <span>Groq</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── WORKSPACE ────────────────────────────────────────── -->
+    <div class="workspace">
+
+      <!-- Left Panel: formulário -->
+      <div class="left-panel">
+
+        <div class="lp-header">
+          <i class="uil uil-sliders-v-alt"></i>
+          <span>CONFIGURAÇÃO</span>
+        </div>
+
+        <div class="lp-body">
+
           <div class="field">
             <label for="cargoInput">Cargo</label>
             <div class="autocomplete_wrapper">
-              <i class="uil uil-briefcase-alt field_icon"></i>
+              <i class="uil uil-briefcase-alt field-icon"></i>
               <input
                 type="text"
                 id="cargoInput"
-                class="field_input"
+                class="field-input"
                 placeholder="Ex: Analista de Dados"
                 autocomplete="off"
                 spellcheck="false"
               >
-              <!-- Dropdown de sugestões preenchido via JS -->
               <ul id="listaCargos" class="listaCargos" role="listbox"></ul>
             </div>
           </div>
 
-          <!-- Campo: Área / Departamento -->
           <div class="field">
             <label for="area">Área / Departamento</label>
-            <div class="select_wrapper">
-              <i class="uil uil-layer-group field_icon"></i>
-              <select id="area" class="field_input">
+            <div class="select-wrapper">
+              <i class="uil uil-layer-group field-icon"></i>
+              <select id="area" class="field-input">
                 <option value="TI">TI – Tecnologia da Informação</option>
                 <option value="Armazém de Açúcar">Armazém de Açúcar</option>
                 <option value="RH">RH – Recursos Humanos</option>
@@ -97,12 +198,11 @@
             </div>
           </div>
 
-          <!-- Campo: Nível de senioridade -->
           <div class="field">
-            <label for="nivel">Nível de senioridade</label>
-            <div class="select_wrapper">
-              <i class="uil uil-chart-bar field_icon"></i>
-              <select id="nivel" class="field_input">
+            <label for="nivel">Nível de Senioridade</label>
+            <div class="select-wrapper">
+              <i class="uil uil-chart-bar field-icon"></i>
+              <select id="nivel" class="field-input">
                 <option value="Estágio">Estágio</option>
                 <option value="Trainee">Trainee</option>
                 <option value="Junior">Junior</option>
@@ -116,68 +216,363 @@
             </div>
           </div>
 
-          <!-- Botão: dispara a geração com IA -->
-          <button id="btn_gerar" class="btn_primary" onclick="gerarDescricao()">
+          <div class="field">
+            <label>Tipo de atuação</label>
+            <div class="tipo-toggle">
+              <button class="tipo-btn active" data-tipo="Operacional" onclick="setTipo(this)">Operacional</button>
+              <button class="tipo-btn" data-tipo="Administrativo" onclick="setTipo(this)">Administrativo</button>
+              <button class="tipo-btn" data-tipo="Híbrido" onclick="setTipo(this)">Híbrido</button>
+            </div>
+          </div>
+
+          <button id="btn_gerar" class="btn-gerar" onclick="gerarDescricao()">
             <i class="uil uil-processor"></i>
-            <span>Gerar com IA</span>
+            <span>Gerar Descrição</span>
           </button>
 
-          <!-- Info: contexto sobre a base de dados utilizada -->
-          <div class="info_box">
-            <i class="uil uil-database"></i>
-            <span>Busca semântica em +16.000 ocupações da CBO 2002</span>
+          <div class="ia-card" id="ia-card">
+            <div class="ia-card-left">
+              <div class="ia-card-icon" id="ia-card-icon">
+                <i class="uil uil-processor" id="ia-card-ico"></i>
+              </div>
+              <div class="ia-card-body">
+                <div class="ia-card-name" id="ia-card-name">Ollama · qwen2.5</div>
+                <div class="ia-card-desc" id="ia-card-desc">Local · privacidade total · sem internet</div>
+              </div>
+            </div>
+            <div class="ia-card-status" id="ia-card-status">
+              <span class="ia-status-dot" id="ia-status-dot"></span>
+              <span id="ia-status-txt">pronto</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Resize handle -->
+      <div class="panel-resize"></div>
+
+      <!-- Right Panel: resultado -->
+      <div class="right-panel">
+
+        <!-- Tab bar -->
+        <div class="tab-bar">
+          <div class="tab active" id="tab-descricao" onclick="trocarAba('descricao')">
+            <i class="uil uil-file-edit-alt"></i>
+            Descrição Gerada
+          </div>
+          <div class="tab" id="tab-cargos" onclick="trocarAba('cargos')">
+            <i class="uil uil-briefcase-alt"></i>
+            Gerenciar Cargos
+          </div>
+          <div class="tab" id="tab-areas" onclick="trocarAba('areas')">
+            <i class="uil uil-layer-group"></i>
+            Gerenciar Áreas
+          </div>
+          <div class="tab" id="tab-conhecimento" onclick="trocarAba('conhecimento')">
+            <i class="uil uil-book-open"></i>
+            Base de Conhecimento
+          </div>
+          <div class="tab-bar-right">
+            <div id="cbo_badge" class="cbo-badge" style="display:none">
+              <i class="uil uil-tag-alt"></i>
+              <span id="cbo_badge_text"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── ABA: DESCRIÇÃO GERADA ──────────────────────── -->
+        <div id="painel-descricao" class="result-area">
+
+          <div id="loading_state" class="loading-state" style="display:none">
+            <div class="loading-inner">
+              <div class="spinner-ring"></div>
+              <p class="loading-text">
+                Elaborando descrição...
+                <span class="dots"><span>.</span><span>.</span><span>.</span></span>
+              </p>
+              <div class="loading-bar">
+                <div class="loading-bar-fill"></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="resultado_placeholder" class="result-placeholder">
+            <i class="uil uil-file-edit-alt"></i>
+            <p>Preencha o formulário e clique em <strong>Gerar Descrição</strong></p>
+            <span>Serão geradas duas versões — Genérica e Detalhada — para você copiar separadamente</span>
+          </div>
+
+          <div id="resultado-wrap" style="display:none;flex-direction:column;flex:1;min-height:0">
+            <div class="res-tabs">
+              <button class="res-tab active" id="res-tab-gen" onclick="verSecao('gen')">
+                <i class="uil uil-align-left"></i> Genérica
+              </button>
+              <button class="res-tab" id="res-tab-det" onclick="verSecao('det')">
+                <i class="uil uil-list-ul"></i> Detalhada
+              </button>
+              <button class="res-copy-btn" id="res-copy-btn" onclick="copiarSecaoAtiva()">
+                <i class="uil uil-copy"></i> Copiar
+              </button>
+            </div>
+            <div id="resultado-gen" class="resultado_content" style="display:block"></div>
+            <div id="resultado-det" class="resultado_content" style="display:none"></div>
           </div>
 
         </div>
 
-        <!-- RESULTADO — exibe o texto gerado em streaming -->
-        <div class="card result_card">
+        <!-- ── ABA: GERENCIAR CARGOS ─────────────────────── -->
+        <div id="painel-cargos" class="result-area areas-panel" style="display:none">
 
-          <div class="result_header">
-            <div class="result_title_area">
-              <!-- Ponto colorido indica o estado atual da geração -->
-              <span id="status_dot" class="status_dot idle"></span>
-              <h3>Descrição gerada pela IA</h3>
+          <div class="areas-list-col">
+            <div class="areas-list-header">
+              <span>Cargos salvos</span>
+              <span id="cargos-count" class="cargos-count">0</span>
             </div>
-            <div class="result_actions">
-              <button class="action_btn" onclick="copiarTexto()" title="Copiar texto">
-                <i class="uil uil-copy"></i>
-              </button>
-              <button class="action_btn" onclick="baixarTexto()" title="Baixar como .txt">
-                <i class="uil uil-download-alt"></i>
-              </button>
+            <ul id="cargos-list" class="areas-list cargos-list"></ul>
+          </div>
+
+          <div class="areas-form-col">
+            <div id="cargos-empty" class="areas-empty">
+              <i class="uil uil-briefcase-alt"></i>
+              <p>Nenhum cargo selecionado</p>
+              <span>Gere uma descrição para salvá-la automaticamente</span>
+            </div>
+            <div id="cargos-form" style="display:none;flex-direction:column;height:100%">
+              <div class="areas-form-header">
+                <div style="display:flex;flex-direction:column;gap:2px">
+                  <span id="cargos-form-titulo" style="font-size:13px;font-weight:600;color:var(--text)"></span>
+                  <span id="cargos-form-meta" style="font-size:11px;color:var(--text-muted)"></span>
+                </div>
+                <div style="display:flex;gap:6px">
+                  <button class="btn-salvar-area" onclick="exportarCargo()" title="Exportar como .txt" style="background:var(--bg-hover);color:var(--text-muted);border-color:var(--border)">
+                    <i class="uil uil-download-alt"></i> Exportar
+                  </button>
+                  <button class="btn-deletar-area" onclick="deletarCargo()" title="Deletar este cargo">
+                    <i class="uil uil-trash-alt"></i> Deletar
+                  </button>
+                </div>
+              </div>
+              <div class="areas-fields">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+                  <div class="field">
+                    <label>Cargo</label>
+                    <input type="text" id="cargo-nome" class="field-input" style="padding-left:10px">
+                  </div>
+                  <div class="field">
+                    <label>Área</label>
+                    <input type="text" id="cargo-area" class="field-input" style="padding-left:10px">
+                  </div>
+                  <div class="field">
+                    <label>Nível</label>
+                    <input type="text" id="cargo-nivel" class="field-input" style="padding-left:10px">
+                  </div>
+                </div>
+                <div class="field" style="flex:1">
+                  <label>Descrição gerada</label>
+                  <div class="format-toolbar" data-target="cargo-texto">
+                    <button class="ft-btn ft-bold"   onclick="wrapTexto('cargo-texto','**')"       title="Negrito"><b>B</b></button>
+                    <button class="ft-btn ft-italic" onclick="wrapTexto('cargo-texto','_')"        title="Itálico"><i>I</i></button>
+                    <button class="ft-btn"           onclick="wrapTexto('cargo-texto','`')"        title="Código mono">⌥</button>
+                    <button class="ft-btn"           onclick="inserirLista('cargo-texto')"         title="Lista com hífens">≡</button>
+                    <button class="ft-btn"           onclick="maiusculas('cargo-texto')"           title="MAIÚSCULAS">AA</button>
+                    <div class="ft-sep"></div>
+                    <select class="ft-size" onchange="tamanhoTextarea('cargo-texto', this.value)" title="Tamanho da fonte">
+                      <option value="11">11px</option>
+                      <option value="12" selected>12px</option>
+                      <option value="13">13px</option>
+                      <option value="14">14px</option>
+                      <option value="15">15px</option>
+                      <option value="16">16px</option>
+                      <option value="18">18px</option>
+                    </select>
+                    <div class="ft-sep"></div>
+                    <button class="ft-btn ft-clear" onclick="limparFormatacao('cargo-texto')" title="Limpar formatação">✕</button>
+                  </div>
+                  <textarea id="cargo-texto" class="field-input area-textarea" style="min-height:240px"></textarea>
+                </div>
+                <div class="areas-form-actions">
+                  <button class="btn-salvar-area" onclick="salvarEdicaoCargo()">
+                    <i class="uil uil-check"></i> Salvar alterações
+                  </button>
+                  <button class="btn-cancelar-area" onclick="cancelarCargo()">Cancelar</button>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Badge: mostra o cargo CBO identificado -->
-          <div id="cbo_badge" class="cbo_badge" style="display:none">
-            <i class="uil uil-tag-alt"></i>
-            <span id="cbo_badge_text"></span>
+        </div>
+
+        <!-- ── ABA: GERENCIAR ÁREAS ───────────────────────── -->
+        <div id="painel-areas" class="result-area areas-panel" style="display:none">
+
+          <div class="areas-list-col">
+            <div class="areas-list-header">
+              <span>Áreas cadastradas</span>
+              <button class="btn-nova-area" onclick="novaArea()">
+                <i class="uil uil-plus"></i> Nova
+              </button>
+            </div>
+            <ul id="areas-list" class="areas-list"></ul>
           </div>
 
-          <!-- Loading: visível até o primeiro token chegar -->
-          <div id="loading_state" class="loading_state" style="display:none">
-            <div class="spinner_ring"></div>
-            <p>A IA está elaborando a descrição<span class="dots"><span>.</span><span>.</span><span>.</span></span></p>
+          <div class="areas-form-col">
+            <div id="areas-empty" class="areas-empty">
+              <i class="uil uil-layer-group"></i>
+              <p>Selecione uma área para editar</p>
+            </div>
+            <div id="areas-form" style="display:none">
+              <div class="areas-form-header">
+                <span id="areas-form-title">Editar Área</span>
+                <button class="btn-deletar-area" onclick="deletarArea()" title="Deletar esta área">
+                  <i class="uil uil-trash-alt"></i> Deletar
+                </button>
+              </div>
+              <div class="areas-fields">
+                <div class="field">
+                  <label>Identificador (chave interna)</label>
+                  <input type="text" id="area-key" class="field-input" placeholder="Ex: Manutencao" style="padding-left:10px">
+                </div>
+                <div class="field">
+                  <label>Nome de exibição</label>
+                  <input type="text" id="area-label" class="field-input" placeholder="Ex: Manutenção Industrial" style="padding-left:10px">
+                </div>
+                <div class="field" style="flex:1">
+                  <label>Descrição do setor (contexto operacional)</label>
+                  <div class="format-toolbar" data-target="area-universo">
+                    <button class="ft-btn ft-bold"   onclick="wrapTexto('area-universo','**')"     title="Negrito"><b>B</b></button>
+                    <button class="ft-btn ft-italic" onclick="wrapTexto('area-universo','_')"      title="Itálico"><i>I</i></button>
+                    <button class="ft-btn"           onclick="inserirLista('area-universo')"       title="Lista com hífens">≡</button>
+                    <button class="ft-btn"           onclick="maiusculas('area-universo')"         title="MAIÚSCULAS">AA</button>
+                    <div class="ft-sep"></div>
+                    <select class="ft-size" onchange="tamanhoTextarea('area-universo', this.value)" title="Tamanho da fonte">
+                      <option value="11">11px</option>
+                      <option value="12" selected>12px</option>
+                      <option value="13">13px</option>
+                      <option value="14">14px</option>
+                      <option value="16">16px</option>
+                    </select>
+                    <div class="ft-sep"></div>
+                    <button class="ft-btn ft-clear" onclick="limparFormatacao('area-universo')" title="Limpar formatação">✕</button>
+                  </div>
+                  <textarea id="area-universo" class="field-input area-textarea" placeholder="Descreva o setor: o que faz, processos, sistemas, perfil dos profissionais..."></textarea>
+                </div>
+                <div class="areas-form-actions">
+                  <button class="btn-salvar-area" onclick="salvarArea()">
+                    <i class="uil uil-check"></i> Salvar alterações
+                  </button>
+                  <button class="btn-cancelar-area" onclick="cancelarArea()">
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <!-- Placeholder: exibido antes de qualquer geração -->
-          <div id="resultado_placeholder" class="resultado_placeholder">
-            <i class="uil uil-file-edit-alt"></i>
-            <p>Preencha o formulário e clique em <strong>"Gerar com IA"</strong></p>
-            <span>O texto aparecerá aqui em tempo real, palavra por palavra</span>
+        </div>
+
+        <!-- ── ABA: BASE DE CONHECIMENTO ──────────────────── -->
+        <div id="painel-conhecimento" class="result-area areas-panel" style="display:none">
+
+          <div class="areas-list-col">
+            <div class="areas-list-header">
+              <span>Artigos</span>
+              <button class="btn-nova-area" onclick="novoArtigo()">
+                <i class="uil uil-plus"></i> Novo
+              </button>
+            </div>
+            <ul id="conhecimento-list" class="areas-list conhecimento-list"></ul>
           </div>
 
-          <!-- Conteúdo: preenchido via streaming da IA -->
-          <div id="resultado" class="resultado_content" style="display:none"></div>
+          <div class="areas-form-col">
+            <div id="conhecimento-empty" class="areas-empty">
+              <i class="uil uil-book-open"></i>
+              <p>Selecione um artigo para editar</p>
+              <span>Os artigos ativos são injetados no contexto ao gerar</span>
+            </div>
+            <div id="conhecimento-form" style="display:none">
+              <div class="areas-form-header">
+                <span id="conhecimento-form-title">Editar Artigo</span>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <label class="toggle-ativo" title="Ativo: artigo é usado na geração">
+                    <input type="checkbox" id="artigo-ativo" onchange="toggleAtivoArtigo(this)">
+                    <span>Ativo</span>
+                  </label>
+                  <button class="btn-deletar-area" onclick="deletarArtigo()" title="Deletar artigo">
+                    <i class="uil uil-trash-alt"></i> Deletar
+                  </button>
+                </div>
+              </div>
+              <div class="areas-fields">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div class="field">
+                    <label>Título</label>
+                    <input type="text" id="artigo-titulo" class="field-input" placeholder="Ex: Níveis de Senioridade" style="padding-left:10px">
+                  </div>
+                  <div class="field">
+                    <label>Categoria</label>
+                    <input type="text" id="artigo-categoria" class="field-input" placeholder="Ex: Metodologia" style="padding-left:10px">
+                  </div>
+                </div>
+                <div class="field" style="flex:1">
+                  <label>Conteúdo do artigo</label>
+                  <div class="format-toolbar" data-target="artigo-conteudo">
+                    <button class="ft-btn ft-bold"   onclick="wrapTexto('artigo-conteudo','**')"   title="Negrito"><b>B</b></button>
+                    <button class="ft-btn ft-italic" onclick="wrapTexto('artigo-conteudo','_')"    title="Itálico"><i>I</i></button>
+                    <button class="ft-btn"           onclick="inserirLista('artigo-conteudo')"     title="Lista com hífens">≡</button>
+                    <button class="ft-btn"           onclick="maiusculas('artigo-conteudo')"       title="MAIÚSCULAS">AA</button>
+                    <div class="ft-sep"></div>
+                    <select class="ft-size" onchange="tamanhoTextarea('artigo-conteudo', this.value)" title="Tamanho da fonte">
+                      <option value="11">11px</option>
+                      <option value="12" selected>12px</option>
+                      <option value="13">13px</option>
+                      <option value="14">14px</option>
+                      <option value="16">16px</option>
+                    </select>
+                    <div class="ft-sep"></div>
+                    <button class="ft-btn ft-clear" onclick="limparFormatacao('artigo-conteudo')" title="Limpar formatação">✕</button>
+                  </div>
+                  <textarea id="artigo-conteudo" class="field-input area-textarea" placeholder="Escreva o conteúdo que deve ser usado como referência técnica..."></textarea>
+                </div>
+                <div class="areas-form-actions">
+                  <button class="btn-salvar-area" onclick="salvarArtigo()">
+                    <i class="uil uil-check"></i> Salvar artigo
+                  </button>
+                  <button class="btn-cancelar-area" onclick="cancelarArtigo()">Cancelar</button>
+                </div>
+              </div>
+            </div>
+          </div>
 
+        </div>
+
+        <!-- Inner status bar -->
+        <div class="inner-status-bar">
+          <span id="status_dot" class="status_dot idle"></span>
+          <span class="isb-text">Aguardando</span>
+          <div class="isb-right">
+            <span id="charCount" class="char-count">0 caracteres</span>
+          </div>
         </div>
 
       </div>
     </div>
-  </main>
+
+    <!-- ── APP STATUS BAR ────────────────────────────────────── -->
+    <div class="app-status-bar">
+      <span class="asb-item">JoyDesc v2.0</span>
+      <span class="asb-sep">|</span>
+      <span class="asb-item">Base CBO 2002 · 11.097 ocupações</span>
+      <span class="asb-sep">|</span>
+      <span class="asb-item"><i class="uil uil-processor"></i> Ollama · qwen2.5</span>
+      <div class="asb-right">
+        <span class="asb-live-dot"></span>
+        <span class="asb-item">Pronto</span>
+      </div>
+    </div>
+
+  </div>
 
   <script src="script.js"></script>
-
 </body>
 </html>

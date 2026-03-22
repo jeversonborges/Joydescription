@@ -1,20 +1,65 @@
 {
   "name": "joydescription",
   "version": "1.0.0",
-  "description": "",
-  "main": "script.js",
+  "description": "Gerador de Descrição de Cargos — Usinas Sucroenergéticas",
+  "main": "electron-main.cjs",
   "scripts": {
-  "start": "node server.mjs"
-},
+    "start": "node server.mjs",
+    "dev": "nodemon --watch server.mjs --ext mjs server.mjs",
+    "electron": "node electron-launcher.cjs",
+    "dist": "electron-builder --win --x64"
+  },
   "keywords": [],
-  "author": "",
+  "author": "JoyDesc",
   "license": "ISC",
-  "type": "module",
   "dependencies": {
+    "better-sqlite3": "^12.8.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "openai": "^6.29.0"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0",
+    "electron": "^33.4.11",
+    "electron-builder": "^26.8.1",
+    "nodemon": "^3.1.14"
+  },
+  "build": {
+    "appId": "com.joydesc.app",
+    "productName": "JoyDesc",
+    "copyright": "JoyDesc",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "JoyDesc"
+    },
+    "files": [
+      "**/*",
+      "!**/*.md",
+      "!.env",
+      "!joydescription.db",
+      "!nodemon.json",
+      "!meta/**",
+      "!dist-electron/**"
+    ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**"
+    ],
+    "directories": {
+      "output": "dist-electron"
+    }
   }
 }
-
