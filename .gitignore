@@ -1,0 +1,10 @@
+node_modules/
+dist-electron/
+.env
+*.log
+joydescription.db-shm
+joydescription.db-wal
+areas.json
+cargos.json
+cargos.json.bak
+conhecimento.json
