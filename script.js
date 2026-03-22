@@ -2133,7 +2133,9 @@ function menuAcao(acao) {
 
   const msgEl    = document.getElementById("sp-msg")
   const barEl    = document.getElementById("sp-bar")
+  const pctEl    = document.getElementById("sp-pct")
   const wordmark = document.querySelector(".sp-wordmark")
+  const setBar   = pct => { barEl.style.width = pct + "%"; if (pctEl) pctEl.textContent = pct + "%" }
   const delay    = ms => new Promise(r => setTimeout(r, ms))
 
   // ── Efeito glitch: letra por letra — sincronizado com barra ──
@@ -2168,7 +2170,7 @@ function menuAcao(acao) {
     wordmark.classList.add("glitching")
     wordmark.innerHTML = render(0, rand())
     // barra começa junto com as letras
-    barEl.style.width = "0%"
+    setBar(0)
 
     const tick = setInterval(() => {
       frameInLetter++
@@ -2181,7 +2183,7 @@ function menuAcao(acao) {
         frameInLetter = 0
 
         // avança a barra a cada letra que trava (0 → 48%)
-        barEl.style.width = (letterIdx / target.length * 48) + "%"
+        setBar(Math.round(letterIdx / target.length * 48))
 
         if (letterIdx >= target.length - 2) wordmark.classList.add("glitch-low")
 
@@ -2220,7 +2222,7 @@ function menuAcao(acao) {
     msgEl.classList.add("sp-fading")
     await delay(150)
     msgEl.textContent = text
-    barEl.style.width = pct + "%"
+    setBar(pct)
     msgEl.classList.remove("sp-fading")
   }
 
