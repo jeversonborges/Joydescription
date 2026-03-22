@@ -322,6 +322,10 @@ function atualizarBarraTitulo() {
   if (tabBackup) tabBackup.style.display = isAdmin ? "" : "none"
   const tabSeg = document.getElementById("tab-seguranca")
   if (tabSeg) tabSeg.style.display = isAdmin ? "" : "none"
+  const menuBackup = document.getElementById("menu-backup-item")
+  if (menuBackup) menuBackup.style.display = isAdmin ? "" : "none"
+  const menuSeg = document.getElementById("menu-seguranca-item")
+  if (menuSeg) menuSeg.style.display = isAdmin ? "" : "none"
 }
 
 async function inicializarApp() {
