@@ -540,7 +540,40 @@ async function excluirUsuario(id, nome) {
 }
 
 async function abrirBackup() {
+  document.getElementById("modal-backup").style.display = "flex"
   await Promise.all([carregarStatusBackup(), carregarHistoricoBackup()])
+}
+
+function fecharModalBackup(e) {
+  if (e && e.target !== document.getElementById("modal-backup")) return
+  document.getElementById("modal-backup").style.display = "none"
+}
+
+async function abrirSeguranca() {
+  document.getElementById("modal-seguranca").style.display = "flex"
+  await abrirSegurancaData()
+}
+
+function fecharModalSeguranca(e) {
+  if (e && e.target !== document.getElementById("modal-seguranca")) return
+  document.getElementById("modal-seguranca").style.display = "none"
+}
+
+async function abrirSegurancaData() {
+  try {
+    const res = await fetch("/backup/status")
+    if (!res.ok) return
+    const d = await res.json()
+    const el = document.getElementById("sec-ultimo-backup")
+    if (!el) return
+    if (d.ultimoBackup) {
+      const dt = new Date(d.ultimoBackup.criado_em).toLocaleString("pt-BR")
+      el.textContent = `Último backup realizado em ${dt} por ${d.ultimoBackup.usuario_nome}. Recomendado: semanal.`
+    } else {
+      el.textContent = "Nenhum backup realizado ainda. Acesse o menu Backup e faça o primeiro agora."
+      el.style.color = "var(--error)"
+    }
+  } catch {}
 }
 
 async function carregarStatusBackup() {
@@ -1205,19 +1238,17 @@ function limparResultado() {
 
 function trocarAba(aba) {
   abaAtiva = aba
-  ;["descricao","cargos","areas","conhecimento","niveis","usuarios","backup","seguranca"].forEach(id => {
+  ;["descricao","cargos","areas","conhecimento","niveis","usuarios"].forEach(id => {
     const tabEl    = document.getElementById("tab-"    + id)
     const painelEl = document.getElementById("painel-" + id)
     if (tabEl)    tabEl.classList.toggle("active", aba === id)
-    if (painelEl) painelEl.style.display = aba === id ? (["backup","seguranca"].includes(id) ? "block" : "flex") : "none"
+    if (painelEl) painelEl.style.display = aba === id ? "flex" : "none"
   })
   if (aba === "areas")        renderizarListaAreas()
   if (aba === "cargos")       renderizarListaCargos()
   if (aba === "conhecimento") renderizarListaConhecimento()
   if (aba === "niveis")       renderizarListaNiveis()
   if (aba === "usuarios")     carregarUsuarios()
-  if (aba === "backup")       abrirBackup()
-  if (aba === "seguranca")    abrirSeguranca()
 }
 
 

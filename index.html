@@ -216,11 +216,11 @@
       </div>
 
       <div class="menu-group" id="menu-backup-item" data-menu="backup-menu" style="display:none">
-        <button class="menu-item" onclick="trocarAba('backup')"><i class="uil uil-database" style="margin-right:4px"></i>Backup</button>
+        <button class="menu-item" onclick="abrirBackup()"><i class="uil uil-database" style="margin-right:4px"></i>Backup</button>
       </div>
 
       <div class="menu-group" id="menu-seguranca-item" data-menu="seguranca-menu" style="display:none">
-        <button class="menu-item" onclick="trocarAba('seguranca')"><i class="uil uil-shield-check" style="margin-right:4px"></i>Segurança</button>
+        <button class="menu-item" onclick="abrirSeguranca()"><i class="uil uil-shield-check" style="margin-right:4px"></i>Segurança</button>
       </div>
 
       <div class="menu-group" data-menu="ajuda">
@@ -384,14 +384,6 @@
           <div class="tab" id="tab-usuarios" onclick="trocarAba('usuarios')" style="display:none">
             <i class="uil uil-users-alt"></i>
             Usuários
-          </div>
-          <div class="tab" id="tab-backup" onclick="trocarAba('backup')" style="display:none">
-            <i class="uil uil-database"></i>
-            Backup
-          </div>
-          <div class="tab" id="tab-seguranca" onclick="trocarAba('seguranca')" style="display:none">
-            <i class="uil uil-shield-check"></i>
-            Segurança
           </div>
           <div class="tab-bar-right">
             <div id="cbo_badge" class="cbo-badge" style="display:none">
@@ -782,210 +774,6 @@
 
         </div>
 
-        <!-- ── ABA: BACKUP ─────────────────────────────────── -->
-        <div id="painel-backup" class="result-area" style="display:none;padding:24px;overflow-y:auto">
-
-          <div class="bk-grid">
-
-            <!-- Coluna esquerda -->
-            <div class="bk-col">
-
-              <!-- Status do banco -->
-              <div class="bk-card">
-                <div class="bk-card-title"><i class="uil uil-server"></i> Status do banco</div>
-                <div class="bk-stats" id="bk-stats">
-                  <div class="bk-stat"><span class="bk-stat-val" id="bk-tamanho">—</span><span class="bk-stat-label">Tamanho</span></div>
-                  <div class="bk-stat"><span class="bk-stat-val" id="bk-cargos">—</span><span class="bk-stat-label">Cargos</span></div>
-                  <div class="bk-stat"><span class="bk-stat-val" id="bk-areas">—</span><span class="bk-stat-label">Áreas</span></div>
-                  <div class="bk-stat"><span class="bk-stat-val" id="bk-conhec">—</span><span class="bk-stat-label">Conhecimentos</span></div>
-                  <div class="bk-stat"><span class="bk-stat-val" id="bk-versoes">—</span><span class="bk-stat-label">Versões</span></div>
-                  <div class="bk-stat"><span class="bk-stat-val" id="bk-usuarios">—</span><span class="bk-stat-label">Usuários</span></div>
-                </div>
-                <div class="bk-ultimo" id="bk-ultimo-backup"></div>
-              </div>
-
-              <!-- Backup manual -->
-              <div class="bk-card">
-                <div class="bk-card-title"><i class="uil uil-download-alt"></i> Backup manual</div>
-                <p class="bk-desc">Gera e baixa uma cópia completa do banco de dados agora. O arquivo pode ser guardado localmente, em nuvem ou enviado por e-mail.</p>
-                <button class="bk-btn-primary" onclick="baixarBackup()">
-                  <i class="uil uil-download-alt"></i> Baixar backup agora
-                </button>
-              </div>
-
-              <!-- Restaurar -->
-              <div class="bk-card bk-card-warn">
-                <div class="bk-card-title"><i class="uil uil-upload-alt"></i> Restaurar backup</div>
-                <p class="bk-desc">Substitui o banco atual por um arquivo de backup. <strong>Todos os dados inseridos após o backup serão perdidos.</strong> O sistema reinicia automaticamente após a restauração.</p>
-                <label class="bk-btn-danger" style="cursor:pointer">
-                  <i class="uil uil-folder-upload"></i> Selecionar arquivo .db
-                  <input type="file" accept=".db" style="display:none" onchange="restaurarBackup(this)">
-                </label>
-              </div>
-
-            </div>
-
-            <!-- Coluna direita: histórico -->
-            <div class="bk-col">
-              <div class="bk-card" style="flex:1">
-                <div class="bk-card-title"><i class="uil uil-history"></i> Histórico de backups</div>
-                <p class="bk-desc">Registra todos os backups baixados. Guarde os arquivos em local seguro.</p>
-                <ul id="bk-historico" class="bk-historico-list">
-                  <li class="bk-historico-vazio">Nenhum backup realizado ainda.</li>
-                </ul>
-              </div>
-
-              <!-- Boas práticas -->
-              <div class="bk-card">
-                <div class="bk-card-title"><i class="uil uil-shield-check"></i> Boas práticas</div>
-                <ul class="bk-dicas">
-                  <li><i class="uil uil-check-circle"></i> Faça backup antes de grandes alterações</li>
-                  <li><i class="uil uil-check-circle"></i> Guarde ao menos os 3 últimos backups</li>
-                  <li><i class="uil uil-check-circle"></i> Salve em local diferente do servidor (Drive, pendrive)</li>
-                  <li><i class="uil uil-check-circle"></i> Rotina recomendada: semanal ou após cada sessão importante</li>
-                  <li><i class="uil uil-check-circle"></i> Teste a restauração periodicamente em ambiente separado</li>
-                </ul>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- ── ABA: SEGURANÇA ──────────────────────────────── -->
-        <div id="painel-seguranca" class="result-area" style="display:none;padding:24px;overflow-y:auto">
-          <div class="sec-wrap">
-
-            <!-- Score geral -->
-            <div class="sec-score-card">
-              <div class="sec-score-ring">
-                <svg width="100" height="100" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border)" stroke-width="8"/>
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="#10b981" stroke-width="8"
-                    stroke-dasharray="264" stroke-dashoffset="26"
-                    stroke-linecap="round" transform="rotate(-90 50 50)"/>
-                </svg>
-                <div class="sec-score-num">90<span>%</span></div>
-              </div>
-              <div class="sec-score-info">
-                <div class="sec-score-title">Score de Segurança</div>
-                <div class="sec-score-sub">10 de 11 proteções ativas</div>
-                <div class="sec-score-tip"><i class="uil uil-info-circle"></i> Backup automático elevaria para 100%</div>
-              </div>
-            </div>
-
-            <!-- Grid de proteções -->
-            <div class="sec-grid">
-
-              <div class="sec-item sec-ok">
-                <div class="sec-item-icon"><i class="uil uil-lock"></i></div>
-                <div class="sec-item-body">
-                  <div class="sec-item-title">HTTPS obrigatório</div>
-                  <div class="sec-item-desc">Toda comunicação é criptografada. Railway força HTTPS em todas as requisições.</div>
-                </div>
-                <div class="sec-badge sec-badge-ok">Ativo</div>
-              </div>
-
-              <div class="sec-item sec-ok">
-                <div class="sec-item-icon"><i class="uil uil-key-skeleton"></i></div>
-                <div class="sec-item-body">
-                  <div class="sec-item-title">Senhas com scrypt + salt</div>
-                  <div class="sec-item-desc">Nenhuma senha é armazenada em texto. Cada uma tem um salt único de 16 bytes com algoritmo scrypt.</div>
-                </div>
-                <div class="sec-badge sec-badge-ok">Ativo</div>
-              </div>
-
-              <div class="sec-item sec-ok">
-                <div class="sec-item-icon"><i class="uil uil-ticket"></i></div>
-                <div class="sec-item-body">
-                  <div class="sec-item-title">Tokens de sessão seguros</div>
-                  <div class="sec-item-desc">Sessões geradas com 32 bytes aleatórios criptográficos (256 bits). Expiram em 30 dias.</div>
-                </div>
-                <div class="sec-badge sec-badge-ok">Ativo</div>
-              </div>
-
-              <div class="sec-item sec-ok">
-                <div class="sec-item-icon"><i class="uil uil-shield"></i></div>
-                <div class="sec-item-body">
-                  <div class="sec-item-title">Cookie HttpOnly + Secure + SameSite</div>
-                  <div class="sec-item-desc">O cookie de sessão não é acessível por JavaScript. Só trafega em HTTPS e na mesma origem.</div>
-                </div>
-                <div class="sec-badge sec-badge-ok">Ativo</div>
-              </div>
-
-              <div class="sec-item sec-ok">
-                <div class="sec-item-icon"><i class="uil uil-ban"></i></div>
-                <div class="sec-item-body">
-                  <div class="sec-item-title">Rate limit no login</div>
-                  <div class="sec-item-desc">Bloqueia o IP após 10 tentativas incorretas em 15 minutos. Previne ataques de força bruta.</div>
-                </div>
-                <div class="sec-badge sec-badge-ok">Ativo</div>
-              </div>
-
-              <div class="sec-item sec-ok">
-                <div class="sec-item-icon"><i class="uil uil-server-network"></i></div>
-                <div class="sec-item-body">
-                  <div class="sec-item-title">Headers de segurança</div>
-                  <div class="sec-item-desc">X-Frame-Options, Content-Security-Policy, X-Content-Type-Options, Referrer-Policy ativos em todas as respostas.</div>
-                </div>
-                <div class="sec-badge sec-badge-ok">Ativo</div>
-              </div>
-
-              <div class="sec-item sec-ok">
-                <div class="sec-item-icon"><i class="uil uil-exchange"></i></div>
-                <div class="sec-item-body">
-                  <div class="sec-item-title">CORS restrito</div>
-                  <div class="sec-item-desc">Em produção, apenas requisições da própria origem são aceitas. Sites externos não conseguem acessar a API.</div>
-                </div>
-                <div class="sec-badge sec-badge-ok">Ativo</div>
-              </div>
-
-              <div class="sec-item sec-ok">
-                <div class="sec-item-icon"><i class="uil uil-building"></i></div>
-                <div class="sec-item-body">
-                  <div class="sec-item-title">Isolamento multi-empresa</div>
-                  <div class="sec-item-desc">Cada empresa acessa somente seus próprios dados. Isolamento garantido em 100% das queries do banco.</div>
-                </div>
-                <div class="sec-badge sec-badge-ok">Ativo</div>
-              </div>
-
-              <div class="sec-item sec-ok">
-                <div class="sec-item-icon"><i class="uil uil-link"></i></div>
-                <div class="sec-item-body">
-                  <div class="sec-item-title">Hash chain de versões</div>
-                  <div class="sec-item-desc">Cada versão de cargo gera um SHA-256 encadeado com a versão anterior. Qualquer adulteração é detectável.</div>
-                </div>
-                <div class="sec-badge sec-badge-ok">Ativo</div>
-              </div>
-
-              <div class="sec-item sec-ok">
-                <div class="sec-item-icon"><i class="uil uil-clock"></i></div>
-                <div class="sec-item-body">
-                  <div class="sec-item-title">Limpeza automática de sessões</div>
-                  <div class="sec-item-desc">Sessões expiradas são removidas do banco automaticamente a cada hora.</div>
-                </div>
-                <div class="sec-badge sec-badge-ok">Ativo</div>
-              </div>
-
-              <div class="sec-item sec-warn">
-                <div class="sec-item-icon"><i class="uil uil-save"></i></div>
-                <div class="sec-item-body">
-                  <div class="sec-item-title">Backup automático</div>
-                  <div class="sec-item-desc">Não configurado. Faça backup manual regularmente na aba Backup para evitar perda de dados.</div>
-                </div>
-                <div class="sec-badge sec-badge-warn">Manual</div>
-              </div>
-
-            </div>
-
-            <!-- Info último backup -->
-            <div class="sec-footer">
-              <i class="uil uil-info-circle"></i>
-              <span id="sec-ultimo-backup">Carregando informações de backup...</span>
-            </div>
-
-          </div>
-        </div>
-
         <!-- Inner status bar -->
         <div class="inner-status-bar">
           <span id="status_dot" class="status_dot idle"></span>
@@ -1172,6 +960,227 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ── MODAL BACKUP ────────────────────────────────────────── -->
+  <div id="modal-backup" class="modal-overlay cal-overlay" style="display:none" onclick="fecharModalBackup(event)">
+    <div class="modal-box" style="width:900px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:28px">
+      <div class="cal-header">
+        <div class="cal-header-left">
+          <i class="uil uil-database"></i>
+          <span>Backup</span>
+        </div>
+        <button class="cal-close-btn" onclick="fecharModalBackup()"><i class="uil uil-times"></i></button>
+      </div>
+      <div class="bk-grid">
+
+        <!-- Coluna esquerda -->
+        <div class="bk-col">
+
+          <!-- Status do banco -->
+          <div class="bk-card">
+            <div class="bk-card-title"><i class="uil uil-server"></i> Status do banco</div>
+            <div class="bk-stats" id="bk-stats">
+              <div class="bk-stat"><span class="bk-stat-val" id="bk-tamanho">—</span><span class="bk-stat-label">Tamanho</span></div>
+              <div class="bk-stat"><span class="bk-stat-val" id="bk-cargos">—</span><span class="bk-stat-label">Cargos</span></div>
+              <div class="bk-stat"><span class="bk-stat-val" id="bk-areas">—</span><span class="bk-stat-label">Áreas</span></div>
+              <div class="bk-stat"><span class="bk-stat-val" id="bk-conhec">—</span><span class="bk-stat-label">Conhecimentos</span></div>
+              <div class="bk-stat"><span class="bk-stat-val" id="bk-versoes">—</span><span class="bk-stat-label">Versões</span></div>
+              <div class="bk-stat"><span class="bk-stat-val" id="bk-usuarios">—</span><span class="bk-stat-label">Usuários</span></div>
+            </div>
+            <div class="bk-ultimo" id="bk-ultimo-backup"></div>
+          </div>
+
+          <!-- Backup manual -->
+          <div class="bk-card">
+            <div class="bk-card-title"><i class="uil uil-download-alt"></i> Backup manual</div>
+            <p class="bk-desc">Gera e baixa uma cópia completa do banco de dados agora. O arquivo pode ser guardado localmente, em nuvem ou enviado por e-mail.</p>
+            <button class="bk-btn-primary" onclick="baixarBackup()">
+              <i class="uil uil-download-alt"></i> Baixar backup agora
+            </button>
+          </div>
+
+          <!-- Restaurar -->
+          <div class="bk-card bk-card-warn">
+            <div class="bk-card-title"><i class="uil uil-upload-alt"></i> Restaurar backup</div>
+            <p class="bk-desc">Substitui o banco atual por um arquivo de backup. <strong>Todos os dados inseridos após o backup serão perdidos.</strong> O sistema reinicia automaticamente após a restauração.</p>
+            <label class="bk-btn-danger" style="cursor:pointer">
+              <i class="uil uil-folder-upload"></i> Selecionar arquivo .db
+              <input type="file" accept=".db" style="display:none" onchange="restaurarBackup(this)">
+            </label>
+          </div>
+
+        </div>
+
+        <!-- Coluna direita: histórico -->
+        <div class="bk-col">
+          <div class="bk-card" style="flex:1">
+            <div class="bk-card-title"><i class="uil uil-history"></i> Histórico de backups</div>
+            <p class="bk-desc">Registra todos os backups baixados. Guarde os arquivos em local seguro.</p>
+            <ul id="bk-historico" class="bk-historico-list">
+              <li class="bk-historico-vazio">Nenhum backup realizado ainda.</li>
+            </ul>
+          </div>
+
+          <!-- Boas práticas -->
+          <div class="bk-card">
+            <div class="bk-card-title"><i class="uil uil-shield-check"></i> Boas práticas</div>
+            <ul class="bk-dicas">
+              <li><i class="uil uil-check-circle"></i> Faça backup antes de grandes alterações</li>
+              <li><i class="uil uil-check-circle"></i> Guarde ao menos os 3 últimos backups</li>
+              <li><i class="uil uil-check-circle"></i> Salve em local diferente do servidor (Drive, pendrive)</li>
+              <li><i class="uil uil-check-circle"></i> Rotina recomendada: semanal ou após cada sessão importante</li>
+              <li><i class="uil uil-check-circle"></i> Teste a restauração periodicamente em ambiente separado</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL SEGURANÇA ─────────────────────────────────────── -->
+  <div id="modal-seguranca" class="modal-overlay cal-overlay" style="display:none" onclick="fecharModalSeguranca(event)">
+    <div class="modal-box" style="width:960px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:28px">
+      <div class="cal-header">
+        <div class="cal-header-left">
+          <i class="uil uil-shield-check"></i>
+          <span>Segurança</span>
+        </div>
+        <button class="cal-close-btn" onclick="fecharModalSeguranca()"><i class="uil uil-times"></i></button>
+      </div>
+      <div class="sec-wrap">
+
+        <!-- Score geral -->
+        <div class="sec-score-card">
+          <div class="sec-score-ring">
+            <svg width="100" height="100" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border)" stroke-width="8"/>
+              <circle cx="50" cy="50" r="42" fill="none" stroke="#10b981" stroke-width="8"
+                stroke-dasharray="264" stroke-dashoffset="26"
+                stroke-linecap="round" transform="rotate(-90 50 50)"/>
+            </svg>
+            <div class="sec-score-num">90<span>%</span></div>
+          </div>
+          <div class="sec-score-info">
+            <div class="sec-score-title">Score de Segurança</div>
+            <div class="sec-score-sub">10 de 11 proteções ativas</div>
+            <div class="sec-score-tip"><i class="uil uil-info-circle"></i> Backup automático elevaria para 100%</div>
+          </div>
+        </div>
+
+        <!-- Grid de proteções -->
+        <div class="sec-grid">
+
+          <div class="sec-item sec-ok">
+            <div class="sec-item-icon"><i class="uil uil-lock"></i></div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">HTTPS obrigatório</div>
+              <div class="sec-item-desc">Toda comunicação é criptografada. Railway força HTTPS em todas as requisições.</div>
+            </div>
+            <div class="sec-badge sec-badge-ok">Ativo</div>
+          </div>
+
+          <div class="sec-item sec-ok">
+            <div class="sec-item-icon"><i class="uil uil-key-skeleton"></i></div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">Senhas com scrypt + salt</div>
+              <div class="sec-item-desc">Nenhuma senha é armazenada em texto. Cada uma tem um salt único de 16 bytes com algoritmo scrypt.</div>
+            </div>
+            <div class="sec-badge sec-badge-ok">Ativo</div>
+          </div>
+
+          <div class="sec-item sec-ok">
+            <div class="sec-item-icon"><i class="uil uil-ticket"></i></div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">Tokens de sessão seguros</div>
+              <div class="sec-item-desc">Sessões geradas com 32 bytes aleatórios criptográficos (256 bits). Expiram em 30 dias.</div>
+            </div>
+            <div class="sec-badge sec-badge-ok">Ativo</div>
+          </div>
+
+          <div class="sec-item sec-ok">
+            <div class="sec-item-icon"><i class="uil uil-shield"></i></div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">Cookie HttpOnly + Secure + SameSite</div>
+              <div class="sec-item-desc">O cookie de sessão não é acessível por JavaScript. Só trafega em HTTPS e na mesma origem.</div>
+            </div>
+            <div class="sec-badge sec-badge-ok">Ativo</div>
+          </div>
+
+          <div class="sec-item sec-ok">
+            <div class="sec-item-icon"><i class="uil uil-ban"></i></div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">Rate limit no login</div>
+              <div class="sec-item-desc">Bloqueia o IP após 10 tentativas incorretas em 15 minutos. Previne ataques de força bruta.</div>
+            </div>
+            <div class="sec-badge sec-badge-ok">Ativo</div>
+          </div>
+
+          <div class="sec-item sec-ok">
+            <div class="sec-item-icon"><i class="uil uil-server-network"></i></div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">Headers de segurança</div>
+              <div class="sec-item-desc">X-Frame-Options, Content-Security-Policy, X-Content-Type-Options, Referrer-Policy ativos em todas as respostas.</div>
+            </div>
+            <div class="sec-badge sec-badge-ok">Ativo</div>
+          </div>
+
+          <div class="sec-item sec-ok">
+            <div class="sec-item-icon"><i class="uil uil-exchange"></i></div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">CORS restrito</div>
+              <div class="sec-item-desc">Em produção, apenas requisições da própria origem são aceitas. Sites externos não conseguem acessar a API.</div>
+            </div>
+            <div class="sec-badge sec-badge-ok">Ativo</div>
+          </div>
+
+          <div class="sec-item sec-ok">
+            <div class="sec-item-icon"><i class="uil uil-building"></i></div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">Isolamento multi-empresa</div>
+              <div class="sec-item-desc">Cada empresa acessa somente seus próprios dados. Isolamento garantido em 100% das queries do banco.</div>
+            </div>
+            <div class="sec-badge sec-badge-ok">Ativo</div>
+          </div>
+
+          <div class="sec-item sec-ok">
+            <div class="sec-item-icon"><i class="uil uil-link"></i></div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">Hash chain de versões</div>
+              <div class="sec-item-desc">Cada versão de cargo gera um SHA-256 encadeado com a versão anterior. Qualquer adulteração é detectável.</div>
+            </div>
+            <div class="sec-badge sec-badge-ok">Ativo</div>
+          </div>
+
+          <div class="sec-item sec-ok">
+            <div class="sec-item-icon"><i class="uil uil-clock"></i></div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">Limpeza automática de sessões</div>
+              <div class="sec-item-desc">Sessões expiradas são removidas do banco automaticamente a cada hora.</div>
+            </div>
+            <div class="sec-badge sec-badge-ok">Ativo</div>
+          </div>
+
+          <div class="sec-item sec-warn">
+            <div class="sec-item-icon"><i class="uil uil-save"></i></div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">Backup automático</div>
+              <div class="sec-item-desc">Não configurado. Faça backup manual regularmente na aba Backup para evitar perda de dados.</div>
+            </div>
+            <div class="sec-badge sec-badge-warn">Manual</div>
+          </div>
+
+        </div>
+
+        <!-- Info último backup -->
+        <div class="sec-footer">
+          <i class="uil uil-info-circle"></i>
+          <span id="sec-ultimo-backup">Carregando informações de backup...</span>
+        </div>
+
+      </div>
     </div>
   </div>
 
