@@ -87,28 +87,26 @@ function setModo(btn) {
 let provedorAtual = "groq"
 
 const IA_INFO = {
-  ollama: {
-    ico:  "uil-processor",
-    nome: "Ollama · qwen2.5",
-    desc: "Local · privacidade total · sem internet"
-  },
   groq: {
     ico:  "uil-cloud",
     nome: "Groq · llama-3.3-70b",
     desc: "Nuvem · 70B parâmetros · ~500 tok/s"
+  },
+  together: {
+    ico:  "uil-cloud",
+    nome: "Together AI · Llama 3.3",
+    desc: "Nuvem · fallback automático"
   }
 }
 
 function setProvedor(prov, silent = false) {
   provedorAtual = prov
-  document.getElementById("prov-ollama").classList.toggle("active", prov === "ollama")
-  document.getElementById("prov-groq").classList.toggle("active",   prov === "groq")
-  const info = IA_INFO[prov]
-  document.getElementById("ia-card-ico").className   = `uil ${info.ico}`
+  const info = IA_INFO[prov] || IA_INFO.groq
+  document.getElementById("prov-label").textContent   = prov === "together" ? "Together AI" : "Groq"
+  document.getElementById("ia-card-ico").className    = `uil ${info.ico}`
   document.getElementById("ia-card-name").textContent = info.nome
   document.getElementById("ia-card-desc").textContent = info.desc
   setIAStatus("ready")
-  if (!silent) showToast(prov === "groq" ? "Groq · llama-3.3-70b · nuvem" : "Ollama · local · privacidade total", "info")
 }
 
 function setIAStatus(st) {
@@ -1179,7 +1177,7 @@ async function gerarDescricao() {
 
         if (data.tipo === "failover") {
           setProvedor(data.para, true)
-          showToast("Groq indisponível — usando Ollama como fallback", "info")
+          showToast("Groq indisponível — usando Together AI como fallback", "info")
           continue
         }
 

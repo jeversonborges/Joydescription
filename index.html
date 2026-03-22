@@ -259,13 +259,9 @@
       </button>
       <div class="tb-spacer"></div>
       <div class="provedor-selector" id="provedor-selector">
-        <button class="prov-btn prov-btn-ollama" id="prov-ollama" onclick="setProvedor('ollama')" title="Ollama — processamento local">
-          <i class="uil uil-processor"></i>
-          <span>Ollama</span>
-        </button>
-        <button class="prov-btn prov-btn-groq active" id="prov-groq" onclick="setProvedor('groq')" title="Groq — processamento em nuvem">
+        <button class="prov-btn prov-btn-groq active" id="prov-groq" title="Groq — processamento em nuvem (Together AI como fallback automático)">
           <i class="uil uil-cloud"></i>
-          <span>Groq</span>
+          <span id="prov-label">Groq</span>
         </button>
       </div>
     </div>
