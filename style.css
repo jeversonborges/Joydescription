@@ -2505,6 +2505,9 @@ body.dark .cargos-count {
   font-weight: 800;
   letter-spacing: -1px;
   line-height: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
 }
 
 .login-tagline {
