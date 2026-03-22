@@ -18,10 +18,10 @@ dotenv.config()
 
 const __dirname  = path.dirname(fileURLToPath(import.meta.url))
 const PORT        = process.env.PORT         || 3000
-const OLLAMA_URL  = process.env.OLLAMA_URL   || "http://localhost:11434"
-const MODEL       = process.env.OLLAMA_MODEL || "qwen2.5"
-const GROQ_KEY    = process.env.GROQ_API_KEY || ""
-const GROQ_MODEL  = process.env.GROQ_MODEL   || "llama-3.3-70b-versatile"
+const GROQ_KEY      = process.env.GROQ_API_KEY      || ""
+const GROQ_MODEL    = process.env.GROQ_MODEL        || "llama-3.3-70b-versatile"
+const TOGETHER_KEY  = process.env.TOGETHER_API_KEY  || ""
+const TOGETHER_MODEL= process.env.TOGETHER_MODEL    || "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 
 // ── Express ────────────────────────────────────────────────────
 const app = express()
@@ -260,9 +260,9 @@ setInterval(() => {
 })()
 
 
-// ── Cliente Ollama via SDK OpenAI-compatível ───────────────────
-const ollamaClient = new OpenAI({ baseURL: `${OLLAMA_URL}/v1`, apiKey: "ollama" })
-const groqClient   = new OpenAI({ baseURL: "https://api.groq.com/openai/v1", apiKey: GROQ_KEY })
+// ── Clientes IA ────────────────────────────────────────────────
+const groqClient     = new OpenAI({ baseURL: "https://api.groq.com/openai/v1",      apiKey: GROQ_KEY })
+const togetherClient = new OpenAI({ baseURL: "https://api.together.xyz/v1",          apiKey: TOGETHER_KEY })
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -1834,8 +1834,8 @@ ${ehLider
 
 Score inicial: 100. Subtraia apenas pelos alertas gerados. aprovado = true se score final >= 70`
 
-  const client = (provedor === "groq" && GROQ_KEY) ? groqClient : ollamaClient
-  const model  = (provedor === "groq" && GROQ_KEY) ? GROQ_MODEL : MODEL
+  const client = GROQ_KEY ? groqClient : togetherClient
+  const model  = GROQ_KEY ? GROQ_MODEL : TOGETHER_MODEL
 
   try {
     const completion = await client.chat.completions.create({
@@ -1890,8 +1890,8 @@ ${texto.slice(0, 3000)}
 
 TEXTO CORRIGIDO:`
 
-  const client = (provedor === "groq" && GROQ_KEY) ? groqClient : ollamaClient
-  const model  = (provedor === "groq" && GROQ_KEY) ? GROQ_MODEL : MODEL
+  const client = GROQ_KEY ? groqClient : togetherClient
+  const model  = GROQ_KEY ? GROQ_MODEL : TOGETHER_MODEL
 
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8")
   res.setHeader("Cache-Control", "no-cache")
@@ -1927,15 +1927,12 @@ TEXTO CORRIGIDO:`
 
 // ═══════════════════════════════════════════════════════════════
 
-app.get("/health", async (_, res) => {
-  let ollamaOk = false
-  try { ollamaOk = (await fetch(`${OLLAMA_URL}/api/tags`)).ok } catch { /* offline */ }
+app.get("/health", (_, res) => {
   res.json({
     status:        "ok",
     cbo_ocupacoes: cboBase.length,
-    ollama_url:    OLLAMA_URL,
-    modelo:        MODEL,
-    ollama_ok:     ollamaOk
+    groq:          GROQ_KEY    ? "configurado (" + GROQ_MODEL + ")"    : "não configurado",
+    together:      TOGETHER_KEY ? "configurado (" + TOGETHER_MODEL + ")" : "não configurado"
   })
 })
 
@@ -1956,25 +1953,24 @@ app.get("/sugestoes", (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 
 app.post("/gerar", async (req, res) => {
-  const { cargo, area, nivel, tipo = "Híbrido", provedor = "ollama" } = req.body
+  const { cargo, area, nivel, tipo = "Híbrido" } = req.body
 
   if (!cargo?.trim() || !area || !nivel)
     return res.status(400).json({ erro: "Campos obrigatórios: cargo, area, nivel" })
 
-  if (provedor === "groq" && !GROQ_KEY)
-    return res.status(400).json({ erro: "GROQ_API_KEY não configurada no .env" })
+  if (!GROQ_KEY && !TOGETHER_KEY)
+    return res.status(500).json({ erro: "Nenhuma API de IA configurada. Configure GROQ_API_KEY ou TOGETHER_API_KEY." })
 
   res.setHeader("Content-Type",  "text/event-stream")
   res.setHeader("Cache-Control", "no-cache")
   res.setHeader("Connection",    "keep-alive")
   res.flushHeaders()
 
-  const useGroq      = provedor === "groq"
-  let   activeClient = useGroq ? groqClient : ollamaClient
-  let   activeModel  = useGroq ? GROQ_MODEL : MODEL
+  let   activeClient = GROQ_KEY ? groqClient : togetherClient
+  let   activeModel  = GROQ_KEY ? GROQ_MODEL : TOGETHER_MODEL
   let   didFailover  = false
 
-  // Wrapper com failover automático para Ollama se Groq falhar
+  // Wrapper com failover automático Groq → Together AI
   const criarStream = async (params) => {
     try {
       return await activeClient.chat.completions.create({ ...params, model: activeModel })
@@ -1982,19 +1978,28 @@ app.post("/gerar", async (req, res) => {
       const status = err.status ?? err.statusCode ?? 0
       console.error(`❌ Groq erro ${status}:`, err.message)
 
-      // 429 = rate limit — não faz sentido falhar para Ollama, avisa o usuário
-      if (status === 429) {
-        const retry = err.headers?.["retry-after"] ?? "60"
-        throw Object.assign(new Error(`Limite de requisições Groq atingido. Aguarde ${retry}s ou troque para Ollama.`), { groqRateLimit: true })
+      // 429 = rate limit — tenta Together AI se disponível
+      if (status === 429 && TOGETHER_KEY && !didFailover) {
+        didFailover  = true
+        activeClient = togetherClient
+        activeModel  = TOGETHER_MODEL
+        console.warn("⚠️  Groq rate limit — failover para Together AI")
+        res.write(`data: ${JSON.stringify({ tipo: "failover", para: "together" })}\n\n`)
+        return await activeClient.chat.completions.create({ ...params, model: activeModel })
       }
 
-      // Outros erros: failover para Ollama
-      if (useGroq && !didFailover) {
+      if (status === 429) {
+        const retry = err.headers?.["retry-after"] ?? "60"
+        throw new Error(`Limite de requisições atingido. Aguarde ${retry}s.`)
+      }
+
+      // Outros erros: failover para Together AI
+      if (TOGETHER_KEY && !didFailover) {
         didFailover  = true
-        activeClient = ollamaClient
-        activeModel  = MODEL
-        console.warn("⚠️  Groq indisponível — failover para Ollama:", err.message)
-        res.write(`data: ${JSON.stringify({ tipo: "failover", para: "ollama" })}\n\n`)
+        activeClient = togetherClient
+        activeModel  = TOGETHER_MODEL
+        console.warn("⚠️  Groq indisponível — failover para Together AI:", err.message)
+        res.write(`data: ${JSON.stringify({ tipo: "failover", para: "together" })}\n\n`)
         return await activeClient.chat.completions.create({ ...params, model: activeModel })
       }
       throw err
@@ -2041,44 +2046,24 @@ app.post("/gerar", async (req, res) => {
       "presença híbrida — campo e escritório"
     }`)
 
-    console.log(`🤖 Gerando via ${useGroq ? "Groq (" + GROQ_MODEL + ")" : "Ollama (" + MODEL + ")"}`)
+    console.log(`🤖 Gerando via ${didFailover ? "Together AI (" + TOGETHER_MODEL + ")" : "Groq (" + GROQ_MODEL + ")"}`)
 
-    // System messages — Groq segue bem instruções complexas; Ollama precisa de abordagem mais diretiva
-    const SYS_GROQ = "Você é especialista sênior em RH de usinas sucroenergéticas. Siga o formato EXATAMENTE como solicitado. PROIBIDO adicionar qualquer texto fora do template — sem introduções, sem conclusões, sem comentários."
+    const SYS = "Você é especialista sênior em RH de usinas sucroenergéticas. Siga o formato EXATAMENTE como solicitado. PROIBIDO adicionar qualquer texto fora do template — sem introduções, sem conclusões, sem comentários."
 
-    const SYS_OLLAMA = `Você é um gerador de documentos. Preencha o template exatamente como solicitado.
-PROIBIDO: introduções, explicações, "aqui está", "claro", "certamente", meta-comentários de qualquer tipo.
-Escreva apenas o conteúdo do documento, começando pelo primeiro título.`
-
-    const SYS = useGroq ? SYS_GROQ : SYS_OLLAMA
-
-    // Prefill ancorado no cargo e área — força o modelo a permanecer no contexto correto
-    const prefillGen = `DESCRICAO DO CARGO\n\n`
-    const prefillDet = `MISSAO DO CARGO\n\n`
-
-    // Seleção de prompt: Groq usa o detalhado completo; Ollama usa versão enxuta
     const niveisRows = db.prepare("SELECT * FROM niveis WHERE empresa_id = ?").all(req.empresaId)
     const nm = Object.fromEntries(niveisRows.map(n => [n.label, n]))
 
-    const promptGen = useGroq
-      ? montarPromptGenerica(cargo, area, nivel, tipo, candidatos, nm, req.empresaId)
-      : montarPromptOllamaGen(cargo, area, nivel, tipo, candidatos, nm, req.empresaId)
-
-    const promptDet = useGroq
-      ? montarPrompt(cargo, area, nivel, tipo, candidatos, nm, req.empresaId)
-      : montarPromptOllamaDet(cargo, area, nivel, tipo, candidatos, nm, req.empresaId)
+    const promptGen = montarPromptGenerica(cargo, area, nivel, tipo, candidatos, nm, req.empresaId)
+    const promptDet = montarPrompt(cargo, area, nivel, tipo, candidatos, nm, req.empresaId)
 
     // ── Genérica ──────────────────────────────────────────────────
     res.write(`data: ${JSON.stringify({ tipo: "secao", nome: "generica" })}\n\n`)
 
-    if (!useGroq) res.write(`data: ${JSON.stringify({ texto: prefillGen })}\n\n`)
-
     const streamGen = await criarStream({
       stream: true, temperature: 0.2, max_tokens: 900,
       messages: [
-        { role: "system",    content: SYS },
-        { role: "user",      content: promptGen },
-        ...(!useGroq ? [{ role: "assistant", content: prefillGen }] : [])
+        { role: "system", content: SYS },
+        { role: "user",   content: promptGen }
       ]
     })
     for await (const chunk of streamGen) {
@@ -2089,14 +2074,11 @@ Escreva apenas o conteúdo do documento, começando pelo primeiro título.`
     // ── Detalhada ─────────────────────────────────────────────────
     res.write(`data: ${JSON.stringify({ tipo: "secao", nome: "detalhada" })}\n\n`)
 
-    if (!useGroq) res.write(`data: ${JSON.stringify({ texto: prefillDet })}\n\n`)
-
     const streamDet = await criarStream({
       stream: true, temperature: 0.2, max_tokens: 1600,
       messages: [
-        { role: "system",    content: SYS },
-        { role: "user",      content: promptDet },
-        ...(!useGroq ? [{ role: "assistant", content: prefillDet }] : [])
+        { role: "system", content: SYS },
+        { role: "user",   content: promptDet }
       ]
     })
     for await (const chunk of streamDet) {
@@ -2108,7 +2090,7 @@ Escreva apenas o conteúdo do documento, começando pelo primeiro título.`
     res.end()
 
   } catch (err) {
-    console.error(`❌ Erro ${useGroq ? "Groq" : "Ollama"}:`, err.message)
+    console.error(`❌ Erro IA:`, err.message)
     res.write(`data: ${JSON.stringify({ erro: err.message })}\n\n`)
     res.end()
   }
@@ -2124,7 +2106,7 @@ app.use(express.static(__dirname))
 
 app.listen(PORT, () => {
   console.log(`\n🚀 JoyDescription → http://localhost:${PORT}`)
-  console.log(`🦙 Ollama:  ${OLLAMA_URL} (${MODEL})`)
-  console.log(`⚡ Groq:    ${GROQ_KEY ? "✅ configurado (" + GROQ_MODEL + ")" : "❌ sem API key"}`)
+  console.log(`⚡ Groq:    ${GROQ_KEY     ? "✅ configurado (" + GROQ_MODEL     + ")" : "❌ sem API key"}`)
+  console.log(`🔀 Together:${TOGETHER_KEY ? "✅ configurado (" + TOGETHER_MODEL + ")" : "❌ sem API key (failover inativo)"}`)
   console.log(`🗄️  Banco:   joydescription.db\n`)
 })
