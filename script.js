@@ -377,7 +377,7 @@ async function fazerRegistro() {
   erroEl.textContent = ""
 
   if (!empresa || !nome || !email || !senha) { erroEl.textContent = "Preencha todos os campos."; return }
-  if (senha.length < 6) { erroEl.textContent = "A senha deve ter ao menos 6 caracteres."; return }
+  if (senha.length < 8) { erroEl.textContent = "A senha deve ter ao menos 8 caracteres."; return }
   if (senha !== senha2) { erroEl.textContent = "As senhas não coincidem."; return }
 
   const btn = document.getElementById("reg-btn-criar")
@@ -478,7 +478,7 @@ async function criarUsuario() {
   const papel = document.getElementById("novo-usuario-papel").value
 
   if (!nome || !email || !senha) { showToast("Preencha todos os campos.", "error"); return }
-  if (senha.length < 6) { showToast("Senha mínima: 6 caracteres.", "error"); return }
+  if (senha.length < 8) { showToast("Senha mínima: 8 caracteres.", "error"); return }
 
   try {
     const res = await fetch("/usuarios", {

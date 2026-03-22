@@ -25,8 +25,38 @@ const GROQ_MODEL  = process.env.GROQ_MODEL   || "llama-3.3-70b-versatile"
 
 // ── Express ────────────────────────────────────────────────────
 const app = express()
-app.use(cors())
-app.use(express.json())
+const PROD = process.env.NODE_ENV === "production"
+
+// Headers de segurança
+app.use((_req, res, next) => {
+  res.setHeader("X-Frame-Options", "DENY")
+  res.setHeader("X-Content-Type-Options", "nosniff")
+  res.setHeader("X-XSS-Protection", "1; mode=block")
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin")
+  res.setHeader("Content-Security-Policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://unicons.iconscout.com; style-src 'self' 'unsafe-inline' https://unicons.iconscout.com https://fonts.googleapis.com; font-src 'self' https://unicons.iconscout.com https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'")
+  next()
+})
+
+// CORS — apenas mesma origem em produção
+app.use(cors(PROD ? { origin: false } : {}))
+app.use(express.json({ limit: "1mb" }))
+
+// Rate limit simples para login/registro (sem dependências)
+const tentativas = new Map()
+function checkRateLimit(ip) {
+  const agora = Date.now()
+  const rec = tentativas.get(ip) || { n: 0, desde: agora }
+  if (agora - rec.desde > 15 * 60 * 1000) { tentativas.set(ip, { n: 1, desde: agora }); return true }
+  if (rec.n >= 10) return false
+  tentativas.set(ip, { n: rec.n + 1, desde: rec.desde })
+  return true
+}
+function resetRateLimit(ip) { tentativas.delete(ip) }
+setInterval(() => {
+  const limite = Date.now() - 15 * 60 * 1000
+  for (const [ip, rec] of tentativas) if (rec.desde < limite) tentativas.delete(ip)
+}, 5 * 60 * 1000)
 // Static servido por último — as rotas da API têm prioridade
 app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "index.html")))
 
@@ -891,11 +921,13 @@ app.use((req, res, next) => {
 // ═══════════════════════════════════════════════════════════════
 
 app.post("/auth/registrar", (req, res) => {
+  const ip = req.ip || req.connection.remoteAddress
+  if (!checkRateLimit(ip)) return res.status(429).json({ erro: "Muitas tentativas. Aguarde 15 minutos." })
   const { empresa, nome, email, senha } = req.body
   if (!empresa?.trim() || !nome?.trim() || !email?.trim() || !senha)
     return res.status(400).json({ erro: "Campos obrigatórios: empresa, nome, email, senha" })
-  if (senha.length < 6)
-    return res.status(400).json({ erro: "A senha deve ter no mínimo 6 caracteres." })
+  if (senha.length < 8)
+    return res.status(400).json({ erro: "A senha deve ter no mínimo 8 caracteres." })
 
   const emailExiste = db.prepare("SELECT id FROM usuarios WHERE email = ?").get(email.trim().toLowerCase())
   if (emailExiste) return res.status(409).json({ erro: "Este e-mail já está cadastrado." })
@@ -918,11 +950,14 @@ app.post("/auth/registrar", (req, res) => {
 
   const empresaRow = db.prepare("SELECT * FROM empresas WHERE id = ?").get(empresaId)
 
-  res.setHeader("Set-Cookie", `joy_session=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000`)
+  const secure = PROD ? "; Secure" : ""
+  res.setHeader("Set-Cookie", `joy_session=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000${secure}`)
   res.json({ ok: true, user: { id: usuarioId, nome: nome.trim(), email: email.trim().toLowerCase(), papel: "admin" }, empresa: empresaRow })
 })
 
 app.post("/auth/login", (req, res) => {
+  const ip = req.ip || req.connection.remoteAddress
+  if (!checkRateLimit(ip)) return res.status(429).json({ erro: "Muitas tentativas. Aguarde 15 minutos." })
   const { email, senha } = req.body
   if (!email?.trim() || !senha)
     return res.status(400).json({ erro: "E-mail e senha são obrigatórios." })
@@ -934,12 +969,14 @@ app.post("/auth/login", (req, res) => {
   try { senhaOk = verificarSenha(senha, usuario.senha_hash) } catch { senhaOk = false }
   if (!senhaOk) return res.status(401).json({ erro: "E-mail ou senha inválidos." })
 
+  resetRateLimit(ip)
   const token  = randomBytes(32).toString("hex")
   const expira = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString()
   db.prepare("INSERT INTO sessoes (token, usuario_id, empresa_id, expira_em) VALUES (?,?,?,?)").run(token, usuario.id, usuario.empresa_id, expira)
 
   const empresa = db.prepare("SELECT * FROM empresas WHERE id = ?").get(usuario.empresa_id)
-  res.setHeader("Set-Cookie", `joy_session=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000`)
+  const secure = PROD ? "; Secure" : ""
+  res.setHeader("Set-Cookie", `joy_session=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000${secure}`)
   res.json({ ok: true, user: { id: usuario.id, nome: usuario.nome, email: usuario.email, papel: usuario.papel }, empresa })
 })
 
