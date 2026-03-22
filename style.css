@@ -1745,7 +1745,7 @@ body.dark .cargos-count {
   height: 8px;
   background: rgba(255,255,255,0.06);
   border-radius: 99px;
-  overflow: visible;
+  overflow: hidden;
   position: relative;
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
 }
@@ -1758,8 +1758,8 @@ body.dark .cargos-count {
   background-size: 200% 100%;
   transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
+  overflow: hidden;
   animation: sp-bar-shimmer 2s linear infinite;
-  box-shadow: 0 0 16px rgba(124,58,237,0.55), 0 0 4px rgba(6,182,212,0.4);
 }
 
 @keyframes sp-bar-shimmer {
