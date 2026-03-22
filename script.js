@@ -530,6 +530,32 @@ async function excluirUsuario(id, nome) {
   } catch { showToast("Erro ao excluir usuário.", "error") }
 }
 
+function baixarBackup() {
+  window.location.href = "/backup/download"
+}
+
+async function restaurarBackup(input) {
+  const file = input.files[0]
+  if (!file) return
+  if (!confirm(`Restaurar "${file.name}"? O sistema vai reiniciar e todos os dados atuais serão substituídos pelo backup.`)) {
+    input.value = ""; return
+  }
+  try {
+    showToast("Enviando backup...", "info")
+    const buf = await file.arrayBuffer()
+    const res = await fetch("/backup/restaurar", {
+      method: "POST",
+      headers: { "Content-Type": "application/octet-stream" },
+      body: buf
+    })
+    const data = await res.json()
+    if (!res.ok) { showToast(data.erro || "Erro ao restaurar.", "error"); return }
+    showToast("Restaurado! Reconectando em 5s...", "success")
+    setTimeout(() => location.reload(), 5000)
+  } catch { showToast("Erro ao enviar o arquivo.", "error") }
+  input.value = ""
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  UTILITÁRIOS
 // ═══════════════════════════════════════════════════════════════

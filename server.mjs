@@ -1062,6 +1062,33 @@ app.delete("/usuarios/:id/excluir", (req, res) => {
   res.json({ ok: true })
 })
 
+// ═══════════════════════════════════════════════════════════════
+//  ROTAS — BACKUP
+// ═══════════════════════════════════════════════════════════════
+
+app.get("/backup/download", (req, res) => {
+  if (req.user.papel !== "admin") return res.status(403).json({ erro: "Acesso restrito a administradores." })
+  db.pragma("wal_checkpoint(TRUNCATE)")
+  const agora = new Date().toISOString().slice(0, 10)
+  res.setHeader("Content-Disposition", `attachment; filename="joydesc-backup-${agora}.db"`)
+  res.setHeader("Content-Type", "application/octet-stream")
+  res.sendFile(dbPath)
+})
+
+app.post("/backup/restaurar", express.raw({ type: "application/octet-stream", limit: "50mb" }), (req, res) => {
+  if (req.user.papel !== "admin") return res.status(403).json({ erro: "Acesso restrito a administradores." })
+  const buf = req.body
+  if (!buf || buf.length < 16) return res.status(400).json({ erro: "Arquivo inválido." })
+  // Valida magic bytes do SQLite: "SQLite format 3\000"
+  const magic = buf.slice(0, 16).toString("utf8")
+  if (!magic.startsWith("SQLite format 3")) return res.status(400).json({ erro: "Arquivo não é um banco SQLite válido." })
+  // Salva o backup no lugar do banco atual
+  db.pragma("wal_checkpoint(TRUNCATE)")
+  fs.writeFileSync(dbPath, buf)
+  res.json({ ok: true, msg: "Banco restaurado. O servidor vai reiniciar." })
+  setTimeout(() => process.exit(0), 500)
+})
+
 app.get("/cargos", (req, res) => {
   res.json(db.prepare("SELECT * FROM cargos WHERE empresa_id = ? ORDER BY criadoEm DESC").all(req.empresaId))
 })
