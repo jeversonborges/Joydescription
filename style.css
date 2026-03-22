@@ -2506,7 +2506,7 @@ body.dark .cargos-count {
   letter-spacing: -1px;
   line-height: 1;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 0;
 }
 
