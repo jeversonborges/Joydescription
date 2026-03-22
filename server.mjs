@@ -68,14 +68,19 @@ app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "index.html")))
 //  Sem risco de corrupção por crash ou reinício do processo.
 // ═══════════════════════════════════════════════════════════════
 
-// ── Se volume persistente configurado, copia DB inicial na 1ª vez ──
+// ── Se volume persistente configurado, garante diretório e copia seed ──
 const dbPath = process.env.JOY_DB_PATH || path.join(__dirname, "joydescription.db")
-if (process.env.JOY_DB_PATH && !fs.existsSync(process.env.JOY_DB_PATH)) {
-  const seed = path.join(__dirname, "joydescription.db")
-  if (fs.existsSync(seed)) {
-    fs.mkdirSync(path.dirname(process.env.JOY_DB_PATH), { recursive: true })
-    fs.copyFileSync(seed, process.env.JOY_DB_PATH)
-    console.log("✅ Banco inicial copiado para volume persistente")
+if (process.env.JOY_DB_PATH) {
+  fs.mkdirSync(path.dirname(process.env.JOY_DB_PATH), { recursive: true })
+  const forceSeed = process.env.JOY_FORCE_SEED === "1"
+  if (!fs.existsSync(process.env.JOY_DB_PATH) || forceSeed) {
+    const seed = path.join(__dirname, "joydescription.db")
+    if (fs.existsSync(seed)) {
+      fs.copyFileSync(seed, process.env.JOY_DB_PATH)
+      console.log("✅ Banco copiado para volume persistente" + (forceSeed ? " (forçado)" : ""))
+    } else {
+      console.log("ℹ️  Volume vazio — banco novo será criado em", process.env.JOY_DB_PATH)
+    }
   }
 }
 const db = new Database(dbPath)
@@ -917,6 +922,63 @@ app.use((req, res, next) => {
 })
 
 // ═══════════════════════════════════════════════════════════════
+//  LOG DE AUDITORIA
+// ═══════════════════════════════════════════════════════════════
+
+db.prepare(`CREATE TABLE IF NOT EXISTS audit_log (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  empresa_id TEXT NOT NULL,
+  usuario_id TEXT,
+  usuario_nome TEXT,
+  acao       TEXT NOT NULL,
+  alvo       TEXT,
+  ip         TEXT,
+  criado_em  TEXT NOT NULL
+)`).run()
+db.prepare("CREATE INDEX IF NOT EXISTS idx_audit_empresa ON audit_log(empresa_id, id DESC)").run()
+
+function audit(empresa_id, usuario_id, usuario_nome, acao, alvo, ip) {
+  try {
+    db.prepare("INSERT INTO audit_log (empresa_id,usuario_id,usuario_nome,acao,alvo,ip,criado_em) VALUES (?,?,?,?,?,?,?)")
+      .run(empresa_id, usuario_id || null, usuario_nome || null, acao, alvo || null, ip || null, new Date().toISOString())
+  } catch {}
+}
+
+// Atalho para rotas autenticadas
+function auditReq(req, acao, alvo) {
+  audit(req.empresaId, req.user?.id, req.user?.nome, acao, alvo, req.ip || req.connection?.remoteAddress)
+}
+
+app.get("/auditoria", (req, res) => {
+  if (req.user.papel !== "admin") return res.status(403).json({ erro: "Acesso restrito." })
+  const { acao, usuario, limit = 100, offset = 0 } = req.query
+  let where = "empresa_id = ?"
+  const params = [req.empresaId]
+  if (acao)    { where += " AND acao LIKE ?";         params.push(`%${acao}%`) }
+  if (usuario) { where += " AND usuario_nome LIKE ?"; params.push(`%${usuario}%`) }
+  params.push(parseInt(limit), parseInt(offset))
+  const rows  = db.prepare(`SELECT * FROM audit_log WHERE ${where} ORDER BY id DESC LIMIT ? OFFSET ?`).all(...params)
+  const total = db.prepare(`SELECT COUNT(*) as n FROM audit_log WHERE empresa_id = ?`).get(req.empresaId).n
+  res.json({ rows, total })
+})
+
+app.get("/auditoria/exportar", (req, res) => {
+  if (req.user.papel !== "admin") return res.status(403).json({ erro: "Acesso restrito." })
+  const rows = db.prepare("SELECT * FROM audit_log WHERE empresa_id = ? ORDER BY id DESC").all(req.empresaId)
+  const escape = v => v == null ? "" : `"${String(v).replace(/"/g, '""')}"`
+  const header = ["id","criado_em","usuario_nome","usuario_id","acao","alvo","ip"].join(";")
+  const body = rows.map(r =>
+    [r.id, r.criado_em, r.usuario_nome, r.usuario_id, r.acao, r.alvo, r.ip].map(escape).join(";")
+  ).join("\n")
+  const csv = "\uFEFF" + header + "\n" + body  // BOM para Excel
+  const nome = `auditoria-${new Date().toISOString().slice(0,10)}.csv`
+  res.setHeader("Content-Disposition", `attachment; filename="${nome}"`)
+  res.setHeader("Content-Type", "text/csv; charset=utf-8")
+  auditReq(req, "auditoria.exportar", `${rows.length} registros`)
+  res.send(csv)
+})
+
+// ═══════════════════════════════════════════════════════════════
 //  ROTAS — AUTENTICAÇÃO
 // ═══════════════════════════════════════════════════════════════
 
@@ -967,12 +1029,16 @@ app.post("/auth/login", (req, res) => {
 
   let senhaOk
   try { senhaOk = verificarSenha(senha, usuario.senha_hash) } catch { senhaOk = false }
-  if (!senhaOk) return res.status(401).json({ erro: "E-mail ou senha inválidos." })
+  if (!senhaOk) {
+    audit(usuario.empresa_id, usuario.id, usuario.nome, "auth.login_falhou", email.trim(), ip)
+    return res.status(401).json({ erro: "E-mail ou senha inválidos." })
+  }
 
   resetRateLimit(ip)
   const token  = randomBytes(32).toString("hex")
   const expira = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString()
   db.prepare("INSERT INTO sessoes (token, usuario_id, empresa_id, expira_em) VALUES (?,?,?,?)").run(token, usuario.id, usuario.empresa_id, expira)
+  audit(usuario.empresa_id, usuario.id, usuario.nome, "auth.login", null, ip)
 
   const empresa = db.prepare("SELECT * FROM empresas WHERE id = ?").get(usuario.empresa_id)
   const secure = PROD ? "; Secure" : ""
@@ -982,7 +1048,11 @@ app.post("/auth/login", (req, res) => {
 
 app.post("/auth/logout", (req, res) => {
   const token = getCookie(req, "joy_session")
-  if (token) db.prepare("DELETE FROM sessoes WHERE token = ?").run(token)
+  if (token) {
+    const sessao = db.prepare("SELECT s.*, u.nome FROM sessoes s JOIN usuarios u ON s.usuario_id = u.id WHERE s.token = ?").get(token)
+    if (sessao) audit(sessao.empresa_id, sessao.usuario_id, sessao.nome, "auth.logout", null, req.ip || req.connection?.remoteAddress)
+    db.prepare("DELETE FROM sessoes WHERE token = ?").run(token)
+  }
   res.setHeader("Set-Cookie", "joy_session=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0")
   res.json({ ok: true })
 })
@@ -1024,6 +1094,7 @@ app.post("/usuarios", (req, res) => {
   const id = Date.now().toString()
   db.prepare("INSERT INTO usuarios (id, empresa_id, nome, email, senha_hash, papel, ativo, criado_em) VALUES (?,?,?,?,?,?,?,?)")
     .run(id, req.empresaId, nome.trim(), email.trim().toLowerCase(), hashSenha(senha), papel, 1, new Date().toISOString())
+  auditReq(req, "usuario.criar", `${nome.trim()} (${email.trim().toLowerCase()}) — ${papel}`)
   res.json({ ok: true, id })
 })
 
@@ -1040,6 +1111,7 @@ app.put("/usuarios/:id", (req, res) => {
 
   db.prepare("UPDATE usuarios SET nome=?, papel=?, ativo=?, senha_hash=? WHERE id=? AND empresa_id=?")
     .run(novoNome, novoPapel, novoAtivo, senhaHash, req.params.id, req.empresaId)
+  auditReq(req, "usuario.editar", `${alvo.nome} → papel:${novoPapel}, ativo:${novoAtivo}`)
   res.json({ ok: true })
 })
 
@@ -1049,6 +1121,7 @@ app.delete("/usuarios/:id", (req, res) => {
   const alvo = db.prepare("SELECT * FROM usuarios WHERE id = ? AND empresa_id = ?").get(req.params.id, req.empresaId)
   if (!alvo) return res.status(404).json({ erro: "Usuário não encontrado." })
   db.prepare("UPDATE usuarios SET ativo = 0 WHERE id = ? AND empresa_id = ?").run(req.params.id, req.empresaId)
+  auditReq(req, "usuario.desativar", alvo.nome)
   res.json({ ok: true })
 })
 
@@ -1059,6 +1132,7 @@ app.delete("/usuarios/:id/excluir", (req, res) => {
   if (!alvo) return res.status(404).json({ erro: "Usuário não encontrado." })
   db.prepare("DELETE FROM sessoes WHERE usuario_id = ?").run(req.params.id)
   db.prepare("DELETE FROM usuarios WHERE id = ? AND empresa_id = ?").run(req.params.id, req.empresaId)
+  auditReq(req, "usuario.excluir", alvo.nome)
   res.json({ ok: true })
 })
 
@@ -1075,6 +1149,54 @@ db.prepare(`CREATE TABLE IF NOT EXISTS backups_log (
   tamanho_bytes INTEGER,
   criado_em TEXT
 )`).run()
+
+// Tabela de configuração de backup automático
+db.prepare(`CREATE TABLE IF NOT EXISTS backup_config (
+  empresa_id TEXT PRIMARY KEY,
+  ativo INTEGER NOT NULL DEFAULT 0,
+  intervalo_horas INTEGER NOT NULL DEFAULT 24,
+  proximo_em TEXT
+)`).run()
+
+// Job de backup automático — roda a cada hora e dispara se passou o horário
+const autoBackupTimers = new Map()
+function agendarAutoBackup() {
+  const configs = db.prepare("SELECT * FROM backup_config WHERE ativo = 1").all()
+  const agora = Date.now()
+  for (const cfg of configs) {
+    if (cfg.proximo_em && new Date(cfg.proximo_em).getTime() <= agora) {
+      try {
+        db.pragma("wal_checkpoint(TRUNCATE)")
+        const stat = require ? null : null // stat via fs
+        const size = (() => { try { return fs.statSync(dbPath).size } catch { return 0 } })()
+        db.prepare("INSERT INTO backups_log (usuario_nome, usuario_email, empresa_id, tamanho_bytes, criado_em) VALUES (?,?,?,?,?)")
+          .run("Sistema (automático)", "—", cfg.empresa_id, size, new Date().toISOString())
+        const proximo = new Date(agora + cfg.intervalo_horas * 3600000).toISOString()
+        db.prepare("UPDATE backup_config SET proximo_em = ? WHERE empresa_id = ?").run(proximo, cfg.empresa_id)
+        console.log(`[backup-auto] empresa=${cfg.empresa_id} proximo=${proximo}`)
+      } catch (e) { console.error("[backup-auto] erro:", e.message) }
+    }
+  }
+}
+setInterval(agendarAutoBackup, 60 * 60 * 1000) // verifica a cada 1h
+
+app.get("/backup/config", (req, res) => {
+  if (req.user.papel !== "admin") return res.status(403).json({ erro: "Acesso restrito." })
+  const cfg = db.prepare("SELECT * FROM backup_config WHERE empresa_id = ?").get(req.empresaId)
+  if (!cfg) return res.json({ ativo: false, intervalo_horas: 24, proximo_em: null })
+  res.json({ ativo: !!cfg.ativo, intervalo_horas: cfg.intervalo_horas, proximo_em: cfg.proximo_em })
+})
+
+app.post("/backup/config", (req, res) => {
+  if (req.user.papel !== "admin") return res.status(403).json({ erro: "Acesso restrito." })
+  const { ativo, intervalo_horas } = req.body
+  const horas = parseInt(intervalo_horas) || 24
+  const proximo = ativo ? new Date(Date.now() + horas * 3600000).toISOString() : null
+  db.prepare(`INSERT INTO backup_config (empresa_id, ativo, intervalo_horas, proximo_em) VALUES (?,?,?,?)
+    ON CONFLICT(empresa_id) DO UPDATE SET ativo=excluded.ativo, intervalo_horas=excluded.intervalo_horas, proximo_em=excluded.proximo_em`)
+    .run(req.empresaId, ativo ? 1 : 0, horas, proximo)
+  res.json({ ok: true, proximo_em: proximo })
+})
 
 app.get("/backup/status", (req, res) => {
   if (req.user.papel !== "admin") return res.status(403).json({ erro: "Acesso restrito a administradores." })
@@ -1101,6 +1223,7 @@ app.get("/backup/download", (req, res) => {
   const stat = fs.statSync(dbPath)
   db.prepare("INSERT INTO backups_log (usuario_nome, usuario_email, empresa_id, tamanho_bytes, criado_em) VALUES (?,?,?,?,?)")
     .run(req.user.nome, req.user.email, req.empresaId, stat.size, new Date().toISOString())
+  auditReq(req, "backup.download", `${(stat.size/1024).toFixed(0)} KB`)
   const agora = new Date().toISOString().slice(0, 10)
   res.setHeader("Content-Disposition", `attachment; filename="joydesc-backup-${agora}.db"`)
   res.setHeader("Content-Type", "application/octet-stream")
@@ -1115,6 +1238,7 @@ app.post("/backup/restaurar", express.raw({ type: "application/octet-stream", li
   if (!magic.startsWith("SQLite format 3")) return res.status(400).json({ erro: "Arquivo não é um banco SQLite válido." })
   db.pragma("wal_checkpoint(TRUNCATE)")
   fs.writeFileSync(dbPath, buf)
+  auditReq(req, "backup.restaurar", `${(buf.length/1024).toFixed(0)} KB`)
   res.json({ ok: true })
   setTimeout(() => process.exit(0), 500)
 })
@@ -1151,6 +1275,7 @@ app.post("/cargos", (req, res) => {
   db.prepare("INSERT INTO cargos (id,cargo,area,nivel,texto,criadoEm,empresa_id) VALUES (?,?,?,?,?,?,?)").run(
     novo.id, novo.cargo, novo.area, novo.nivel, novo.texto, novo.criadoEm, req.empresaId)
   try { salvarVersao(novo.id, novo.cargo, novo.area, novo.nivel, novo.texto, req.empresaId) } catch (e) { console.error("versao:", e.message) }
+  auditReq(req, "cargo.criar", novo.cargo)
   res.json({ ok: true, id: novo.id })
 })
 
@@ -1169,14 +1294,19 @@ app.put("/cargos/:id", (req, res) => {
   if (info.changes === 0) return res.status(404).json({ erro: "Cargo não encontrado." })
   try {
     const atualizado = db.prepare("SELECT * FROM cargos WHERE id = ? AND empresa_id = ?").get(req.params.id, req.empresaId)
-    if (atualizado) salvarVersao(atualizado.id, atualizado.cargo, atualizado.area, atualizado.nivel, atualizado.texto, req.empresaId)
+    if (atualizado) {
+      salvarVersao(atualizado.id, atualizado.cargo, atualizado.area, atualizado.nivel, atualizado.texto, req.empresaId)
+      auditReq(req, "cargo.editar", atualizado.cargo)
+    }
   } catch (e) { console.error("versao:", e.message) }
   res.json({ ok: true })
 })
 
 app.delete("/cargos/:id", (req, res) => {
+  const cargo = db.prepare("SELECT cargo FROM cargos WHERE id = ? AND empresa_id = ?").get(req.params.id, req.empresaId)
   const info = db.prepare("DELETE FROM cargos WHERE id = ? AND empresa_id = ?").run(req.params.id, req.empresaId)
   if (info.changes === 0) return res.status(404).json({ erro: "Cargo não encontrado." })
+  auditReq(req, "cargo.deletar", cargo?.cargo)
   res.json({ ok: true })
 })
 
@@ -1486,6 +1616,7 @@ app.post("/areas", (req, res) => {
     return res.status(400).json({ erro: "Campos obrigatórios: key, label, universo" })
   try {
     db.prepare("INSERT INTO areas (empresa_id, key, label, universo) VALUES (?,?,?,?)").run(req.empresaId, key.trim(), label.trim(), universo.trim())
+    auditReq(req, "area.criar", label.trim())
     res.json({ ok: true })
   } catch (e) {
     if (e.message.includes("UNIQUE"))
@@ -1504,12 +1635,15 @@ app.put("/areas/:key", (req, res) => {
   `).run(label?.trim()||"", universo?.trim()||"", req.params.key, req.empresaId)
 
   if (info.changes === 0) return res.status(404).json({ erro: "Área não encontrada." })
+  auditReq(req, "area.editar", label?.trim() || req.params.key)
   res.json({ ok: true })
 })
 
 app.delete("/areas/:key", (req, res) => {
+  const area = db.prepare("SELECT label FROM areas WHERE key = ? AND empresa_id = ?").get(req.params.key, req.empresaId)
   const info = db.prepare("DELETE FROM areas WHERE key = ? AND empresa_id = ?").run(req.params.key, req.empresaId)
   if (info.changes === 0) return res.status(404).json({ erro: "Área não encontrada." })
+  auditReq(req, "area.deletar", area?.label || req.params.key)
   res.json({ ok: true })
 })
 
@@ -1540,6 +1674,7 @@ app.post("/conhecimento", (req, res) => {
     }
     db.prepare("INSERT INTO conhecimento (id,titulo,categoria,ativo,conteudo,criadoEm,empresa_id) VALUES (?,?,?,?,?,?,?)").run(
       novo.id, novo.titulo, novo.categoria, novo.ativo, novo.conteudo, novo.criadoEm, req.empresaId)
+    auditReq(req, "conhecimento.criar", novo.titulo)
     res.json({ ok: true, id: novo.id })
   } catch (err) {
     console.error("POST /conhecimento:", err.message)
@@ -1565,6 +1700,7 @@ app.put("/conhecimento/:id", (req, res) => {
       ativoVal, ativoVal, new Date().toISOString(), req.params.id, req.empresaId)
 
     if (info.changes === 0) return res.status(404).json({ erro: "Artigo não encontrado." })
+    auditReq(req, "conhecimento.editar", titulo?.trim() || req.params.id)
     res.json({ ok: true })
   } catch (err) {
     console.error("PUT /conhecimento:", err.message)
@@ -1574,8 +1710,10 @@ app.put("/conhecimento/:id", (req, res) => {
 
 app.delete("/conhecimento/:id", (req, res) => {
   try {
+    const artigo = db.prepare("SELECT titulo FROM conhecimento WHERE id = ? AND empresa_id = ?").get(req.params.id, req.empresaId)
     const info = db.prepare("DELETE FROM conhecimento WHERE id = ? AND empresa_id = ?").run(req.params.id, req.empresaId)
     if (info.changes === 0) return res.status(404).json({ erro: "Artigo não encontrado." })
+    auditReq(req, "conhecimento.deletar", artigo?.titulo)
     res.json({ ok: true })
   } catch (err) {
     console.error("DELETE /conhecimento:", err.message)
@@ -1599,6 +1737,7 @@ app.post("/niveis", (req, res) => {
   try {
     db.prepare("INSERT INTO niveis (empresa_id,label,ordem,eh_lideranca,descricao,descricao_curta) VALUES (?,?,?,?,?,?)")
       .run(req.empresaId, label.trim(), ordem || maxOrdem + 1, eh_lideranca ? 1 : 0, descricao, descricao_curta)
+    auditReq(req, "nivel.criar", label.trim())
     res.json({ ok: true })
   } catch (e) {
     if (e.message?.includes("UNIQUE")) return res.status(409).json({ erro: "Já existe um nível com esse nome." })
@@ -1615,6 +1754,7 @@ app.put("/niveis/:label", (req, res) => {
       "UPDATE niveis SET label=?, ordem=?, eh_lideranca=?, descricao=?, descricao_curta=? WHERE label=? AND empresa_id=?"
     ).run(label.trim(), ordem ?? 0, eh_lideranca ? 1 : 0, descricao ?? "", descricao_curta ?? "", labelAtual, req.empresaId)
     if (info.changes === 0) return res.status(404).json({ erro: "Nível não encontrado." })
+    auditReq(req, "nivel.editar", label.trim())
     res.json({ ok: true })
   } catch (e) {
     if (e.message?.includes("UNIQUE")) return res.status(409).json({ erro: "Já existe um nível com esse nome." })
@@ -1626,6 +1766,7 @@ app.delete("/niveis/:label", (req, res) => {
   const label = decodeURIComponent(req.params.label)
   const info = db.prepare("DELETE FROM niveis WHERE label = ? AND empresa_id = ?").run(label, req.empresaId)
   if (info.changes === 0) return res.status(404).json({ erro: "Nível não encontrado." })
+  auditReq(req, "nivel.deletar", label)
   res.json({ ok: true })
 })
 

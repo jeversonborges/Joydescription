@@ -5,6 +5,43 @@
 // ═══════════════════════════════════════════════════════════════
 
 
+// ── Modal de confirmação customizado ───────────────────────────
+function confirmar(msg, { titulo = "Confirmar ação", tipo = "perigo", labelOk = "Confirmar", labelCancel = "Cancelar" } = {}) {
+  return new Promise(resolve => {
+    const overlay  = document.getElementById("modal-confirmar")
+    const iconEl   = document.getElementById("confirmar-icon")
+    const tituloEl = document.getElementById("confirmar-titulo")
+    const msgEl    = document.getElementById("confirmar-msg")
+    const okBtn    = document.getElementById("confirmar-ok")
+    const cancelBtn= document.getElementById("confirmar-cancel")
+
+    const icones = { perigo: "uil-trash-alt", aviso: "uil-exclamation-triangle", info: "uil-info-circle" }
+    iconEl.className = `confirmar-icon ${tipo}`
+    iconEl.innerHTML = `<i class="uil ${icones[tipo] || icones.perigo}"></i>`
+    okBtn.className  = `confirmar-btn-ok${tipo === "info" ? " azul" : tipo === "aviso" ? " amarelo" : ""}`
+    tituloEl.textContent = titulo
+    msgEl.innerHTML  = msg.replace(/\n/g, "<br>")
+    okBtn.textContent    = labelOk
+    cancelBtn.textContent= labelCancel
+    overlay.style.display = "flex"
+
+    function fechar(res) {
+      overlay.style.display = "none"
+      okBtn.removeEventListener("click", onOk)
+      cancelBtn.removeEventListener("click", onCancel)
+      overlay.removeEventListener("click", onOverlay)
+      resolve(res)
+    }
+    function onOk()      { fechar(true)  }
+    function onCancel()  { fechar(false) }
+    function onOverlay(e){ if (e.target === overlay) fechar(false) }
+
+    okBtn.addEventListener("click", onOk)
+    cancelBtn.addEventListener("click", onCancel)
+    overlay.addEventListener("click", onOverlay)
+  })
+}
+
 // ── Estado global ──────────────────────────────────────────────
 let textoGerado        = ""
 let textoGen           = ""
@@ -245,7 +282,7 @@ async function salvarNivel() {
 
 async function deletarNivel() {
   if (!nivelEditando) return
-  if (!confirm(`Deletar o nível "${nivelEditando.label}"?`)) return
+  if (!await confirmar(`Deletar o nível <strong>${nivelEditando.label}</strong>?`, { titulo: "Deletar nível" })) return
   try {
     const res = await fetch(`/niveis/${encodeURIComponent(nivelEditando.label)}`, { method: "DELETE" })
     if (!res.ok) { const e = await res.json(); return showToast(e.erro || "Erro ao deletar.", "error") }
@@ -326,6 +363,8 @@ function atualizarBarraTitulo() {
   if (menuBackup) menuBackup.style.display = isAdmin ? "" : "none"
   const menuSeg = document.getElementById("menu-seguranca-item")
   if (menuSeg) menuSeg.style.display = isAdmin ? "" : "none"
+  const menuAudit = document.getElementById("menu-auditoria-item")
+  if (menuAudit) menuAudit.style.display = isAdmin ? "" : "none"
 }
 
 async function inicializarApp() {
@@ -520,7 +559,7 @@ async function alternarPapel(id, papelAtual) {
 }
 
 async function desativarUsuario(id) {
-  if (!confirm("Desativar este usuário? Ele não conseguirá mais fazer login.")) return
+  if (!await confirmar("Ele não conseguirá mais fazer login.", { titulo: "Desativar usuário?", tipo: "aviso", labelOk: "Desativar" })) return
   try {
     const res = await fetch(`/usuarios/${id}`, { method: "DELETE" })
     if (!res.ok) { const d = await res.json(); showToast(d.erro || "Erro.", "error"); return }
@@ -530,7 +569,7 @@ async function desativarUsuario(id) {
 }
 
 async function excluirUsuario(id, nome) {
-  if (!confirm(`Excluir permanentemente "${nome}"? Esta ação não pode ser desfeita.`)) return
+  if (!await confirmar(`Excluir <strong>${nome}</strong> permanentemente?\nEsta ação não pode ser desfeita.`, { titulo: "Excluir usuário", labelOk: "Excluir" })) return
   try {
     const res = await fetch(`/usuarios/${id}/excluir`, { method: "DELETE" })
     if (!res.ok) { const d = await res.json(); showToast(d.erro || "Erro.", "error"); return }
@@ -541,12 +580,186 @@ async function excluirUsuario(id, nome) {
 
 async function abrirBackup() {
   document.getElementById("modal-backup").style.display = "flex"
-  await Promise.all([carregarStatusBackup(), carregarHistoricoBackup()])
+  await Promise.all([carregarStatusBackup(), carregarHistoricoBackup(), carregarConfigBackup()])
+}
+
+async function carregarConfigBackup() {
+  try {
+    const res = await fetch("/backup/config")
+    if (!res.ok) return
+    const d = await res.json()
+    const toggle = document.getElementById("bk-auto-toggle")
+    const label  = document.getElementById("bk-auto-label")
+    const sel    = document.getElementById("bk-auto-horas")
+    const intDiv = document.getElementById("bk-auto-interval")
+    const status = document.getElementById("bk-auto-status")
+    toggle.checked = !!d.ativo
+    label.textContent = d.ativo ? "Ativado" : "Desativado"
+    intDiv.style.display = d.ativo ? "flex" : "none"
+    if (d.intervalo_horas) sel.value = String(d.intervalo_horas)
+    if (d.proximo_em) {
+      const dt = new Date(d.proximo_em).toLocaleString("pt-BR")
+      status.textContent = `Próximo backup automático: ${dt}`
+    } else if (d.ativo) {
+      status.textContent = "Aguardando o primeiro ciclo..."
+    } else {
+      status.textContent = ""
+    }
+  } catch {}
+}
+
+async function salvarConfigBackup() {
+  const toggle = document.getElementById("bk-auto-toggle")
+  const label  = document.getElementById("bk-auto-label")
+  const sel    = document.getElementById("bk-auto-horas")
+  const intDiv = document.getElementById("bk-auto-interval")
+  const status = document.getElementById("bk-auto-status")
+  const ativo  = toggle.checked
+  label.textContent = ativo ? "Ativado" : "Desativado"
+  intDiv.style.display = ativo ? "flex" : "none"
+  if (!ativo) status.textContent = ""
+  try {
+    const res = await fetch("/backup/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ativo, intervalo_horas: parseInt(sel.value) })
+    })
+    if (!res.ok) { showToast("Erro ao salvar configuração.", "error"); return }
+    const d = await res.json()
+    if (ativo && d.proximo_em) {
+      const dt = new Date(d.proximo_em).toLocaleString("pt-BR")
+      status.textContent = `Próximo backup automático: ${dt}`
+    }
+    showToast(ativo ? "Backup automático ativado." : "Backup automático desativado.", "success")
+  } catch { showToast("Erro ao salvar configuração.", "error") }
 }
 
 function fecharModalBackup(e) {
   if (e && e.target !== document.getElementById("modal-backup")) return
   document.getElementById("modal-backup").style.display = "none"
+}
+
+// ── Auditoria ──────────────────────────────────────────────────
+let audPagina = 0
+const AUD_LIMIT = 50
+
+const audAcaoCor = {
+  "auth":        "auth",
+  "cargo":       "cargo",
+  "area":        "area",
+  "conhecimento":"conhec",
+  "nivel":       "nivel",
+  "usuario":     "usuario",
+  "backup":      "backup",
+}
+
+const audAcaoLabel = {
+  "auth.login":          "Login",
+  "auth.login_falhou":   "Login falhou",
+  "auth.logout":         "Logout",
+  "cargo.criar":         "Cargo criado",
+  "cargo.editar":        "Cargo editado",
+  "cargo.deletar":       "Cargo deletado",
+  "area.criar":          "Área criada",
+  "area.editar":         "Área editada",
+  "area.deletar":        "Área deletada",
+  "conhecimento.criar":  "Conhec. criado",
+  "conhecimento.editar": "Conhec. editado",
+  "conhecimento.deletar":"Conhec. deletado",
+  "nivel.criar":         "Nível criado",
+  "nivel.editar":        "Nível editado",
+  "nivel.deletar":       "Nível deletado",
+  "usuario.criar":       "Usuário criado",
+  "usuario.editar":      "Usuário editado",
+  "usuario.desativar":   "Usuário desativado",
+  "usuario.excluir":     "Usuário excluído",
+  "backup.download":     "Backup baixado",
+  "backup.restaurar":    "Backup restaurado",
+  "backup.config":       "Config. backup",
+}
+
+function audCorBadge(acao) {
+  for (const [k,v] of Object.entries(audAcaoCor)) {
+    if (acao.startsWith(k)) return v
+  }
+  return "backup"
+}
+
+async function abrirAuditoria() {
+  document.getElementById("modal-auditoria").style.display = "flex"
+  audPagina = 0
+  await carregarAuditoria()
+}
+
+function fecharModalAuditoria(e) {
+  if (e && e.target !== document.getElementById("modal-auditoria")) return
+  document.getElementById("modal-auditoria").style.display = "none"
+}
+
+async function carregarAuditoria() {
+  const usuario = document.getElementById("aud-busca-usuario").value.trim()
+  const acao    = document.getElementById("aud-busca-acao").value
+  const params  = new URLSearchParams({ limit: AUD_LIMIT, offset: audPagina * AUD_LIMIT })
+  if (usuario) params.set("usuario", usuario)
+  if (acao)    params.set("acao", acao)
+  try {
+    const res = await fetch(`/auditoria?${params}`)
+    if (!res.ok) return
+    const { rows, total } = await res.json()
+    renderAuditoria(rows, total)
+  } catch {}
+}
+
+function renderAuditoria(rows, total) {
+  const tbody = document.getElementById("aud-tbody")
+  const totalEl = document.getElementById("aud-total")
+  const pgInfo  = document.getElementById("aud-pg-info")
+  const pgAnt   = document.getElementById("aud-pg-ant")
+  const pgProx  = document.getElementById("aud-pg-prox")
+
+  totalEl.textContent = `${total} registro${total !== 1 ? "s" : ""}`
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="aud-vazio">Nenhum registro encontrado.</td></tr>'
+    pgInfo.textContent = ""
+    pgAnt.disabled = true
+    pgProx.disabled = true
+    return
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const dt   = new Date(r.criado_em).toLocaleString("pt-BR")
+    const label = audAcaoLabel[r.acao] || r.acao
+    const cor   = audCorBadge(r.acao)
+    const isErro = r.acao.includes("falhou") || r.acao.includes("erro")
+    return `<tr>
+      <td class="aud-data">${dt}</td>
+      <td>${r.usuario_nome || '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td><span class="aud-badge ${isErro ? "erro" : cor}">${label}</span></td>
+      <td><div class="aud-alvo" title="${r.alvo || ""}">${r.alvo || '<span style="color:var(--text-muted)">—</span>'}</div></td>
+      <td class="aud-ip">${r.ip || "—"}</td>
+    </tr>`
+  }).join("")
+
+  const inicio = audPagina * AUD_LIMIT + 1
+  const fim    = Math.min(inicio + rows.length - 1, total)
+  pgInfo.textContent = `${inicio}–${fim} de ${total}`
+  pgAnt.disabled  = audPagina === 0
+  pgProx.disabled = fim >= total
+}
+
+function filtrarAuditoria() {
+  audPagina = 0
+  carregarAuditoria()
+}
+
+async function paginaAuditoria(dir) {
+  audPagina = Math.max(0, audPagina + dir)
+  await carregarAuditoria()
+}
+
+function exportarAuditoria() {
+  window.location.href = "/auditoria/exportar"
 }
 
 async function abrirSeguranca() {
@@ -561,17 +774,64 @@ function fecharModalSeguranca(e) {
 
 async function abrirSegurancaData() {
   try {
-    const res = await fetch("/backup/status")
-    if (!res.ok) return
-    const d = await res.json()
+    const [resStatus, resCfg] = await Promise.all([
+      fetch("/backup/status"),
+      fetch("/backup/config")
+    ])
+    if (!resStatus.ok) return
+    const d   = await resStatus.json()
+    const cfg = resCfg.ok ? await resCfg.json() : { ativo: false }
+
+    // Último backup
     const el = document.getElementById("sec-ultimo-backup")
-    if (!el) return
-    if (d.ultimoBackup) {
-      const dt = new Date(d.ultimoBackup.criado_em).toLocaleString("pt-BR")
-      el.textContent = `Último backup realizado em ${dt} por ${d.ultimoBackup.usuario_nome}. Recomendado: semanal.`
-    } else {
-      el.textContent = "Nenhum backup realizado ainda. Acesse o menu Backup e faça o primeiro agora."
-      el.style.color = "var(--error)"
+    if (el) {
+      if (d.ultimoBackup) {
+        const dt = new Date(d.ultimoBackup.criado_em).toLocaleString("pt-BR")
+        el.textContent = `Último backup realizado em ${dt} por ${d.ultimoBackup.usuario_nome}. Recomendado: semanal.`
+        el.style.color = ""
+      } else {
+        el.textContent = "Nenhum backup realizado ainda. Acesse o menu Backup e faça o primeiro agora."
+        el.style.color = "var(--error)"
+      }
+    }
+
+    // Item backup automático
+    const itemEl  = document.getElementById("sec-item-backup-auto")
+    const descEl  = document.getElementById("sec-desc-backup-auto")
+    const badgeEl = document.getElementById("sec-badge-backup-auto")
+    if (itemEl && descEl && badgeEl) {
+      if (cfg.ativo) {
+        itemEl.className  = "sec-item sec-ok"
+        badgeEl.className = "sec-badge sec-badge-ok"
+        badgeEl.textContent = "Ativo"
+        const prox = cfg.proximo_em ? new Date(cfg.proximo_em).toLocaleString("pt-BR") : "—"
+        descEl.textContent = `Backup automático a cada ${cfg.intervalo_horas}h. Próximo: ${prox}.`
+      } else {
+        itemEl.className  = "sec-item sec-warn"
+        badgeEl.className = "sec-badge sec-badge-warn"
+        badgeEl.textContent = "Manual"
+        descEl.textContent = "Não configurado. Faça backup manual regularmente para evitar perda de dados."
+      }
+    }
+
+    // Score dinâmico
+    const scoreEl = document.getElementById("sec-score-num")
+    const subEl   = document.getElementById("sec-score-sub")
+    const tipEl   = document.getElementById("sec-score-tip")
+    if (scoreEl) {
+      if (cfg.ativo) {
+        scoreEl.innerHTML = '100<span>%</span>'
+        if (subEl) subEl.textContent = "11 de 11 proteções ativas"
+        if (tipEl) tipEl.style.display = "none"
+        const ring = document.querySelector("#modal-seguranca .sec-score-ring circle:last-child")
+        if (ring) ring.setAttribute("stroke-dashoffset", "0")
+      } else {
+        scoreEl.innerHTML = '90<span>%</span>'
+        if (subEl) subEl.textContent = "10 de 11 proteções ativas"
+        if (tipEl) { tipEl.style.display = ""; tipEl.innerHTML = '<i class="uil uil-info-circle"></i> Backup automático elevaria para 100%' }
+        const ring = document.querySelector("#modal-seguranca .sec-score-ring circle:last-child")
+        if (ring) ring.setAttribute("stroke-dashoffset", "26")
+      }
     }
   } catch {}
 }
@@ -622,23 +882,6 @@ async function carregarHistoricoBackup() {
   } catch {}
 }
 
-async function abrirSeguranca() {
-  try {
-    const res = await fetch("/backup/status")
-    if (!res.ok) return
-    const d = await res.json()
-    const el = document.getElementById("sec-ultimo-backup")
-    if (!el) return
-    if (d.ultimoBackup) {
-      const dt = new Date(d.ultimoBackup.criado_em).toLocaleString("pt-BR")
-      el.textContent = `Último backup realizado em ${dt} por ${d.ultimoBackup.usuario_nome}. Recomendado: semanal.`
-    } else {
-      el.textContent = "Nenhum backup realizado ainda. Acesse a aba Backup e faça o primeiro agora."
-      el.style.color = "var(--error)"
-    }
-  } catch {}
-}
-
 function baixarBackup() {
   window.location.href = "/backup/download"
   setTimeout(() => Promise.all([carregarStatusBackup(), carregarHistoricoBackup()]), 2000)
@@ -647,7 +890,7 @@ function baixarBackup() {
 async function restaurarBackup(input) {
   const file = input.files[0]
   if (!file) return
-  if (!confirm(`Restaurar "${file.name}"?\n\nTodos os dados inseridos após esse backup serão perdidos. O sistema vai reiniciar automaticamente.`)) {
+  if (!await confirmar(`Restaurar <strong>${file.name}</strong>?\n\nTodos os dados inseridos após esse backup serão perdidos. O sistema vai reiniciar automaticamente.`, { titulo: "Restaurar backup", tipo: "aviso", labelOk: "Restaurar" })) {
     input.value = ""; return
   }
   try {
@@ -1696,7 +1939,7 @@ async function salvarEdicaoCargo() {
 async function deletarCargo() {
   if (!cargoEditando) return
   const c = cargosData.find(x => x.id === cargoEditando)
-  if (!confirm(`Deletar "${c?.cargo}"? Esta ação não pode ser desfeita.`)) return
+  if (!await confirmar(`Deletar <strong>${c?.cargo}</strong>?\nEsta ação não pode ser desfeita.`, { titulo: "Deletar cargo", labelOk: "Deletar" })) return
 
   try {
     const res = await fetch(`/cargos/${cargoEditando}`, { method: "DELETE" })
@@ -1841,7 +2084,7 @@ async function salvarArea() {
 
 async function deletarArea() {
   if (!areaEditando) return
-  if (!confirm(`Deletar a área "${areaEditando}"? Esta ação não pode ser desfeita.`)) return
+  if (!await confirmar(`Deletar a área <strong>${areaEditando}</strong>?\nEsta ação não pode ser desfeita.`, { titulo: "Deletar área", labelOk: "Deletar" })) return
 
   try {
     const res  = await fetch(`/areas/${encodeURIComponent(areaEditando)}`, { method: "DELETE" })
@@ -1976,7 +2219,7 @@ async function salvarArtigo() {
 async function deletarArtigo() {
   if (!artigoEditando) return
   const a = conhecimentoData.find(x => x.id === artigoEditando)
-  if (!confirm(`Deletar "${a?.titulo}"? Esta ação não pode ser desfeita.`)) return
+  if (!await confirmar(`Deletar <strong>${a?.titulo}</strong>?\nEsta ação não pode ser desfeita.`, { titulo: "Deletar conhecimento", labelOk: "Deletar" })) return
 
   try {
     const res = await fetch(`/conhecimento/${artigoEditando}`, { method: "DELETE" })

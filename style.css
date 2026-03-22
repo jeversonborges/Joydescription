@@ -1899,6 +1899,60 @@ body.dark .cargos-count {
   background: #dc26260d;
 }
 
+/* ── MODAL DE CONFIRMAÇÃO ──────────────────────────────────── */
+.confirmar-box {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  width: min(400px, 92vw);
+  padding: 32px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 16px 48px rgba(0,0,0,.35);
+  animation: confirmar-in .18s ease;
+}
+@keyframes confirmar-in {
+  from { opacity: 0; transform: scale(.92) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.confirmar-icon {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; flex-shrink: 0;
+}
+.confirmar-icon.perigo { background: #dc262610; color: #dc2626; }
+.confirmar-icon.aviso  { background: #f59e0b10; color: #f59e0b; }
+.confirmar-icon.info   { background: #4f46e510; color: #4f46e5; }
+.confirmar-titulo {
+  font-size: 16px; font-weight: 700; color: var(--text-main);
+  text-align: center; line-height: 1.3;
+}
+.confirmar-msg {
+  font-size: 13px; color: var(--text-sub); text-align: center;
+  line-height: 1.6; max-width: 320px;
+}
+.confirmar-btns {
+  display: flex; gap: 10px; margin-top: 8px; width: 100%;
+}
+.confirmar-btn-cancel {
+  flex: 1; padding: 9px 0; border-radius: 8px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-sub); font-size: 13px;
+  font-weight: 500; cursor: pointer; transition: background .15s;
+}
+.confirmar-btn-cancel:hover { background: var(--bg-hover); }
+.confirmar-btn-ok {
+  flex: 1; padding: 9px 0; border-radius: 8px; border: none;
+  background: #dc2626; color: #fff; font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: background .15s;
+}
+.confirmar-btn-ok:hover { background: #b91c1c; }
+.confirmar-btn-ok.azul  { background: #4f46e5; }
+.confirmar-btn-ok.azul:hover { background: #4338ca; }
+.confirmar-btn-ok.amarelo { background: #f59e0b; color: #1a1a1a; }
+.confirmar-btn-ok.amarelo:hover { background: #d97706; }
+
 /* ── MODAL ANÁLISE JURÍDICA ────────────────────────────────── */
 .modal-overlay {
   position: fixed;
@@ -2734,6 +2788,91 @@ body.dark .login-tab.active {
   color: var(--text-sub);
 }
 .bk-dicas li i { color: var(--accent); font-size: 14px; flex-shrink: 0; }
+
+/* Backup automático */
+.bk-auto-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.bk-toggle-wrap { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+.bk-toggle-wrap input { display: none; }
+.bk-toggle-slider {
+  width: 40px; height: 22px; background: var(--border); border-radius: 11px;
+  position: relative; transition: background .2s; flex-shrink: 0;
+}
+.bk-toggle-slider::after {
+  content: ""; position: absolute; top: 3px; left: 3px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; transition: left .2s; box-shadow: 0 1px 3px #0004;
+}
+.bk-toggle-wrap input:checked ~ .bk-toggle-slider { background: var(--accent); }
+.bk-toggle-wrap input:checked ~ .bk-toggle-slider::after { left: 21px; }
+.bk-toggle-label { font-size: 13px; color: var(--text-sub); font-weight: 500; }
+.bk-auto-interval { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.bk-interval-label { font-size: 12px; color: var(--text-muted); }
+.bk-select {
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-main); border-radius: 6px; padding: 5px 8px;
+  font-size: 12px; cursor: pointer;
+}
+.bk-auto-status { font-size: 11px; color: var(--text-muted); min-height: 16px; }
+
+/* ── LOG DE AUDITORIA ──────────────────────────────────────────── */
+.aud-filtros {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.aud-input {
+  flex: 1; min-width: 160px; padding: 7px 10px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text-main); font-size: 13px;
+}
+.aud-select { min-width: 160px; }
+.aud-total { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+.aud-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+.aud-table {
+  width: 100%; border-collapse: collapse; font-size: 12.5px;
+}
+.aud-table thead tr {
+  background: var(--bg-hover);
+}
+.aud-table th {
+  padding: 9px 12px; text-align: left; font-size: 11px; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.aud-table td {
+  padding: 8px 12px; color: var(--text-sub); border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.aud-table tr:last-child td { border-bottom: none; }
+.aud-table tr:hover td { background: var(--bg-hover); }
+.aud-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  white-space: nowrap;
+}
+.aud-badge.auth    { background: #4f46e512; color: #4f46e5; }
+.aud-badge.cargo   { background: #06b6d412; color: #06b6d4; }
+.aud-badge.area    { background: #10b98112; color: #10b981; }
+.aud-badge.conhec  { background: #8b5cf612; color: #8b5cf6; }
+.aud-badge.nivel   { background: #f59e0b12; color: #f59e0b; }
+.aud-badge.usuario { background: #ec489912; color: #ec4899; }
+.aud-badge.backup  { background: #64748b12; color: #64748b; }
+.aud-badge.erro    { background: #dc262612; color: #dc2626; }
+.aud-alvo { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-main); font-weight: 500; }
+.aud-ip   { font-family: monospace; font-size: 11px; color: var(--text-muted); }
+.aud-data { white-space: nowrap; }
+.aud-vazio { text-align: center; padding: 32px; color: var(--text-muted); }
+.aud-paginacao {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 14px; gap: 12px;
+}
+.aud-pg-btn {
+  padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-sub); font-size: 12px; cursor: pointer;
+  transition: background .15s;
+}
+.aud-pg-btn:hover:not(:disabled) { background: var(--bg-hover); }
+.aud-pg-btn:disabled { opacity: .35; cursor: default; }
+#aud-pg-info { font-size: 12px; color: var(--text-muted); }
+
 @media (max-width: 700px) {
   .bk-grid { grid-template-columns: 1fr; }
 }
