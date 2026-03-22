@@ -10,6 +10,7 @@ import dotenv            from "dotenv"
 import fs                from "fs"
 import path              from "path"
 import { fileURLToPath } from "url"
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto"
 import OpenAI            from "openai"
 import Database          from "better-sqlite3"
 
@@ -26,7 +27,7 @@ const GROQ_MODEL  = process.env.GROQ_MODEL   || "llama-3.3-70b-versatile"
 const app = express()
 app.use(cors())
 app.use(express.json())
-app.use(express.static(__dirname))
+// Static servido por último — as rotas da API têm prioridade
 app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "index.html")))
 
 
@@ -37,11 +38,45 @@ app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "index.html")))
 //  Sem risco de corrupção por crash ou reinício do processo.
 // ═══════════════════════════════════════════════════════════════
 
-const db = new Database(process.env.JOY_DB_PATH || path.join(__dirname, "joydescription.db"))
+// ── Se volume persistente configurado, copia DB inicial na 1ª vez ──
+const dbPath = process.env.JOY_DB_PATH || path.join(__dirname, "joydescription.db")
+if (process.env.JOY_DB_PATH && !fs.existsSync(process.env.JOY_DB_PATH)) {
+  const seed = path.join(__dirname, "joydescription.db")
+  if (fs.existsSync(seed)) {
+    fs.mkdirSync(path.dirname(process.env.JOY_DB_PATH), { recursive: true })
+    fs.copyFileSync(seed, process.env.JOY_DB_PATH)
+    console.log("✅ Banco inicial copiado para volume persistente")
+  }
+}
+const db = new Database(dbPath)
 db.pragma("journal_mode = WAL")
 db.pragma("synchronous = NORMAL")
 
 db.exec(`
+  CREATE TABLE IF NOT EXISTS empresas (
+    id        TEXT PRIMARY KEY,
+    nome      TEXT NOT NULL,
+    criado_em TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS usuarios (
+    id         TEXT PRIMARY KEY,
+    empresa_id TEXT NOT NULL REFERENCES empresas(id),
+    nome       TEXT NOT NULL,
+    email      TEXT UNIQUE NOT NULL,
+    senha_hash TEXT NOT NULL,
+    papel      TEXT NOT NULL DEFAULT 'membro',
+    ativo      INTEGER NOT NULL DEFAULT 1,
+    criado_em  TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS sessoes (
+    token      TEXT PRIMARY KEY,
+    usuario_id TEXT NOT NULL,
+    empresa_id TEXT NOT NULL,
+    expira_em  TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS areas (
     key      TEXT PRIMARY KEY,
     label    TEXT NOT NULL,
@@ -67,7 +102,98 @@ db.exec(`
     criadoEm  TEXT NOT NULL,
     editadoEm TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS niveis (
+    label           TEXT PRIMARY KEY,
+    ordem           INTEGER NOT NULL DEFAULT 0,
+    eh_lideranca    INTEGER NOT NULL DEFAULT 0,
+    descricao       TEXT NOT NULL DEFAULT '',
+    descricao_curta TEXT NOT NULL DEFAULT ''
+  );
+
+  CREATE TABLE IF NOT EXISTS versoes (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    cargo_id   TEXT NOT NULL,
+    cargo      TEXT NOT NULL,
+    area       TEXT NOT NULL DEFAULT '',
+    nivel      TEXT NOT NULL DEFAULT '',
+    texto      TEXT NOT NULL,
+    hash       TEXT NOT NULL,
+    hash_prev  TEXT NOT NULL DEFAULT '',
+    criado_em  TEXT NOT NULL
+  );
 `)
+
+// ── Migrações de multi-tenant: adiciona empresa_id às tabelas existentes ──
+;(function migrarMultiTenant() {
+  // Cria empresa padrão se não existir
+  db.prepare("INSERT OR IGNORE INTO empresas (id, nome, criado_em) VALUES (?, ?, ?)")
+    .run("default", "Empresa Padrão", "2024-01-01T00:00:00.000Z")
+
+  // Verifica e adiciona empresa_id em cargos
+  const colsCargos = db.prepare("PRAGMA table_info(cargos)").all().map(c => c.name)
+  if (!colsCargos.includes("empresa_id")) {
+    db.exec("ALTER TABLE cargos ADD COLUMN empresa_id TEXT NOT NULL DEFAULT 'default'")
+    console.log("✅ Migração: empresa_id adicionado a cargos")
+  }
+
+  // Verifica e adiciona empresa_id em conhecimento
+  const colsConhec = db.prepare("PRAGMA table_info(conhecimento)").all().map(c => c.name)
+  if (!colsConhec.includes("empresa_id")) {
+    db.exec("ALTER TABLE conhecimento ADD COLUMN empresa_id TEXT NOT NULL DEFAULT 'default'")
+    console.log("✅ Migração: empresa_id adicionado a conhecimento")
+  }
+
+  // Verifica e adiciona empresa_id em versoes
+  const colsVersoes = db.prepare("PRAGMA table_info(versoes)").all().map(c => c.name)
+  if (!colsVersoes.includes("empresa_id")) {
+    db.exec("ALTER TABLE versoes ADD COLUMN empresa_id TEXT NOT NULL DEFAULT 'default'")
+    console.log("✅ Migração: empresa_id adicionado a versoes")
+  }
+
+  // Migra areas para PK composta (empresa_id, key) se ainda for a versão antiga
+  const colsAreas = db.prepare("PRAGMA table_info(areas)").all().map(c => c.name)
+  if (!colsAreas.includes("empresa_id")) {
+    db.exec(`
+      CREATE TABLE areas_new (
+        empresa_id TEXT NOT NULL DEFAULT 'default',
+        key        TEXT NOT NULL,
+        label      TEXT NOT NULL,
+        universo   TEXT NOT NULL,
+        PRIMARY KEY (empresa_id, key)
+      );
+      INSERT INTO areas_new SELECT 'default', key, label, universo FROM areas;
+      DROP TABLE areas;
+      ALTER TABLE areas_new RENAME TO areas;
+    `)
+    console.log("✅ Migração: areas recriada com empresa_id")
+  }
+
+  // Migra niveis para PK composta (empresa_id, label) se ainda for a versão antiga
+  const colsNiveis = db.prepare("PRAGMA table_info(niveis)").all().map(c => c.name)
+  if (!colsNiveis.includes("empresa_id")) {
+    db.exec(`
+      CREATE TABLE niveis_new (
+        empresa_id      TEXT NOT NULL DEFAULT 'default',
+        label           TEXT NOT NULL,
+        ordem           INTEGER NOT NULL DEFAULT 0,
+        eh_lideranca    INTEGER NOT NULL DEFAULT 0,
+        descricao       TEXT NOT NULL DEFAULT '',
+        descricao_curta TEXT NOT NULL DEFAULT '',
+        PRIMARY KEY (empresa_id, label)
+      );
+      INSERT INTO niveis_new SELECT 'default', label, ordem, eh_lideranca, descricao, descricao_curta FROM niveis;
+      DROP TABLE niveis;
+      ALTER TABLE niveis_new RENAME TO niveis;
+    `)
+    console.log("✅ Migração: niveis recriada com empresa_id")
+  }
+})()
+
+// ── Limpeza periódica de sessões expiradas (1h) ────────────────────────────
+setInterval(() => {
+  db.prepare("DELETE FROM sessoes WHERE expira_em < ?").run(new Date().toISOString())
+}, 3600000)
 
 // ── Migração única: importa JSONs antigos para o banco ─────────
 // Roda apenas uma vez — se a tabela já tiver dados, pula.
@@ -95,6 +221,7 @@ db.exec(`
   importar("conhecimento", "conhecimento.json", a =>
     db.prepare("INSERT OR IGNORE INTO conhecimento (id,titulo,categoria,ativo,conteudo,criadoEm) VALUES (?,?,?,?,?,?)").run(
       a.id, a.titulo, a.categoria||"Geral", a.ativo?1:0, a.conteudo, a.criadoEm||new Date().toISOString()))
+
 })()
 
 
@@ -142,8 +269,8 @@ function extrairTermos(texto, minLen = 5) {
     .filter(w => w.length >= minLen && !STOP.has(w))
 }
 
-function buscarCBO(cargo, areaKey = "", limite = 25) {
-  const ctx      = db.prepare("SELECT universo FROM areas WHERE key = ?").get(areaKey)
+function buscarCBO(cargo, areaKey = "", limite = 25, empresaId = "default") {
+  const ctx      = db.prepare("SELECT universo FROM areas WHERE key = ? AND empresa_id = ?").get(areaKey, empresaId)
   const universo = ctx?.universo || ""
 
   const termosCargoRaw  = cargo.toLowerCase().trim().split(/\s+/).filter(t => t.length >= 3)
@@ -291,6 +418,16 @@ FRONTEIRA LEGAL:
 
 VERBOS PERMITIDOS: definir padrões técnicos, auditar, certificar, assessorar, conduzir pesquisas, implementar metodologias, emitir pareceres técnicos, validar projetos, estabelecer requisitos técnicos, representar a empresa em fóruns especializados.`,
 
+  "Gestor":
+`PERFIL: Liderança tática de área — nível acima do Coordenador, abaixo do Gerente. Dono do resultado da área: aprova decisões operacionais e táticas, lidera coordenadores e responde pelo desempenho integral do seu escopo perante a gerência/diretoria. Cargo de confiança pleno (CLT art. 62, II) com poder disciplinar amplo.
+
+OBRIGAÇÕES LEGAIS DO CARGO:
+- As FUNCOES DEVEM conter gestão de pessoas e gestão de resultados (coordenadores subordinados)
+- Deve exercer poder decisório real — sem decisões próprias, enquadramento pode ser contestado em reclamatória
+
+FUNCOES OBRIGATÓRIAS: definir objetivos e metas da área com desdobramento para os coordenadores, gerir e desenvolver coordenadores (avaliação, feedback, plano de desenvolvimento), aprovar decisões operacionais e táticas dentro do escopo da área, gerir orçamento operacional e responder pelos indicadores da área, garantir o cumprimento de políticas, normas e procedimentos da empresa na área, representar a área em fóruns internos e prestar contas à gerência/diretoria.
+PODE TAMBÉM: participar de processos de contratação e desligamento da equipe, aprovar requisições de investimento dentro da alçada definida, representar a área em negociações operacionais com parceiros e fornecedores.`,
+
   "Coordenador":
 `PERFIL: Primeiro nível de liderança formal com subordinados diretos. Responde pelos resultados operacionais da equipe perante a gerência. Tem poder disciplinar dentro das políticas da empresa. Enquadra-se como CARGO DE CONFIANÇA (CLT art. 62, II) — diferenciado por padrão salarial superior e fidúcia do empregador.
 
@@ -356,6 +493,7 @@ const NIVEL_CURTO = {
   "Senior":       "6+ anos, define padrões técnicos, referência máxima da área, lidera projetos técnicos",
   "Especialista": "domínio profundo de especialidade, ponto focal consultivo, sem subordinados",
   "Coordenador":  "primeiro nível de liderança formal — DEVE ter funções de gestão de equipe",
+  "Gestor":       "liderança tática de área — acima do Coordenador, DEVE ter gestão de coordenadores e decisão sobre resultados da área",
   "Gerente":      "liderança de área com orçamento e decisão de pessoas",
   "Diretor":      "liderança executiva, estratégia, decisões de alto impacto",
 }
@@ -366,13 +504,50 @@ const TIPO_CURTO = {
   "Híbrido":        "campo E escritório — obrigatoriamente os dois. Mínimo 4 funções de campo e 4 de escritório.",
 }
 
+// ── Função reutilizável: semeia níveis padrão para uma empresa ─
+function seedNiveis(empresaId) {
+  const ins = db.prepare("INSERT OR IGNORE INTO niveis (empresa_id,label,ordem,eh_lideranca,descricao,descricao_curta) VALUES (?,?,?,?,?,?)")
+  const seed = [
+    ["Estágio",     1, 0, NIVEL_DEF["Estágio"],     NIVEL_CURTO["Estágio"]],
+    ["Trainee",     2, 0, NIVEL_DEF["Trainee"],     NIVEL_CURTO["Trainee"]],
+    ["Junior",      3, 0, NIVEL_DEF["Junior"],      NIVEL_CURTO["Junior"]],
+    ["Pleno",       4, 0, NIVEL_DEF["Pleno"],       NIVEL_CURTO["Pleno"]],
+    ["Senior",      5, 0, NIVEL_DEF["Senior"],      NIVEL_CURTO["Senior"]],
+    ["Especialista",6, 0, NIVEL_DEF["Especialista"],NIVEL_CURTO["Especialista"]],
+    ["Coordenador", 7, 1, NIVEL_DEF["Coordenador"], NIVEL_CURTO["Coordenador"]],
+    ["Gestor",      8, 1, NIVEL_DEF["Gestor"],      NIVEL_CURTO["Gestor"]],
+    ["Gerente",     9, 1, NIVEL_DEF["Gerente"],     NIVEL_CURTO["Gerente"]],
+    ["Diretor",     10,1, NIVEL_DEF["Diretor"],     NIVEL_CURTO["Diretor"]],
+  ]
+  db.transaction(() => seed.forEach(([label, ordem, lider, desc, curta]) =>
+    ins.run(empresaId, label, ordem, lider, desc, curta)
+  ))()
+}
+
+// ── Semeia níveis padrão na tabela se ainda estiver vazia (empresa default) ─
+;(function semeiarNiveis() {
+  if (db.prepare("SELECT COUNT(*) as n FROM niveis WHERE empresa_id = 'default'").get().n > 0) return
+  seedNiveis("default")
+  console.log("✅ Níveis padrão inseridos para empresa default")
+})()
+
+// ── Migração: insere Gestor se banco antigo não tiver ──────────
+;(function addGestor() {
+  if (db.prepare("SELECT COUNT(*) as n FROM niveis WHERE label='Gestor' AND empresa_id='default'").get().n > 0) return
+  db.prepare("UPDATE niveis SET ordem = 9  WHERE label = 'Gerente' AND empresa_id = 'default'").run()
+  db.prepare("UPDATE niveis SET ordem = 10 WHERE label = 'Diretor' AND empresa_id = 'default'").run()
+  db.prepare("INSERT OR IGNORE INTO niveis (empresa_id,label,ordem,eh_lideranca,descricao,descricao_curta) VALUES (?,?,?,?,?,?)")
+    .run("default", "Gestor", 8, 1, NIVEL_DEF["Gestor"], NIVEL_CURTO["Gestor"])
+  console.log("✅ Nível Gestor adicionado para empresa default")
+})()
+
 // Prompt ultra-enxuto para Ollama — modelos pequenos perdem o fio em prompts longos
-function montarPromptOllamaGen(cargo, area, nivel, tipo, candidatos) {
-  const ctx = db.prepare("SELECT * FROM areas WHERE key = ?").get(area)
+function montarPromptOllamaGen(cargo, area, nivel, tipo, candidatos, nm = {}, empresaId = "default") {
+  const ctx = db.prepare("SELECT * FROM areas WHERE key = ? AND empresa_id = ?").get(area, empresaId)
   const contextoArea = ctx?.universo?.slice(0, 300) || `Setor de uma usina sucroenergética.`
-  const nivelRes = NIVEL_CURTO[nivel] || nivel
+  const nivelRes = nm[nivel]?.descricao_curta || NIVEL_CURTO[nivel] || nivel
   const tipoRes  = TIPO_CURTO[tipo]  || tipo
-  const isLider  = ["Coordenador","Gerente","Diretor"].includes(nivel)
+  const isLider  = nm[nivel]?.eh_lideranca === 1 || ["Coordenador","Gestor","Gerente","Diretor"].includes(nivel)
   const regraLider = isLider
     ? "OBRIGATÓRIO: incluir funções de gestão de equipe, metas e reporte hierárquico."
     : "PROIBIDO: coordenar, liderar ou gerenciar pessoas."
@@ -402,15 +577,15 @@ ${listaCBO}
 `
 }
 
-function montarPromptOllamaDet(cargo, area, nivel, tipo, candidatos) {
-  const ctx = db.prepare("SELECT * FROM areas WHERE key = ?").get(area)
+function montarPromptOllamaDet(cargo, area, nivel, tipo, candidatos, nm = {}, empresaId = "default") {
+  const ctx = db.prepare("SELECT * FROM areas WHERE key = ? AND empresa_id = ?").get(area, empresaId)
   const contextoArea = ctx?.universo?.slice(0, 300) || `Setor de uma usina sucroenergética.`
-  const nivelRes = NIVEL_CURTO[nivel] || nivel
+  const nivelRes = nm[nivel]?.descricao_curta || NIVEL_CURTO[nivel] || nivel
   const tipoRes  = TIPO_CURTO[tipo]  || tipo
-  const isLider  = ["Coordenador","Gerente","Diretor"].includes(nivel)
+  const isLider  = nm[nivel]?.eh_lideranca === 1 || ["Coordenador","Gestor","Gerente","Diretor"].includes(nivel)
   const regraLider = isLider
-    ? "OBRIGATÓRIO: funções de gestão de equipe, metas e reporte hierárquico."
-    : "PROIBIDO: coordenar, liderar ou gerenciar pessoas."
+    ? "OBRIGATÓRIO nas ATRIBUICOES: gestão de equipe, metas, delegação, reporte hierárquico."
+    : `PROIBIDO nas ATRIBUICOES: coordenar equipe, gerir subordinados, negociar sindicato, aprovar salários de outros, demitir ou contratar. Nível técnico sem poder disciplinar.`
   const listaCBO = candidatos.slice(0, 5).map(c => `${c.codigo} – ${c.cargo}`).join("\n") || "Sem referências."
 
   return `CARGO: ${cargo}
@@ -450,12 +625,12 @@ ${listaCBO}
 `
 }
 
-function montarPromptGenerica(cargo, area, nivel, tipo, candidatos) {
-  const ctx = db.prepare("SELECT * FROM areas WHERE key = ?").get(area)
-  const contextoArea = ctx?.universo.trim()
+function montarPromptGenerica(cargo, area, nivel, tipo, candidatos, nm = {}, empresaId = "default") {
+  const ctx = db.prepare("SELECT * FROM areas WHERE key = ? AND empresa_id = ?").get(area, empresaId)
+  const contextoArea = ctx?.universo?.trim()
     || `Setor especializado de uma usina sucroenergética.`
 
-  const artigos = db.prepare("SELECT titulo, conteudo FROM conhecimento WHERE ativo = 1").all()
+  const artigos = db.prepare("SELECT titulo, conteudo FROM conhecimento WHERE ativo = 1 AND empresa_id = ?").all(empresaId)
   const baseConhecimento = artigos.length > 0
     ? `\nBASE DE CONHECIMENTO:\n\n` + artigos.map(a => `[ ${a.titulo} ]\n${a.conteudo}`).join("\n\n") + "\n"
     : ""
@@ -464,8 +639,8 @@ function montarPromptGenerica(cargo, area, nivel, tipo, candidatos) {
     ? candidatos.slice(0, 8).map(c => `${c.codigo} – ${c.cargo}`).join("\n")
     : "Nenhuma referência próxima encontrada."
 
-  const nivelDef = NIVEL_DEF[nivel] || `Nível ${nivel}`
-  const isLider  = ["Coordenador","Gerente","Diretor"].includes(nivel)
+  const nivelDef = nm[nivel]?.descricao || NIVEL_DEF[nivel] || `Nível ${nivel}`
+  const isLider  = nm[nivel]?.eh_lideranca === 1 || ["Coordenador","Gestor","Gerente","Diretor"].includes(nivel)
   const regraLideranca = isLider
     ? `FUNCOES devem incluir: gestão de pessoas, metas, delegação, reporte à hierarquia.`
     : `PROIBIDO nas FUNCOES: liderar equipe, coordenar pessoas, delegar tarefas, gerir subordinados.`
@@ -494,14 +669,14 @@ ${listaCBO}
 `
 }
 
-function montarPrompt(cargo, area, nivel, tipo, candidatos) {
-  const ctx = db.prepare("SELECT * FROM areas WHERE key = ?").get(area)
+function montarPrompt(cargo, area, nivel, tipo, candidatos, nm = {}, empresaId = "default") {
+  const ctx = db.prepare("SELECT * FROM areas WHERE key = ? AND empresa_id = ?").get(area, empresaId)
 
   const contextoArea = ctx
     ? ctx.universo.trim()
     : `Setor especializado de uma usina sucroenergética. Considere as particularidades operacionais industriais deste setor.`
 
-  const artigos = db.prepare("SELECT titulo, conteudo FROM conhecimento WHERE ativo = 1").all()
+  const artigos = db.prepare("SELECT titulo, conteudo FROM conhecimento WHERE ativo = 1 AND empresa_id = ?").all(empresaId)
   const baseConhecimento = artigos.length > 0
     ? `\nBASE DE CONHECIMENTO — use como referência técnica ao elaborar a descrição:\n\n` +
       artigos.map(a => `[ ${a.titulo} ]\n${a.conteudo}`).join("\n\n") + "\n"
@@ -511,12 +686,22 @@ function montarPrompt(cargo, area, nivel, tipo, candidatos) {
     ? candidatos.slice(0, 8).map(c => `${c.codigo} – ${c.cargo}`).join("\n")
     : "Nenhuma referência próxima encontrada na base."
 
-  const nivelDef = NIVEL_DEF[nivel] || `Nível ${nivel} — adapte a complexidade das responsabilidades ao tempo de experiência esperado.`
+  const nivelDef = nm[nivel]?.descricao || NIVEL_DEF[nivel] || `Nível ${nivel} — adapte a complexidade das responsabilidades ao tempo de experiência esperado.`
 
-  const isLider = ["Coordenador","Gerente","Diretor"].includes(nivel)
+  const isLider = nm[nivel]?.eh_lideranca === 1 || ["Coordenador","Gestor","Gerente","Diretor"].includes(nivel)
+
+  // Extrai fronteira legal do NIVEL_DEF para injetar no prompt
+  const nivelDefCompleto = nm[nivel]?.descricao || NIVEL_DEF[nivel] || ""
+  const linhasFronteira  = nivelDefCompleto.split("\n")
+    .filter(l => /FRONTEIRA|PROIBIDO|NUNCA|PODE\s|EXEMPLOS PROIBIDOS/i.test(l))
+    .slice(0, 10)
+    .join("\n")
+
   const regraLideranca = isLider
-    ? `Este nível É de liderança. As FUNCOES devem incluir obrigatoriamente: gestão de pessoas, definição de metas, delegação de tarefas, acompanhamento de resultados e reporte à hierarquia superior.`
-    : `PROIBIDO nas FUNCOES: liderar equipe, coordenar pessoas, delegar tarefas, gerir subordinados, supervisionar funcionários. O nível "${nivel}" NÃO é cargo de gestão. Violação disso invalida a descrição.`
+    ? `Este nível É de liderança. As ATRIBUICOES devem incluir obrigatoriamente: gestão de pessoas, definição de metas, delegação de tarefas, acompanhamento de resultados e reporte à hierarquia superior.`
+    : `PROIBIDO nas ATRIBUICOES: coordenar equipe formalmente, gerir subordinados, supervisionar funcionários com poder disciplinar. O nível "${nivel}" NÃO é cargo de gestão de pessoas (CLT art. 62 II).
+FRONTEIRA LEGAL DO NÍVEL "${nivel}" — respeite estritamente:
+${linhasFronteira || `Nível técnico sem subordinados formais. Não inclua aprovação de aumentos salariais, negociação sindical formal, demissão ou contratação.`}`
 
   const tipoCtx = TIPO_CTX[tipo] || TIPO_CTX["Híbrido"]
 
@@ -568,12 +753,13 @@ Escreva exatamente os cinco títulos abaixo em MAIÚSCULO, sem pular nenhum.
 qual problema resolve, qual seu impacto no setor ${area}. NÃO liste tarefas aqui.
 É a razão de ser do cargo, não o que o profissional faz no dia a dia.
 
-[ATRIBUICOES] Lista de 8 a 12 responsabilidades. Cada item inicia com hífen e verbo no infinitivo.
-São as atividades que o cargo executa. Devem ser concretas, específicas do setor ${area}.
+[ATRIBUICOES] Lista de 8 a 12 itens. Cada item = VERBO INFINITIVO + AÇÃO CONCRETA.
+⚠ ESTA SEÇÃO É EXCLUSIVAMENTE O QUE O CARGO FAZ — não o que ele sabe ou como ele é.
+PROIBIDO nesta seção: conhecimentos técnicos, softwares, certificações, habilidades, legislações, perfil comportamental, atitudes. Esses itens pertencem às próximas seções.
 CHECKLIST por item:
-  1. Condiz com o TIPO "${tipo}"? (Operacional=campo/equipamentos | Administrativo=sistemas/escritório | Híbrido=ambos)
-  2. Condiz com o NÍVEL "${nivel}"? (Junior=segue rotinas | Pleno=executa com autonomia | Senior=define padrões | Coordenador+=gere pessoas)
-  3. Se NÃO em qualquer ponto, reescreva antes de incluir.
+  1. É uma AÇÃO (verbo + objeto concreto)? Se for "conhecimento de X" ou "habilidade em Y" → mova para COMPETENCIAS TECNICAS.
+  2. Condiz com o TIPO "${tipo}"? (Operacional=campo/equipamentos | Administrativo=sistemas/escritório | Híbrido=ambos)
+  3. Condiz com o NÍVEL "${nivel}" conforme definição acima? Se NÃO → reescreva ou remova.
 ${regraLideranca}
 
 [COMPETENCIAS TECNICAS] Lista de 4 a 6 itens. Conhecimentos e habilidades técnicas
@@ -640,8 +826,209 @@ INDICACAO DE CBOs
 //  ROTAS — CARGOS
 // ═══════════════════════════════════════════════════════════════
 
-app.get("/cargos", (_, res) => {
-  res.json(db.prepare("SELECT * FROM cargos ORDER BY criadoEm DESC").all())
+// ── Hash SHA-256 encadeado para versionamento imutável ─────────
+function hashVersao(hashPrev, texto) {
+  return createHash("sha256").update(hashPrev + texto).digest("hex")
+}
+
+function salvarVersao(cargo_id, cargo, area, nivel, texto, empresaId = "default") {
+  const ultima = db.prepare(
+    "SELECT hash FROM versoes WHERE cargo_id = ? AND empresa_id = ? ORDER BY id DESC LIMIT 1"
+  ).get(cargo_id, empresaId)
+  const hashPrev = ultima?.hash || ""
+  const hash     = hashVersao(hashPrev, texto)
+  db.prepare(`
+    INSERT INTO versoes (cargo_id,cargo,area,nivel,texto,hash,hash_prev,criado_em,empresa_id)
+    VALUES (?,?,?,?,?,?,?,?,?)
+  `).run(cargo_id, cargo, area, nivel, texto, hash, hashPrev, new Date().toISOString(), empresaId)
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  AUTH — helpers e middleware
+// ═══════════════════════════════════════════════════════════════
+
+function hashSenha(senha) {
+  const salt = randomBytes(16).toString("hex")
+  const hash = scryptSync(senha, salt, 64).toString("hex")
+  return `${salt}:${hash}`
+}
+
+function verificarSenha(senha, armazenado) {
+  const [salt, hashArm] = armazenado.split(":")
+  const hashTent = scryptSync(senha, salt, 64).toString("hex")
+  return timingSafeEqual(Buffer.from(hashArm, "hex"), Buffer.from(hashTent, "hex"))
+}
+
+function getCookie(req, name) {
+  const cookies = req.headers.cookie || ""
+  const match = cookies.split(";").find(c => c.trim().startsWith(name + "="))
+  return match ? match.trim().slice(name.length + 1) : null
+}
+
+function authMiddleware(req, res, next) {
+  const token = getCookie(req, "joy_session")
+  if (!token) return res.status(401).json({ erro: "Não autenticado." })
+  const sessao = db.prepare(
+    "SELECT s.*, u.nome, u.email, u.papel FROM sessoes s JOIN usuarios u ON s.usuario_id = u.id WHERE s.token = ? AND s.expira_em > ? AND u.ativo = 1"
+  ).get(token, new Date().toISOString())
+  if (!sessao) return res.status(401).json({ erro: "Sessão inválida ou expirada." })
+  req.user = { id: sessao.usuario_id, nome: sessao.nome, email: sessao.email, papel: sessao.papel }
+  req.empresaId = sessao.empresa_id
+  next()
+}
+
+// ── Middleware global: protege rotas de API, libera estáticos e auth ──
+app.use((req, res, next) => {
+  const ext = req.path.split(".").pop().toLowerCase()
+  const isStatic = ["css","js","html","ico","png","jpg","svg","woff","woff2","ttf","map"].includes(ext)
+  const isPub    = isStatic || req.path === "/" || req.path.startsWith("/auth/") || req.path === "/health"
+  if (isPub) return next()
+  authMiddleware(req, res, next)
+})
+
+// ═══════════════════════════════════════════════════════════════
+//  ROTAS — AUTENTICAÇÃO
+// ═══════════════════════════════════════════════════════════════
+
+app.post("/auth/registrar", (req, res) => {
+  const { empresa, nome, email, senha } = req.body
+  if (!empresa?.trim() || !nome?.trim() || !email?.trim() || !senha)
+    return res.status(400).json({ erro: "Campos obrigatórios: empresa, nome, email, senha" })
+  if (senha.length < 6)
+    return res.status(400).json({ erro: "A senha deve ter no mínimo 6 caracteres." })
+
+  const emailExiste = db.prepare("SELECT id FROM usuarios WHERE email = ?").get(email.trim().toLowerCase())
+  if (emailExiste) return res.status(409).json({ erro: "Este e-mail já está cadastrado." })
+
+  const empresaId  = Date.now().toString()
+  const usuarioId  = (Date.now() + 1).toString()
+  const agora      = new Date().toISOString()
+  const senhaHash  = hashSenha(senha)
+  const token      = randomBytes(32).toString("hex")
+  const expira     = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString()
+
+  db.transaction(() => {
+    db.prepare("INSERT INTO empresas (id, nome, criado_em) VALUES (?,?,?)").run(empresaId, empresa.trim(), agora)
+    db.prepare("INSERT INTO usuarios (id, empresa_id, nome, email, senha_hash, papel, ativo, criado_em) VALUES (?,?,?,?,?,?,?,?)")
+      .run(usuarioId, empresaId, nome.trim(), email.trim().toLowerCase(), senhaHash, "admin", 1, agora)
+    db.prepare("INSERT INTO sessoes (token, usuario_id, empresa_id, expira_em) VALUES (?,?,?,?)").run(token, usuarioId, empresaId, expira)
+    // Semeia níveis padrão para a nova empresa
+    seedNiveis(empresaId)
+  })()
+
+  const empresaRow = db.prepare("SELECT * FROM empresas WHERE id = ?").get(empresaId)
+
+  res.setHeader("Set-Cookie", `joy_session=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000`)
+  res.json({ ok: true, user: { id: usuarioId, nome: nome.trim(), email: email.trim().toLowerCase(), papel: "admin" }, empresa: empresaRow })
+})
+
+app.post("/auth/login", (req, res) => {
+  const { email, senha } = req.body
+  if (!email?.trim() || !senha)
+    return res.status(400).json({ erro: "E-mail e senha são obrigatórios." })
+
+  const usuario = db.prepare("SELECT * FROM usuarios WHERE email = ? AND ativo = 1").get(email.trim().toLowerCase())
+  if (!usuario) return res.status(401).json({ erro: "E-mail ou senha inválidos." })
+
+  let senhaOk
+  try { senhaOk = verificarSenha(senha, usuario.senha_hash) } catch { senhaOk = false }
+  if (!senhaOk) return res.status(401).json({ erro: "E-mail ou senha inválidos." })
+
+  const token  = randomBytes(32).toString("hex")
+  const expira = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString()
+  db.prepare("INSERT INTO sessoes (token, usuario_id, empresa_id, expira_em) VALUES (?,?,?,?)").run(token, usuario.id, usuario.empresa_id, expira)
+
+  const empresa = db.prepare("SELECT * FROM empresas WHERE id = ?").get(usuario.empresa_id)
+  res.setHeader("Set-Cookie", `joy_session=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000`)
+  res.json({ ok: true, user: { id: usuario.id, nome: usuario.nome, email: usuario.email, papel: usuario.papel }, empresa })
+})
+
+app.post("/auth/logout", (req, res) => {
+  const token = getCookie(req, "joy_session")
+  if (token) db.prepare("DELETE FROM sessoes WHERE token = ?").run(token)
+  res.setHeader("Set-Cookie", "joy_session=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0")
+  res.json({ ok: true })
+})
+
+app.get("/auth/me", (req, res) => {
+  const token = getCookie(req, "joy_session")
+  if (!token) return res.status(401).json({ erro: "Não autenticado." })
+  const sessao = db.prepare(
+    "SELECT s.*, u.nome, u.email, u.papel FROM sessoes s JOIN usuarios u ON s.usuario_id = u.id WHERE s.token = ? AND s.expira_em > ? AND u.ativo = 1"
+  ).get(token, new Date().toISOString())
+  if (!sessao) return res.status(401).json({ erro: "Sessão inválida ou expirada." })
+  const empresa = db.prepare("SELECT * FROM empresas WHERE id = ?").get(sessao.empresa_id)
+  res.json({ user: { id: sessao.usuario_id, nome: sessao.nome, email: sessao.email, papel: sessao.papel }, empresa })
+})
+
+// ═══════════════════════════════════════════════════════════════
+//  ROTAS — GERENCIAMENTO DE USUÁRIOS (admin only)
+// ═══════════════════════════════════════════════════════════════
+
+app.get("/usuarios", (req, res) => {
+  if (req.user.papel !== "admin") return res.status(403).json({ erro: "Acesso restrito a administradores." })
+  const rows = db.prepare("SELECT id, nome, email, papel, ativo, criado_em FROM usuarios WHERE empresa_id = ? ORDER BY criado_em ASC").all(req.empresaId)
+  res.json(rows)
+})
+
+app.post("/usuarios", (req, res) => {
+  if (req.user.papel !== "admin") return res.status(403).json({ erro: "Acesso restrito a administradores." })
+  const { nome, email, senha, papel = "membro" } = req.body
+  if (!nome?.trim() || !email?.trim() || !senha)
+    return res.status(400).json({ erro: "Campos obrigatórios: nome, email, senha" })
+  if (senha.length < 6)
+    return res.status(400).json({ erro: "A senha deve ter no mínimo 6 caracteres." })
+  if (!["admin","membro"].includes(papel))
+    return res.status(400).json({ erro: "Papel inválido. Use 'admin' ou 'membro'." })
+
+  const emailExiste = db.prepare("SELECT id FROM usuarios WHERE email = ?").get(email.trim().toLowerCase())
+  if (emailExiste) return res.status(409).json({ erro: "E-mail já cadastrado." })
+
+  const id = Date.now().toString()
+  db.prepare("INSERT INTO usuarios (id, empresa_id, nome, email, senha_hash, papel, ativo, criado_em) VALUES (?,?,?,?,?,?,?,?)")
+    .run(id, req.empresaId, nome.trim(), email.trim().toLowerCase(), hashSenha(senha), papel, 1, new Date().toISOString())
+  res.json({ ok: true, id })
+})
+
+app.put("/usuarios/:id", (req, res) => {
+  if (req.user.papel !== "admin") return res.status(403).json({ erro: "Acesso restrito a administradores." })
+  const alvo = db.prepare("SELECT * FROM usuarios WHERE id = ? AND empresa_id = ?").get(req.params.id, req.empresaId)
+  if (!alvo) return res.status(404).json({ erro: "Usuário não encontrado." })
+
+  const { nome, papel, ativo, senha } = req.body
+  const senhaHash = senha ? hashSenha(senha) : alvo.senha_hash
+  const novoNome  = nome?.trim() || alvo.nome
+  const novoPapel = ["admin","membro"].includes(papel) ? papel : alvo.papel
+  const novoAtivo = typeof ativo === "number" ? ativo : alvo.ativo
+
+  db.prepare("UPDATE usuarios SET nome=?, papel=?, ativo=?, senha_hash=? WHERE id=? AND empresa_id=?")
+    .run(novoNome, novoPapel, novoAtivo, senhaHash, req.params.id, req.empresaId)
+  res.json({ ok: true })
+})
+
+app.delete("/usuarios/:id", (req, res) => {
+  if (req.user.papel !== "admin") return res.status(403).json({ erro: "Acesso restrito a administradores." })
+  if (req.params.id === req.user.id) return res.status(400).json({ erro: "Você não pode desativar sua própria conta." })
+  const alvo = db.prepare("SELECT * FROM usuarios WHERE id = ? AND empresa_id = ?").get(req.params.id, req.empresaId)
+  if (!alvo) return res.status(404).json({ erro: "Usuário não encontrado." })
+  db.prepare("UPDATE usuarios SET ativo = 0 WHERE id = ? AND empresa_id = ?").run(req.params.id, req.empresaId)
+  res.json({ ok: true })
+})
+
+app.get("/cargos", (req, res) => {
+  res.json(db.prepare("SELECT * FROM cargos WHERE empresa_id = ? ORDER BY criadoEm DESC").all(req.empresaId))
+})
+
+app.get("/changelog", (req, res) => {
+  const rows = db.prepare(`
+    SELECT v.id, v.cargo_id, v.cargo, v.area, v.nivel, v.hash, v.criado_em,
+           c.cargo as cargo_atual
+    FROM versoes v
+    LEFT JOIN cargos c ON v.cargo_id = c.id
+    WHERE v.empresa_id = ?
+    ORDER BY v.id DESC LIMIT 200
+  `).all(req.empresaId)
+  res.json(rows)
 })
 
 app.post("/cargos", (req, res) => {
@@ -657,8 +1044,9 @@ app.post("/cargos", (req, res) => {
     texto:    texto.trim(),
     criadoEm: new Date().toISOString()
   }
-  db.prepare("INSERT INTO cargos (id,cargo,area,nivel,texto,criadoEm) VALUES (?,?,?,?,?,?)").run(
-    novo.id, novo.cargo, novo.area, novo.nivel, novo.texto, novo.criadoEm)
+  db.prepare("INSERT INTO cargos (id,cargo,area,nivel,texto,criadoEm,empresa_id) VALUES (?,?,?,?,?,?,?)").run(
+    novo.id, novo.cargo, novo.area, novo.nivel, novo.texto, novo.criadoEm, req.empresaId)
+  try { salvarVersao(novo.id, novo.cargo, novo.area, novo.nivel, novo.texto, req.empresaId) } catch (e) { console.error("versao:", e.message) }
   res.json({ ok: true, id: novo.id })
 })
 
@@ -671,26 +1059,321 @@ app.put("/cargos/:id", (req, res) => {
       nivel     = COALESCE(?, nivel),
       texto     = COALESCE(NULLIF(?, ''), texto),
       editadoEm = ?
-    WHERE id = ?
-  `).run(cargo?.trim()||"", area||null, nivel||null, texto?.trim()||"", new Date().toISOString(), req.params.id)
+    WHERE id = ? AND empresa_id = ?
+  `).run(cargo?.trim()||"", area||null, nivel||null, texto?.trim()||"", new Date().toISOString(), req.params.id, req.empresaId)
 
   if (info.changes === 0) return res.status(404).json({ erro: "Cargo não encontrado." })
+  try {
+    const atualizado = db.prepare("SELECT * FROM cargos WHERE id = ? AND empresa_id = ?").get(req.params.id, req.empresaId)
+    if (atualizado) salvarVersao(atualizado.id, atualizado.cargo, atualizado.area, atualizado.nivel, atualizado.texto, req.empresaId)
+  } catch (e) { console.error("versao:", e.message) }
   res.json({ ok: true })
 })
 
 app.delete("/cargos/:id", (req, res) => {
-  const info = db.prepare("DELETE FROM cargos WHERE id = ?").run(req.params.id)
+  const info = db.prepare("DELETE FROM cargos WHERE id = ? AND empresa_id = ?").run(req.params.id, req.empresaId)
   if (info.changes === 0) return res.status(404).json({ erro: "Cargo não encontrado." })
   res.json({ ok: true })
 })
 
+app.get("/versoes/:cargo_id", (req, res) => {
+  const rows = db.prepare(
+    "SELECT id,cargo,area,nivel,hash,hash_prev,criado_em FROM versoes WHERE cargo_id=? AND empresa_id=? ORDER BY id DESC"
+  ).all(req.params.cargo_id, req.empresaId)
+  res.json(rows)
+})
+
+app.get("/versoes/:cargo_id/:versao_id/texto", (req, res) => {
+  const row = db.prepare(
+    "SELECT texto,hash,hash_prev,criado_em FROM versoes WHERE cargo_id=? AND id=? AND empresa_id=?"
+  ).get(req.params.cargo_id, req.params.versao_id, req.empresaId)
+  if (!row) return res.status(404).json({ erro: "Versão não encontrada." })
+  res.json(row)
+})
+
+
+// ═══════════════════════════════════════════════════════════════
+//  ROTA — EXPORTAR (bundle assinado com hash manifesto)
+// ═══════════════════════════════════════════════════════════════
+
+app.get("/exportar", (req, res) => {
+  const { de, ate } = req.query
+  let query = `
+    SELECT v.id, v.cargo_id, v.cargo, v.area, v.nivel, v.texto,
+           v.hash, v.hash_prev, v.criado_em,
+           c.cargo as cargo_atual
+    FROM versoes v
+    LEFT JOIN cargos c ON v.cargo_id = c.id
+    WHERE v.empresa_id = ?
+  `
+  const filtros = []
+  const params  = [req.empresaId]
+  if (de)  { filtros.push("v.criado_em >= ?"); params.push(de) }
+  if (ate) { filtros.push("v.criado_em <= ?"); params.push(ate + "T23:59:59.999Z") }
+  if (filtros.length) query += " AND " + filtros.join(" AND ")
+  query += " ORDER BY v.id ASC"
+
+  const versoes = db.prepare(query).all(...params)
+
+  // Manifesto: SHA-256 de todos os hashes individuais concatenados em ordem de id
+  const hashManifesto = createHash("sha256")
+    .update(versoes.map(v => v.hash).join("|"))
+    .digest("hex")
+
+  const bundle = {
+    sistema:        "JoyDescription",
+    versaoSistema:  "1.0",
+    exportadoEm:    new Date().toISOString(),
+    filtro:         { de: de || null, ate: ate || null },
+    totalVersoes:   versoes.length,
+    hashManifesto,
+    algoritmo:      "SHA-256",
+    como_verificar: [
+      "1. Para verificar um registro individual:",
+      "   hash = SHA256(hash_prev + texto)  →  deve ser igual ao campo 'hash'",
+      "2. Para verificar o manifesto:",
+      "   hashManifesto = SHA256( hash[0] + '|' + hash[1] + '|' ... )  em ordem crescente de id",
+      "3. Qualquer divergência indica adulteração."
+    ],
+    versoes
+  }
+
+  const filename = `joydesc-export-${new Date().toISOString().slice(0,10)}.json`
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`)
+  res.setHeader("Content-Type", "application/json; charset=utf-8")
+  res.json(bundle)
+})
+
+// ═══════════════════════════════════════════════════════════════
+//  ROTA — EXPORTAR HTML/PDF (relatório imprimível)
+// ═══════════════════════════════════════════════════════════════
+
+app.get("/exportar/pdf", (req, res) => {
+  const { de, ate } = req.query
+  let query = `
+    SELECT v.id, v.cargo_id, v.cargo, v.area, v.nivel, v.texto,
+           v.hash, v.hash_prev, v.criado_em
+    FROM versoes v WHERE v.empresa_id = ? ORDER BY v.cargo ASC, v.id ASC
+  `
+  const filtros = []
+  const params  = [req.empresaId]
+  if (de)  { filtros.push("v.criado_em >= ?"); params.push(de) }
+  if (ate) { filtros.push("v.criado_em <= ?"); params.push(ate + "T23:59:59.999Z") }
+  if (filtros.length) query = query.replace("ORDER BY", "AND " + filtros.join(" AND ") + " ORDER BY")
+
+  const versoes = db.prepare(query).all(...params)
+  const hashManifesto = createHash("sha256")
+    .update(versoes.map(v => v.hash).join("|"))
+    .digest("hex")
+
+  // agrupar por cargo_id
+  const grupos = {}
+  for (const v of versoes) {
+    if (!grupos[v.cargo_id]) grupos[v.cargo_id] = { cargo: v.cargo, area: v.area, nivel: v.nivel, versoes: [] }
+    grupos[v.cargo_id].versoes.push(v)
+  }
+
+  const formatDate = iso => {
+    if (!iso) return ""
+    const d = new Date(iso)
+    return d.toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" })
+  }
+
+  const periodoTexto = (de || ate)
+    ? `Período: ${de ? formatDate(de) : "início"} até ${ate ? formatDate(ate) : "hoje"}`
+    : "Período: todo o histórico"
+
+  const gruposHtml = Object.values(grupos).map((g, gi) => {
+    const versoesHtml = g.versoes.map((v, i) => {
+      const isPrimeira = i === 0
+      const chain = isPrimeira
+        ? `<span class="chain-tag chain-origem">versão inicial</span>`
+        : `<span class="chain-tag chain-rev">revisão #${i + 1}</span>`
+      return `
+        <div class="versao-bloco">
+          <div class="versao-meta-row">
+            <span class="versao-num">${chain}</span>
+            <span class="versao-data">${formatDate(v.criado_em)}</span>
+            <span class="versao-hash" title="hash completo: ${v.hash}">#${v.hash.slice(0,14)}…</span>
+          </div>
+          <div class="versao-texto">${v.texto.replace(/\n/g, "<br>")}</div>
+        </div>`
+    }).join("")
+
+    return `
+      <div class="cargo-bloco ${gi > 0 ? "page-break" : ""}">
+        <div class="cargo-header">
+          <div class="cargo-title">${g.cargo}</div>
+          <div class="cargo-meta">
+            ${g.nivel ? `<span class="meta-pill">${g.nivel}</span>` : ""}
+            ${g.area  ? `<span class="meta-pill meta-area">${g.area}</span>`  : ""}
+            <span class="meta-pill meta-count">${g.versoes.length} versão${g.versoes.length > 1 ? "ões" : ""}</span>
+          </div>
+        </div>
+        ${versoesHtml}
+      </div>`
+  }).join("")
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>JoyDescription — Relatório de Mudanças</title>
+<style>
+  @page { margin: 18mm 20mm; size: A4; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #1e293b; background: #fff; }
+
+  /* CAPA */
+  .cover { display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px; padding-bottom: 18px; border-bottom: 2px solid #e2e8f0; }
+  .cover-brand { display: flex; align-items: baseline; gap: 4px; }
+  .cover-joy  { font-size: 28px; font-weight: 800; color: #1e293b; letter-spacing: -1px; }
+  .cover-desc { font-size: 28px; font-weight: 800; color: #94a3b8; letter-spacing: -1px; }
+  .cover-sub  { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: #94a3b8; margin-top: -4px; }
+  .cover-title { font-size: 16px; font-weight: 700; color: #1e293b; margin-top: 12px; }
+  .cover-periodo { font-size: 10.5px; color: #64748b; }
+  .cover-data    { font-size: 10px; color: #94a3b8; }
+
+  /* CAIXA DE INTEGRIDADE */
+  .integrity-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #3b82f6;
+    border-radius: 6px;
+    padding: 11px 14px;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .integrity-title { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #3b82f6; }
+  .integrity-hash  { font-family: 'Courier New', monospace; font-size: 10px; color: #1e293b; word-break: break-all; }
+  .integrity-nota  { font-size: 9.5px; color: #64748b; line-height: 1.5; }
+  .integrity-total { font-size: 10px; font-weight: 600; color: #475569; }
+
+  /* CARGO */
+  .cargo-bloco { margin-bottom: 28px; }
+  .page-break  { page-break-before: auto; }
+  .cargo-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #1e293b;
+    color: #fff;
+    border-radius: 6px 6px 0 0;
+    margin-bottom: 0;
+  }
+  .cargo-title { font-size: 13px; font-weight: 700; flex: 1; }
+  .cargo-meta  { display: flex; gap: 5px; flex-wrap: wrap; }
+  .meta-pill {
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .meta-area  { background: rgba(59,130,246,0.35); }
+  .meta-count { background: rgba(16,185,129,0.35); }
+
+  /* VERSÃO */
+  .versao-bloco {
+    border: 1px solid #e2e8f0;
+    border-top: none;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .versao-bloco:last-child { border-radius: 0 0 6px 6px; }
+  .versao-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .versao-num  { flex: 1; }
+  .versao-data { font-size: 9.5px; color: #64748b; }
+  .versao-hash { font-family: 'Courier New', monospace; font-size: 9px; color: #94a3b8; }
+  .chain-tag {
+    font-size: 9px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .chain-origem { background: #dcfce7; color: #166534; }
+  .chain-rev    { background: #dbeafe; color: #1d4ed8; }
+  .versao-texto { font-size: 10.5px; line-height: 1.65; color: #334155; white-space: pre-wrap; }
+
+  /* RODAPÉ */
+  .rodape {
+    margin-top: 32px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 9px;
+    color: #94a3b8;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .cargo-bloco { page-break-inside: avoid; }
+    .versao-bloco { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-brand">
+    <span class="cover-joy">Joy</span><span class="cover-desc">Desc</span>
+  </div>
+  <div class="cover-sub">Gerador de Descrição de Cargos</div>
+  <div class="cover-title">Relatório de Histórico de Modificações</div>
+  <div class="cover-periodo">${periodoTexto}</div>
+  <div class="cover-data">Gerado em ${formatDate(new Date().toISOString())}</div>
+</div>
+
+<div class="integrity-box">
+  <div class="integrity-title">🔐 Integridade do Documento</div>
+  <div class="integrity-total">${versoes.length} versões incluídas neste relatório</div>
+  <div class="integrity-hash"><strong>Hash Manifesto SHA-256:</strong> ${hashManifesto}</div>
+  <div class="integrity-nota">
+    Verifique a autenticidade: para cada versão, recalcule SHA-256(hash_anterior + texto) e compare com o campo hash.
+    O hash manifesto é SHA-256 de todos os hashes individuais concatenados com "|" em ordem de id crescente.
+  </div>
+</div>
+
+${gruposHtml}
+
+<div class="rodape">
+  <span>JoyDescription — Relatório gerado automaticamente</span>
+  <span>Hash: ${hashManifesto.slice(0,20)}…</span>
+</div>
+
+<script>
+  window.addEventListener("load", () => setTimeout(() => window.print(), 600))
+</script>
+</body>
+</html>`
+
+  res.setHeader("Content-Type", "text/html; charset=utf-8")
+  res.send(html)
+})
 
 // ═══════════════════════════════════════════════════════════════
 //  ROTAS — ÁREAS
 // ═══════════════════════════════════════════════════════════════
 
-app.get("/areas", (_, res) => {
-  res.json(db.prepare("SELECT * FROM areas").all())
+app.get("/areas", (req, res) => {
+  res.json(db.prepare("SELECT * FROM areas WHERE empresa_id = ?").all(req.empresaId))
 })
 
 app.post("/areas", (req, res) => {
@@ -698,7 +1381,7 @@ app.post("/areas", (req, res) => {
   if (!key?.trim() || !label?.trim() || !universo?.trim())
     return res.status(400).json({ erro: "Campos obrigatórios: key, label, universo" })
   try {
-    db.prepare("INSERT INTO areas VALUES (?,?,?)").run(key.trim(), label.trim(), universo.trim())
+    db.prepare("INSERT INTO areas (empresa_id, key, label, universo) VALUES (?,?,?,?)").run(req.empresaId, key.trim(), label.trim(), universo.trim())
     res.json({ ok: true })
   } catch (e) {
     if (e.message.includes("UNIQUE"))
@@ -713,15 +1396,15 @@ app.put("/areas/:key", (req, res) => {
     UPDATE areas SET
       label    = COALESCE(NULLIF(?, ''), label),
       universo = COALESCE(NULLIF(?, ''), universo)
-    WHERE key = ?
-  `).run(label?.trim()||"", universo?.trim()||"", req.params.key)
+    WHERE key = ? AND empresa_id = ?
+  `).run(label?.trim()||"", universo?.trim()||"", req.params.key, req.empresaId)
 
   if (info.changes === 0) return res.status(404).json({ erro: "Área não encontrada." })
   res.json({ ok: true })
 })
 
 app.delete("/areas/:key", (req, res) => {
-  const info = db.prepare("DELETE FROM areas WHERE key = ?").run(req.params.key)
+  const info = db.prepare("DELETE FROM areas WHERE key = ? AND empresa_id = ?").run(req.params.key, req.empresaId)
   if (info.changes === 0) return res.status(404).json({ erro: "Área não encontrada." })
   res.json({ ok: true })
 })
@@ -731,59 +1414,272 @@ app.delete("/areas/:key", (req, res) => {
 //  ROTAS — BASE DE CONHECIMENTO
 // ═══════════════════════════════════════════════════════════════
 
-app.get("/conhecimento", (_, res) => {
-  res.json(db.prepare("SELECT * FROM conhecimento ORDER BY criadoEm ASC").all().map(a => ({
+app.get("/conhecimento", (req, res) => {
+  res.json(db.prepare("SELECT * FROM conhecimento WHERE empresa_id = ? ORDER BY criadoEm ASC").all(req.empresaId).map(a => ({
     ...a, ativo: a.ativo === 1
   })))
 })
 
 app.post("/conhecimento", (req, res) => {
-  const { titulo, categoria, conteudo, ativo = true } = req.body
-  if (!titulo?.trim() || !conteudo?.trim())
-    return res.status(400).json({ erro: "Campos obrigatórios: titulo, conteudo" })
+  try {
+    const { titulo, categoria, conteudo, ativo = true } = req.body
+    if (!titulo?.trim() || !conteudo?.trim())
+      return res.status(400).json({ erro: "Campos obrigatórios: titulo, conteudo" })
 
-  const novo = {
-    id:        Date.now().toString(),
-    titulo:    titulo.trim(),
-    categoria: categoria?.trim() || "Geral",
-    ativo:     ativo ? 1 : 0,
-    conteudo:  conteudo.trim(),
-    criadoEm:  new Date().toISOString()
+    const novo = {
+      id:        Date.now().toString(),
+      titulo:    titulo.trim(),
+      categoria: categoria?.trim() || "Geral",
+      ativo:     ativo ? 1 : 0,
+      conteudo:  conteudo.trim(),
+      criadoEm:  new Date().toISOString()
+    }
+    db.prepare("INSERT INTO conhecimento (id,titulo,categoria,ativo,conteudo,criadoEm,empresa_id) VALUES (?,?,?,?,?,?,?)").run(
+      novo.id, novo.titulo, novo.categoria, novo.ativo, novo.conteudo, novo.criadoEm, req.empresaId)
+    res.json({ ok: true, id: novo.id })
+  } catch (err) {
+    console.error("POST /conhecimento:", err.message)
+    res.status(500).json({ erro: "Erro ao salvar artigo: " + err.message })
   }
-  db.prepare("INSERT INTO conhecimento (id,titulo,categoria,ativo,conteudo,criadoEm) VALUES (?,?,?,?,?,?)").run(
-    novo.id, novo.titulo, novo.categoria, novo.ativo, novo.conteudo, novo.criadoEm)
-  res.json({ ok: true, id: novo.id })
 })
 
 app.put("/conhecimento/:id", (req, res) => {
-  const { titulo, categoria, conteudo, ativo } = req.body
-  const ativoVal = typeof ativo === "boolean" ? (ativo ? 1 : 0) : null
+  try {
+    const { titulo, categoria, conteudo, ativo } = req.body
+    const ativoVal = typeof ativo === "boolean" ? (ativo ? 1 : 0) : null
 
-  const info = db.prepare(`
-    UPDATE conhecimento SET
-      titulo    = COALESCE(NULLIF(?, ''), titulo),
-      categoria = COALESCE(NULLIF(?, ''), categoria),
-      conteudo  = COALESCE(NULLIF(?, ''), conteudo),
-      ativo     = CASE WHEN ? IS NOT NULL THEN ? ELSE ativo END,
-      editadoEm = ?
-    WHERE id = ?
-  `).run(
-    titulo?.trim()||"", categoria?.trim()||"", conteudo?.trim()||"",
-    ativoVal, ativoVal, new Date().toISOString(), req.params.id)
+    const info = db.prepare(`
+      UPDATE conhecimento SET
+        titulo    = COALESCE(NULLIF(?, ''), titulo),
+        categoria = COALESCE(NULLIF(?, ''), categoria),
+        conteudo  = COALESCE(NULLIF(?, ''), conteudo),
+        ativo     = CASE WHEN ? IS NOT NULL THEN ? ELSE ativo END,
+        editadoEm = ?
+      WHERE id = ? AND empresa_id = ?
+    `).run(
+      titulo?.trim()||"", categoria?.trim()||"", conteudo?.trim()||"",
+      ativoVal, ativoVal, new Date().toISOString(), req.params.id, req.empresaId)
 
-  if (info.changes === 0) return res.status(404).json({ erro: "Artigo não encontrado." })
-  res.json({ ok: true })
+    if (info.changes === 0) return res.status(404).json({ erro: "Artigo não encontrado." })
+    res.json({ ok: true })
+  } catch (err) {
+    console.error("PUT /conhecimento:", err.message)
+    res.status(500).json({ erro: "Erro ao atualizar artigo: " + err.message })
+  }
 })
 
 app.delete("/conhecimento/:id", (req, res) => {
-  const info = db.prepare("DELETE FROM conhecimento WHERE id = ?").run(req.params.id)
-  if (info.changes === 0) return res.status(404).json({ erro: "Artigo não encontrado." })
-  res.json({ ok: true })
+  try {
+    const info = db.prepare("DELETE FROM conhecimento WHERE id = ? AND empresa_id = ?").run(req.params.id, req.empresaId)
+    if (info.changes === 0) return res.status(404).json({ erro: "Artigo não encontrado." })
+    res.json({ ok: true })
+  } catch (err) {
+    console.error("DELETE /conhecimento:", err.message)
+    res.status(500).json({ erro: "Erro ao deletar artigo: " + err.message })
+  }
 })
 
 
 // ═══════════════════════════════════════════════════════════════
+//  ROTAS — NÍVEIS
+// ═══════════════════════════════════════════════════════════════
+
+app.get("/niveis", (req, res) => {
+  res.json(db.prepare("SELECT * FROM niveis WHERE empresa_id = ? ORDER BY ordem ASC").all(req.empresaId))
+})
+
+app.post("/niveis", (req, res) => {
+  const { label, ordem = 0, eh_lideranca = 0, descricao = "", descricao_curta = "" } = req.body
+  if (!label?.trim()) return res.status(400).json({ erro: "label obrigatório" })
+  const maxOrdem = db.prepare("SELECT MAX(ordem) as m FROM niveis WHERE empresa_id = ?").get(req.empresaId).m ?? 0
+  try {
+    db.prepare("INSERT INTO niveis (empresa_id,label,ordem,eh_lideranca,descricao,descricao_curta) VALUES (?,?,?,?,?,?)")
+      .run(req.empresaId, label.trim(), ordem || maxOrdem + 1, eh_lideranca ? 1 : 0, descricao, descricao_curta)
+    res.json({ ok: true })
+  } catch (e) {
+    if (e.message?.includes("UNIQUE")) return res.status(409).json({ erro: "Já existe um nível com esse nome." })
+    throw e
+  }
+})
+
+app.put("/niveis/:label", (req, res) => {
+  const labelAtual = decodeURIComponent(req.params.label)
+  const { label, ordem, eh_lideranca, descricao, descricao_curta } = req.body
+  if (!label?.trim()) return res.status(400).json({ erro: "label obrigatório" })
+  try {
+    const info = db.prepare(
+      "UPDATE niveis SET label=?, ordem=?, eh_lideranca=?, descricao=?, descricao_curta=? WHERE label=? AND empresa_id=?"
+    ).run(label.trim(), ordem ?? 0, eh_lideranca ? 1 : 0, descricao ?? "", descricao_curta ?? "", labelAtual, req.empresaId)
+    if (info.changes === 0) return res.status(404).json({ erro: "Nível não encontrado." })
+    res.json({ ok: true })
+  } catch (e) {
+    if (e.message?.includes("UNIQUE")) return res.status(409).json({ erro: "Já existe um nível com esse nome." })
+    throw e
+  }
+})
+
+app.delete("/niveis/:label", (req, res) => {
+  const label = decodeURIComponent(req.params.label)
+  const info = db.prepare("DELETE FROM niveis WHERE label = ? AND empresa_id = ?").run(label, req.empresaId)
+  if (info.changes === 0) return res.status(404).json({ erro: "Nível não encontrado." })
+  res.json({ ok: true })
+})
+
+// ═══════════════════════════════════════════════════════════════
 //  ROTAS — UTILITÁRIOS
+// ═══════════════════════════════════════════════════════════════
+//  ROTA — ANÁLISE JURÍDICA
+// ═══════════════════════════════════════════════════════════════
+
+app.post("/analisar", async (req, res) => {
+  const { cargo, nivel, texto, provedor = "groq" } = req.body
+  if (!cargo || !nivel || !texto?.trim())
+    return res.status(400).json({ erro: "Campos obrigatórios: cargo, nivel, texto" })
+
+  const niveisRows = db.prepare("SELECT * FROM niveis WHERE label = ? AND empresa_id = ?").get(nivel, req.empresaId)
+  const ehLider    = niveisRows?.eh_lideranca === 1 || ["Coordenador","Gestor","Gerente","Diretor"].includes(nivel)
+
+  const descNivel = niveisRows?.descricao_curta || NIVEL_CURTO[nivel] || ""
+  const descNivelCompleta = niveisRows?.descricao || NIVEL_DEF[nivel] || ""
+
+  // Separa PODE/VERBOS PERMITIDOS do perfil completo para injetar no prompt
+  const linhasPermitidas = descNivelCompleta
+    .split("\n")
+    .filter(l => /PODE|VERBOS PERMITIDOS|FUNCOES OBRIGATÓRIAS/i.test(l))
+    .join("\n")
+    .slice(0, 600)
+
+  const prompt = `Você é um especialista em legislação trabalhista brasileira (CLT) e gestão de RH.
+Analise a descrição de cargo abaixo e retorne APENAS um JSON válido, sem texto adicional.
+
+CARGO: ${cargo}
+NÍVEL: ${nivel}
+É CARGO DE LIDERANÇA (CLT art.62 II): ${ehLider ? "SIM — gestão de subordinados é OBRIGATÓRIA e ESPERADA" : "NÃO — cargo técnico/operacional sem subordinados formais"}
+
+REFERÊNCIA DO NÍVEL "${nivel}" (use isto para julgar o que é correto ou errado):
+${linhasPermitidas || descNivel}
+
+DEFINIÇÃO LEGAL IMPORTANTE:
+- "Gestão de pessoas" no sentido da CLT = ter subordinados com poder disciplinar, avaliar desempenho formal, contratar/demitir. Só é problema em cargo NÃO liderança.
+- "Liderança técnica", "orientar", "desenvolver profissionais", "mentorar", "liderar projetos técnicos" = funções TÉCNICAS, NÃO são gestão de pessoas pela CLT. São permitidas e esperadas em níveis Sênior/Especialista.
+- Verbos como "elaborar", "definir", "estruturar", "validar", "homologar" são típicos de nível Sênior — NÃO são alertas.
+
+DESCRIÇÃO A ANALISAR:
+${texto.slice(0, 2500)}
+
+Retorne este JSON exato (sem markdown, sem explicações):
+{
+  "aprovado": true ou false,
+  "score": número de 0 a 100,
+  "alertas": [
+    { "descricao": "descrição do problema", "sugestao": "como corrigir", "gravidade": "critico|moderado|leve" }
+  ],
+  "pontos_ok": ["ponto positivo 1", "ponto positivo 2"]
+}
+
+CHECKLIST — avalie cada item e gere alerta SOMENTE se realmente ocorrer:
+
+${ehLider
+  ? `☑ LIDERANÇA SEM GESTÃO DE PESSOAS: a descrição omite coordenação de equipe, avaliação de desempenho ou distribuição de atividades? → "critico" (score -30). Se menciona, NÃO é alerta.`
+  : `☑ NÃO-LIDERANÇA COM GESTÃO DE SUBORDINADOS: a descrição menciona ter subordinados formais, contratar/demitir, poder disciplinar? → "critico" (score -30). "Liderar tecnicamente", "orientar", "desenvolver" NÃO contam como gestão de subordinados.`}
+☑ DESCRIÇÃO GENÉRICA: contém "atividades diversas", "outras atividades" ou similar sem especificar? → "moderado" (score -15)
+☑ MISTURA DE NÍVEIS: atribui ao cargo funções que são exclusivas de um nível muito diferente e que NÃO constam como permitidas no perfil acima? → "moderado" (score -20). Se a função está no perfil do nível, NÃO é mistura.
+☑ ESCOPO INDEFINIDO: não é possível entender em qual área/processo o profissional atua? → "moderado" (score -10)
+☑ VERBO INADEQUADO: usa verbos que contradizem o nível (ex: Estágio com "definir estratégia" ou Diretor com "executar tarefas operacionais")? → "leve" (score -5). Verbos listados no perfil do nível NÃO são alerta.
+
+Score inicial: 100. Subtraia apenas pelos alertas gerados. aprovado = true se score final >= 70`
+
+  const client = (provedor === "groq" && GROQ_KEY) ? groqClient : ollamaClient
+  const model  = (provedor === "groq" && GROQ_KEY) ? GROQ_MODEL : MODEL
+
+  try {
+    const completion = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: "Você é um analisador jurídico de descrições de cargo. Responda APENAS com JSON válido." },
+        { role: "user",   content: prompt }
+      ],
+      temperature: 0.1,
+      max_tokens:  900,
+    })
+
+    let raw = completion.choices[0]?.message?.content?.trim() || "{}"
+    // remove possível markdown ```json ... ```
+    raw = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim()
+
+    let resultado
+    try {
+      resultado = JSON.parse(raw)
+    } catch {
+      resultado = { aprovado: false, score: 0, alertas: [{ descricao: "Não foi possível analisar o texto.", sugestao: "", gravidade: "moderado" }], pontos_ok: [] }
+    }
+
+    res.json(resultado)
+  } catch (err) {
+    console.error("Erro análise jurídica:", err.message)
+    res.status(500).json({ erro: "Falha na análise: " + err.message })
+  }
+})
+
+// ═══════════════════════════════════════════════════════════════
+//  ROTA — CORREÇÃO JURÍDICA (streaming)
+// ═══════════════════════════════════════════════════════════════
+
+app.post("/corrigir", async (req, res) => {
+  const { cargo, nivel, texto, alerta, provedor = "groq" } = req.body
+  if (!cargo || !nivel || !texto?.trim() || !alerta)
+    return res.status(400).json({ erro: "Campos obrigatórios: cargo, nivel, texto, alerta" })
+
+  const prompt = `Você é um revisor especialista em descrições de cargo conforme a CLT brasileira.
+Corrija APENAS o trecho problemático da descrição abaixo, mantendo todo o resto exatamente igual.
+Retorne somente a descrição corrigida completa, sem explicações, sem markdown extra além do que já existe.
+
+CARGO: ${cargo}
+NÍVEL: ${nivel}
+
+PROBLEMA IDENTIFICADO: ${alerta.descricao}
+SUGESTÃO DE CORREÇÃO: ${alerta.sugestao}
+
+TEXTO ATUAL:
+${texto.slice(0, 3000)}
+
+TEXTO CORRIGIDO:`
+
+  const client = (provedor === "groq" && GROQ_KEY) ? groqClient : ollamaClient
+  const model  = (provedor === "groq" && GROQ_KEY) ? GROQ_MODEL : MODEL
+
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8")
+  res.setHeader("Cache-Control", "no-cache")
+  res.setHeader("Connection", "keep-alive")
+
+  const send = obj => res.write(`data: ${JSON.stringify(obj)}\n\n`)
+
+  try {
+    const stream = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: "Você é um revisor de descrições de cargo. Retorne apenas o texto corrigido." },
+        { role: "user",   content: prompt }
+      ],
+      temperature: 0.2,
+      max_tokens:  1200,
+      stream: true,
+    })
+
+    for await (const chunk of stream) {
+      const token = chunk.choices[0]?.delta?.content
+      if (token) send({ texto: token })
+    }
+
+    send({ fim: true })
+  } catch (err) {
+    console.error("Erro correção jurídica:", err.message)
+    send({ erro: "Falha na correção: " + err.message })
+  } finally {
+    res.end()
+  }
+})
+
 // ═══════════════════════════════════════════════════════════════
 
 app.get("/health", async (_, res) => {
@@ -867,11 +1763,11 @@ app.post("/gerar", async (req, res) => {
     // ── Raciocínio em tempo real ──────────────────────────────────
     pensar(`Interpretando cargo: "${cargo}" no setor ${area}`)
 
-    const ctx = db.prepare("SELECT * FROM areas WHERE key = ?").get(area)
+    const ctx = db.prepare("SELECT * FROM areas WHERE key = ? AND empresa_id = ?").get(area, req.empresaId)
     if (ctx) pensar(`Contexto do setor carregado — ${ctx.universo.slice(0, 80)}...`)
 
     pensar(`Buscando correspondências no CBO 2002...`)
-    const candidatos = buscarCBO(cargo, area)
+    const candidatos = buscarCBO(cargo, area, 25, req.empresaId)
 
     if (candidatos.length > 0) {
       pensar(`${candidatos.length} candidatos CBO encontrados:`)
@@ -880,7 +1776,7 @@ app.post("/gerar", async (req, res) => {
       pensar(`Nenhum CBO exato encontrado — IA irá inferir o mais próximo`)
     }
 
-    const artigos = db.prepare("SELECT titulo FROM conhecimento WHERE ativo = 1").all()
+    const artigos = db.prepare("SELECT titulo FROM conhecimento WHERE ativo = 1 AND empresa_id = ?").all(req.empresaId)
     if (artigos.length > 0)
       pensar(`Base de conhecimento: ${artigos.length} artigo(s) injetado(s) no contexto`)
 
@@ -916,13 +1812,16 @@ Escreva apenas o conteúdo do documento, começando pelo primeiro título.`
     const prefillDet = `MISSAO DO CARGO\n\n`
 
     // Seleção de prompt: Groq usa o detalhado completo; Ollama usa versão enxuta
+    const niveisRows = db.prepare("SELECT * FROM niveis WHERE empresa_id = ?").all(req.empresaId)
+    const nm = Object.fromEntries(niveisRows.map(n => [n.label, n]))
+
     const promptGen = useGroq
-      ? montarPromptGenerica(cargo, area, nivel, tipo, candidatos)
-      : montarPromptOllamaGen(cargo, area, nivel, tipo, candidatos)
+      ? montarPromptGenerica(cargo, area, nivel, tipo, candidatos, nm, req.empresaId)
+      : montarPromptOllamaGen(cargo, area, nivel, tipo, candidatos, nm, req.empresaId)
 
     const promptDet = useGroq
-      ? montarPrompt(cargo, area, nivel, tipo, candidatos)
-      : montarPromptOllamaDet(cargo, area, nivel, tipo, candidatos)
+      ? montarPrompt(cargo, area, nivel, tipo, candidatos, nm, req.empresaId)
+      : montarPromptOllamaDet(cargo, area, nivel, tipo, candidatos, nm, req.empresaId)
 
     // ── Genérica ──────────────────────────────────────────────────
     res.write(`data: ${JSON.stringify({ tipo: "secao", nome: "generica" })}\n\n`)
@@ -974,6 +1873,9 @@ Escreva apenas o conteúdo do documento, começando pelo primeiro título.`
 // ═══════════════════════════════════════════════════════════════
 //  INICIALIZAÇÃO
 // ═══════════════════════════════════════════════════════════════
+
+// Static depois de todas as rotas — rotas da API têm prioridade
+app.use(express.static(__dirname))
 
 app.listen(PORT, () => {
   console.log(`\n🚀 JoyDescription → http://localhost:${PORT}`)

@@ -13,6 +13,63 @@
 
   <div id="toast" class="toast" aria-live="polite"></div>
 
+  <!-- ── LOGIN OVERLAY ─────────────────────────────────────────── -->
+  <div id="login-overlay" class="login-overlay" style="display:none">
+    <div class="login-box">
+      <div class="login-brand">
+        <span class="tl-joy">Joy</span><span class="tl-desc">Desc</span>
+      </div>
+      <div class="login-tagline">Gerador de Descrição de Cargos</div>
+      <div class="login-tabs">
+        <button class="login-tab active" id="login-tab-entrar" onclick="trocarAbaLogin('entrar')">Entrar</button>
+        <button class="login-tab" id="login-tab-criar" onclick="trocarAbaLogin('criar')">Criar conta</button>
+      </div>
+      <div id="login-erro" class="login-erro"></div>
+
+      <!-- Formulário de login -->
+      <div id="login-form-entrar" class="login-form" style="display:flex">
+        <div class="field">
+          <label>E-mail</label>
+          <input type="email" id="login-email" class="field-input login-input" placeholder="seu@email.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <input type="password" id="login-senha" class="field-input login-input" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button id="login-btn-entrar" class="btn-gerar" onclick="fazerLogin()">
+          <i class="uil uil-sign-in-alt"></i> Entrar
+        </button>
+      </div>
+
+      <!-- Formulário de registro -->
+      <div id="login-form-criar" class="login-form" style="display:none">
+        <div class="field">
+          <label>Nome da empresa</label>
+          <input type="text" id="reg-empresa" class="field-input login-input" placeholder="Ex: Goiasa Açúcar e Energia" autocomplete="organization">
+        </div>
+        <div class="field">
+          <label>Seu nome</label>
+          <input type="text" id="reg-nome" class="field-input login-input" placeholder="Ex: Ana Silva" autocomplete="name">
+        </div>
+        <div class="field">
+          <label>E-mail</label>
+          <input type="email" id="reg-email" class="field-input login-input" placeholder="seu@email.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label>Senha <span style="color:var(--text-muted);font-size:10px">(mín. 6 caracteres)</span></label>
+          <input type="password" id="reg-senha" class="field-input login-input" placeholder="••••••••" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label>Confirmar senha</label>
+          <input type="password" id="reg-senha2" class="field-input login-input" placeholder="••••••••" autocomplete="new-password">
+        </div>
+        <button id="reg-btn-criar" class="btn-gerar" onclick="fazerRegistro()">
+          <i class="uil uil-user-plus"></i> Criar conta
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── SPLASH SCREEN ─────────────────────────────────────────── -->
   <div id="splash">
     <div id="sp-content">
@@ -28,6 +85,7 @@
     </div>
   </div>
 
+  <div id="app-content">
   <div class="app-window">
 
     <!-- ── TITLE BAR ────────────────────────────────────────── -->
@@ -45,6 +103,17 @@
         <span class="title-doc">Gerador de Descrição de Cargos</span>
       </div>
       <div class="title-right">
+        <!-- User info bar -->
+        <div id="user-info-bar" class="user-info-bar" style="display:none">
+          <i class="uil uil-building"></i>
+          <span id="tb-empresa-nome" class="tb-empresa"></span>
+          <span class="user-info-sep">·</span>
+          <i class="uil uil-user-circle"></i>
+          <span id="tb-usuario-nome" class="tb-usuario"></span>
+          <button class="btn-logout" onclick="fazerLogout()" title="Sair">
+            <i class="uil uil-sign-out-alt"></i> Sair
+          </button>
+        </div>
         <div class="theme-toggle">
           <button class="theme-btn" id="btn-light" onclick="setTheme('light')" title="Tema claro">Claro</button>
           <button class="theme-btn" id="btn-dark"  onclick="setTheme('dark')"  title="Tema escuro">Escuro</button>
@@ -109,6 +178,14 @@
           <div class="menu-dd-sep"></div>
           <button class="menu-dd-item" onclick="menuAcao('contarPalavras')"><i class="uil uil-calculator-alt"></i> Contar palavras</button>
         </div>
+      </div>
+
+      <div class="menu-group" data-menu="historico-menu">
+        <button class="menu-item" onclick="abrirHistoricoGeral()"><i class="uil uil-history" style="margin-right:4px"></i>Histórico</button>
+      </div>
+
+      <div class="menu-group" data-menu="calendario-menu">
+        <button class="menu-item" onclick="abrirCalendario()"><i class="uil uil-calendar-alt" style="margin-right:4px"></i>Calendário</button>
       </div>
 
       <div class="menu-group" data-menu="ajuda">
@@ -203,15 +280,7 @@
             <div class="select-wrapper">
               <i class="uil uil-chart-bar field-icon"></i>
               <select id="nivel" class="field-input">
-                <option value="Estágio">Estágio</option>
-                <option value="Trainee">Trainee</option>
-                <option value="Junior">Junior</option>
                 <option value="Pleno" selected>Pleno</option>
-                <option value="Senior">Senior</option>
-                <option value="Especialista">Especialista</option>
-                <option value="Coordenador">Coordenador</option>
-                <option value="Gerente">Gerente</option>
-                <option value="Diretor">Diretor</option>
               </select>
             </div>
           </div>
@@ -273,6 +342,14 @@
             <i class="uil uil-book-open"></i>
             Base de Conhecimento
           </div>
+          <div class="tab" id="tab-niveis" onclick="trocarAba('niveis')">
+            <i class="uil uil-chart-bar"></i>
+            Hierarquia
+          </div>
+          <div class="tab" id="tab-usuarios" onclick="trocarAba('usuarios')" style="display:none">
+            <i class="uil uil-users-alt"></i>
+            Usuários
+          </div>
           <div class="tab-bar-right">
             <div id="cbo_badge" class="cbo-badge" style="display:none">
               <i class="uil uil-tag-alt"></i>
@@ -313,6 +390,10 @@
               </button>
               <button class="res-copy-btn" id="res-copy-btn" onclick="copiarSecaoAtiva()">
                 <i class="uil uil-copy"></i> Copiar
+              </button>
+              <button id="analise-badge" class="analise-badge" style="display:none" onclick="abrirModalAnalise()"></button>
+              <button id="historico-btn" class="historico-btn" style="display:none" onclick="abrirHistorico()" title="Histórico de versões">
+                <i class="uil uil-history"></i>
               </button>
             </div>
             <div id="resultado-gen" class="resultado_content" style="display:block"></div>
@@ -387,6 +468,7 @@
                       <option value="18">18px</option>
                     </select>
                     <div class="ft-sep"></div>
+                    <button class="ft-btn ft-copy"  onclick="copiarTextarea('cargo-texto')"   title="Copiar texto"><i class="uil uil-copy"></i></button>
                     <button class="ft-btn ft-clear" onclick="limparFormatacao('cargo-texto')" title="Limpar formatação">✕</button>
                   </div>
                   <textarea id="cargo-texto" class="field-input area-textarea" style="min-height:240px"></textarea>
@@ -453,6 +535,7 @@
                       <option value="16">16px</option>
                     </select>
                     <div class="ft-sep"></div>
+                    <button class="ft-btn ft-copy"  onclick="copiarTextarea('area-universo')"   title="Copiar texto"><i class="uil uil-copy"></i></button>
                     <button class="ft-btn ft-clear" onclick="limparFormatacao('area-universo')" title="Limpar formatação">✕</button>
                   </div>
                   <textarea id="area-universo" class="field-input area-textarea" placeholder="Descreva o setor: o que faz, processos, sistemas, perfil dos profissionais..."></textarea>
@@ -530,6 +613,7 @@
                       <option value="16">16px</option>
                     </select>
                     <div class="ft-sep"></div>
+                    <button class="ft-btn ft-copy"  onclick="copiarTextarea('artigo-conteudo')"   title="Copiar texto"><i class="uil uil-copy"></i></button>
                     <button class="ft-btn ft-clear" onclick="limparFormatacao('artigo-conteudo')" title="Limpar formatação">✕</button>
                   </div>
                   <textarea id="artigo-conteudo" class="field-input area-textarea" placeholder="Escreva o conteúdo que deve ser usado como referência técnica..."></textarea>
@@ -540,6 +624,113 @@
                   </button>
                   <button class="btn-cancelar-area" onclick="cancelarArtigo()">Cancelar</button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── ABA: HIERARQUIA ────────────────────────────── -->
+        <div id="painel-niveis" class="result-area areas-panel" style="display:none">
+
+          <div class="areas-list-col">
+            <div class="areas-list-header">
+              <span>Hierarquia cadastrada</span>
+              <button class="btn-nova-area" onclick="novoNivel()">
+                <i class="uil uil-plus"></i> Novo
+              </button>
+            </div>
+            <ul id="niveis-list" class="areas-list"></ul>
+          </div>
+
+          <div class="areas-form-col">
+            <div id="niveis-empty" class="areas-empty">
+              <i class="uil uil-chart-bar"></i>
+              <p>Selecione um nível para editar</p>
+            </div>
+            <div id="niveis-form" style="display:none">
+              <div class="areas-fields">
+                <div style="display:flex;gap:12px">
+                  <div class="field" style="flex:1">
+                    <label>Nome do nível</label>
+                    <input type="text" id="nivel-label" class="field-input" placeholder="Ex: Gestor" style="padding-left:10px">
+                  </div>
+                  <div class="field" style="width:80px">
+                    <label>Ordem</label>
+                    <input type="number" id="nivel-ordem" class="field-input" min="1" style="padding-left:10px">
+                  </div>
+                </div>
+                <div class="field">
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                    <input type="checkbox" id="nivel-lideranca" style="width:16px;height:16px">
+                    É cargo de liderança (tem subordinados)
+                  </label>
+                </div>
+                <div class="field">
+                  <label>Descrição curta — para modelo Ollama</label>
+                  <input type="text" id="nivel-curto" class="field-input" placeholder="Ex: responsável pela área, chefe dos coordenadores" style="padding-left:10px">
+                </div>
+                <div class="field" style="flex:1">
+                  <label>Descrição detalhada — para IA Groq</label>
+                  <textarea id="nivel-descricao" class="field-input area-textarea" placeholder="Descreva o perfil, responsabilidades, restrições legais..."></textarea>
+                </div>
+                <div class="areas-form-actions">
+                  <button class="btn-salvar-area" onclick="salvarNivel()">
+                    <i class="uil uil-check"></i> Salvar alterações
+                  </button>
+                  <button class="btn-cancelar-area" onclick="cancelarNivel()">Cancelar</button>
+                  <button class="btn-deletar-discreto" id="niveis-btn-deletar" onclick="deletarNivel()" title="Deletar este nível" style="display:none">
+                    <i class="uil uil-trash-alt"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── ABA: USUÁRIOS ──────────────────────────────── -->
+        <div id="painel-usuarios" class="result-area areas-panel" style="display:none">
+
+          <div class="areas-list-col">
+            <div class="areas-list-header">
+              <span>Usuários da empresa</span>
+            </div>
+            <ul id="usuarios-list" class="areas-list"></ul>
+          </div>
+
+          <div class="areas-form-col">
+            <div class="areas-form-header">
+              <span>Novo usuário</span>
+            </div>
+            <div class="areas-fields">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="field">
+                  <label>Nome</label>
+                  <input type="text" id="novo-usuario-nome" class="field-input" placeholder="Ex: João Silva" style="padding-left:10px">
+                </div>
+                <div class="field">
+                  <label>E-mail</label>
+                  <input type="email" id="novo-usuario-email" class="field-input" placeholder="joao@empresa.com" style="padding-left:10px">
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="field">
+                  <label>Senha <span style="color:var(--text-muted);font-size:10px">(mín. 6 caracteres)</span></label>
+                  <input type="password" id="novo-usuario-senha" class="field-input" placeholder="••••••••" style="padding-left:10px">
+                </div>
+                <div class="field">
+                  <label>Papel</label>
+                  <select id="novo-usuario-papel" class="field-input" style="padding-left:10px">
+                    <option value="membro">Membro</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+              </div>
+              <div class="areas-form-actions">
+                <button class="btn-salvar-area" onclick="criarUsuario()">
+                  <i class="uil uil-user-plus"></i> Criar usuário
+                </button>
               </div>
             </div>
           </div>
@@ -572,6 +763,170 @@
     </div>
 
   </div>
+
+  <!-- ── MODAL: ANÁLISE JURÍDICA ──────────────────────────── -->
+  <div id="modal-analise" class="modal-overlay" style="display:none" onclick="fecharModalAnalise(event)">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span id="modal-analise-titulo">Análise Jurídica</span>
+        <button class="modal-close" onclick="fecharModalAnalise()">&times;</button>
+      </div>
+      <div id="modal-analise-body" class="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="modal-historico-geral" class="modal-overlay" style="display:none" onclick="fecharHistoricoGeral(event)">
+    <div class="modal-box modal-hist-geral-box">
+      <div class="modal-header">
+        <span><i class="uil uil-history"></i> Histórico de Mudanças</span>
+        <button class="modal-close" onclick="fecharHistoricoGeral()">&times;</button>
+      </div>
+      <div class="hist-geral-filtros">
+        <input type="text" id="hist-filtro" class="field-input" placeholder="Filtrar por cargo..." oninput="filtrarHistorico(this.value)" style="max-width:260px;padding:5px 10px;font-size:12px">
+      </div>
+      <div id="modal-historico-geral-body" class="modal-body modal-hist-geral-body"></div>
+    </div>
+  </div>
+
+  <div id="modal-historico" class="modal-overlay" style="display:none" onclick="fecharHistorico(event)">
+    <div class="modal-box modal-historico-box">
+      <div class="modal-header">
+        <span><i class="uil uil-history"></i> Histórico de versões</span>
+        <button class="modal-close" onclick="fecharHistorico()">&times;</button>
+      </div>
+      <div id="modal-historico-body" class="modal-body modal-historico-body"></div>
+    </div>
+  </div>
+
+  <!-- ── MODAL CALENDÁRIO ────────────────────────────────────── -->
+  <div id="modal-calendario" class="modal-overlay cal-overlay" style="display:none" onclick="fecharCalendario(event)">
+    <div class="modal-box cal-box">
+
+      <!-- header -->
+      <div class="cal-header">
+        <div class="cal-header-left">
+          <i class="uil uil-calendar-alt"></i>
+          <span>Calendário de Mudanças</span>
+        </div>
+        <div class="cal-tabs">
+          <button class="cal-tab active" id="cal-tab-cal"   onclick="mudarAbaCalendario('cal')"><i class="uil uil-calendar-alt"></i> Calendário</button>
+          <button class="cal-tab"        id="cal-tab-exp"   onclick="mudarAbaCalendario('exp')"><i class="uil uil-export"></i> Exportar</button>
+          <button class="cal-tab"        id="cal-tab-sobre" onclick="mudarAbaCalendario('sobre')"><i class="uil uil-shield-check"></i> Segurança</button>
+        </div>
+        <button class="modal-close" onclick="fecharCalendario()">&times;</button>
+      </div>
+
+      <!-- ABA: CALENDÁRIO -->
+      <div id="cal-pane-cal" class="cal-pane">
+        <div class="cal-left">
+          <div class="cal-nav">
+            <button class="cal-nav-btn" onclick="navegarMes(-1)"><i class="uil uil-angle-left"></i></button>
+            <span id="cal-mes-label" class="cal-mes-label"></span>
+            <button class="cal-nav-btn" onclick="navegarMes(1)"><i class="uil uil-angle-right"></i></button>
+          </div>
+          <div class="cal-summary" id="cal-summary"></div>
+          <div class="cal-grid-wrap">
+            <div class="cal-dow-row">
+              <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+            </div>
+            <div class="cal-grid" id="cal-grid"></div>
+          </div>
+          <div class="cal-legenda">
+            <span>Menos</span>
+            <span class="cal-leg-box" style="--c:rgba(59,130,246,0.10)"></span>
+            <span class="cal-leg-box" style="--c:rgba(59,130,246,0.30)"></span>
+            <span class="cal-leg-box" style="--c:rgba(59,130,246,0.55)"></span>
+            <span class="cal-leg-box" style="--c:rgba(59,130,246,0.80)"></span>
+            <span>Mais</span>
+          </div>
+        </div>
+        <div class="cal-right">
+          <div id="cal-day-header" class="cal-day-header"></div>
+          <div id="cal-day-list"   class="cal-day-list"><p class="cal-empty">Selecione um dia no calendário</p></div>
+        </div>
+      </div>
+
+      <!-- ABA: EXPORTAR -->
+      <div id="cal-pane-exp" class="cal-pane" style="display:none">
+        <div class="exp-wrap">
+          <div class="exp-icon"><i class="uil uil-file-download-alt"></i></div>
+          <h2 class="exp-title">Exportar Histórico Completo</h2>
+          <p class="exp-desc">Gera um arquivo <strong>.json</strong> com todas as versões de cargos registradas, assinado com hash manifesto SHA-256. Qualquer modificação externa ao arquivo é detectável matematicamente.</p>
+          <div class="exp-filtros">
+            <div class="exp-field">
+              <label>De</label>
+              <input type="date" id="exp-de"  class="field-input exp-date-input">
+            </div>
+            <div class="exp-field">
+              <label>Até</label>
+              <input type="date" id="exp-ate" class="field-input exp-date-input">
+            </div>
+          </div>
+          <div class="exp-btns">
+            <button class="btn-exportar" onclick="baixarExport()">
+              <i class="uil uil-brackets-curly"></i> Baixar JSON assinado
+            </button>
+            <button class="btn-exportar btn-exportar-pdf" onclick="exportarPDF()">
+              <i class="uil uil-file-alt"></i> Abrir relatório PDF
+            </button>
+          </div>
+          <div class="exp-hint">O JSON inclui hashes encadeados e hash manifesto SHA-256. O PDF abre uma prévia formatada — use "Salvar como PDF" no diálogo de impressão do navegador.</div>
+        </div>
+      </div>
+
+      <!-- ABA: SEGURANÇA -->
+      <div id="cal-pane-sobre" class="cal-pane cal-sobre" style="display:none">
+        <div class="sobre-wrap">
+          <h2><i class="uil uil-shield-check"></i> Garantia de Integridade</h2>
+          <p class="sobre-intro">O JoyDescription usa um sistema de <strong>hash encadeado</strong> inspirado na tecnologia blockchain para garantir que nenhuma versão de cargo possa ser alterada sem detecção.</p>
+
+          <div class="sobre-cards">
+            <div class="sobre-card">
+              <div class="sobre-card-icon"><i class="uil uil-link"></i></div>
+              <h3>Como funciona o encadeamento</h3>
+              <p>Cada versão salva gera um <strong>hash SHA-256</strong> calculado a partir do conteúdo do texto e do hash da versão anterior do mesmo cargo:</p>
+              <code class="sobre-code">hash = SHA256( hash_anterior + texto )</code>
+              <p>Isso cria uma corrente: alterar qualquer versão do passado invalida todos os hashes subsequentes daquele cargo.</p>
+            </div>
+
+            <div class="sobre-card">
+              <div class="sobre-card-icon"><i class="uil uil-file-check-alt"></i></div>
+              <h3>Hash Manifesto do Export</h3>
+              <p>Ao exportar, o sistema gera um <strong>hash manifesto</strong> — SHA-256 de todos os hashes individuais concatenados em ordem:</p>
+              <code class="sobre-code">manifesto = SHA256( hash[1] | hash[2] | … | hash[n] )</code>
+              <p>Esse valor fica registrado no arquivo. Se qualquer registro for removido ou reordenado, o manifesto não bate mais.</p>
+            </div>
+
+            <div class="sobre-card">
+              <div class="sobre-card-icon"><i class="uil uil-search"></i></div>
+              <h3>Como verificar manualmente</h3>
+              <ol>
+                <li>Abra o <code>.json</code> exportado em qualquer editor de texto</li>
+                <li>Para cada versão: calcule <code>SHA256(hash_prev + texto)</code> e compare com o campo <code>hash</code></li>
+                <li>Para o manifesto: concatene todos os <code>hash</code> com <code>|</code> em ordem de <code>id</code> e calcule o SHA-256</li>
+                <li>Qualquer divergência indica adulteração do arquivo</li>
+              </ol>
+            </div>
+
+            <div class="sobre-card sobre-card-destaque">
+              <div class="sobre-card-icon"><i class="uil uil-lock-alt"></i></div>
+              <h3>O que esse sistema garante</h3>
+              <ul>
+                <li>✓ Nenhuma versão de cargo pode ser silenciosamente editada após salva</li>
+                <li>✓ A sequência de mudanças é imutável e auditável</li>
+                <li>✓ O arquivo exportado é auto-verificável sem depender do servidor</li>
+                <li>✓ Qualquer ferramenta que compute SHA-256 pode validar a cadeia</li>
+              </ul>
+              <p class="sobre-limite">O sistema não usa assinatura criptográfica com chave privada — a segurança protege contra adulteração acidental ou informal, não contra um atacante com acesso ao banco de dados.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  </div><!-- /#app-content -->
 
   <script src="script.js"></script>
 </body>

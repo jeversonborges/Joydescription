@@ -16,7 +16,12 @@ let cargosData         = []
 let cargoEditando      = null
 let conhecimentoData   = []
 let artigoEditando     = null
+let niveisData         = []
+let nivelEditando      = null
 let abaAtiva           = "descricao"
+let usuarioAtual       = null
+let empresaAtual       = null
+let usuariosData       = []
 
 // ── Referências DOM ────────────────────────────────────────────
 const cargoInput  = document.getElementById("cargoInput")
@@ -100,6 +105,7 @@ setTheme(localStorage.getItem("joy-theme") || "light")
 async function inicializarAreas() {
   try {
     const res  = await fetch("/areas")
+    if (!res.ok) return
     areasData  = await res.json()
     popularSelectArea()
   } catch {
@@ -119,12 +125,11 @@ function popularSelectArea() {
   })
 }
 
-inicializarAreas()
-
 // ── Carrega cargos salvos ──────────────────────────────────────
 async function inicializarCargos() {
   try {
     const res  = await fetch("/cargos")
+    if (!res.ok) return
     cargosData = await res.json()
     atualizarContadorCargos()
   } catch { /* silencioso */ }
@@ -135,18 +140,384 @@ function atualizarContadorCargos() {
   if (el) el.textContent = cargosData.length
 }
 
-inicializarCargos()
-
 // ── Carrega base de conhecimento ───────────────────────────────
 async function inicializarConhecimento() {
   try {
     const res        = await fetch("/conhecimento")
+    if (!res.ok) return
     conhecimentoData = await res.json()
   } catch { /* silencioso */ }
 }
 
-inicializarConhecimento()
+// ── Carrega hierarquia de níveis ───────────────────────────────
+async function inicializarNiveis() {
+  try {
+    const res  = await fetch("/niveis")
+    if (!res.ok) return
+    niveisData = await res.json()
+    popularSelectNivel()
+    renderizarListaNiveis()
+  } catch { /* silencioso */ }
+}
 
+function popularSelectNivel() {
+  const selectNivel = document.getElementById("nivel")
+  const valorAtual  = selectNivel.value
+  selectNivel.innerHTML = ""
+  niveisData.forEach(n => {
+    const opt = document.createElement("option")
+    opt.value       = n.label
+    opt.textContent = n.label
+    if (n.label === valorAtual) opt.selected = true
+    selectNivel.appendChild(opt)
+  })
+  if (!selectNivel.value && niveisData.length > 0) {
+    const pleno = niveisData.find(n => n.label === "Pleno") || niveisData[0]
+    if (pleno) selectNivel.value = pleno.label
+  }
+}
+
+function renderizarListaNiveis() {
+  const lista = document.getElementById("niveis-list")
+  if (!lista) return
+  lista.innerHTML = ""
+  niveisData.forEach(n => {
+    const li = document.createElement("li")
+    li.className = "areas-list-item" + (nivelEditando?.label === n.label ? " active" : "")
+    li.onclick = () => selecionarNivel(n)
+    li.innerHTML = `
+      <span class="ali-label">${n.label}</span>
+      <span class="ali-sub">${n.eh_lideranca ? "Liderança" : "Técnico/Operacional"}</span>`
+    lista.appendChild(li)
+  })
+}
+
+function selecionarNivel(n) {
+  nivelEditando = n
+  document.getElementById("niveis-empty").style.display = "none"
+  document.getElementById("niveis-form").style.display  = "flex"
+  document.getElementById("niveis-btn-deletar").style.display = ""
+  document.getElementById("nivel-label").value      = n.label
+  document.getElementById("nivel-ordem").value      = n.ordem
+  document.getElementById("nivel-lideranca").checked = n.eh_lideranca === 1
+  document.getElementById("nivel-curto").value      = n.descricao_curta
+  document.getElementById("nivel-descricao").value  = n.descricao
+  renderizarListaNiveis()
+}
+
+function novoNivel() {
+  nivelEditando = null
+  document.getElementById("niveis-empty").style.display = "none"
+  document.getElementById("niveis-form").style.display  = "flex"
+  document.getElementById("niveis-btn-deletar").style.display = "none"
+  document.getElementById("nivel-label").value      = ""
+  document.getElementById("nivel-ordem").value      = (niveisData.length + 1)
+  document.getElementById("nivel-lideranca").checked = false
+  document.getElementById("nivel-curto").value      = ""
+  document.getElementById("nivel-descricao").value  = ""
+  document.getElementById("nivel-label").focus()
+  renderizarListaNiveis()
+}
+
+async function salvarNivel() {
+  const label         = document.getElementById("nivel-label").value.trim()
+  const ordem         = parseInt(document.getElementById("nivel-ordem").value) || 0
+  const eh_lideranca  = document.getElementById("nivel-lideranca").checked ? 1 : 0
+  const descricao     = document.getElementById("nivel-descricao").value.trim()
+  const descricao_curta = document.getElementById("nivel-curto").value.trim()
+
+  if (!label) return showToast("Informe o nome do nível.", "error")
+
+  const body    = { label, ordem, eh_lideranca, descricao, descricao_curta }
+  const isNovo  = !nivelEditando
+  const url     = isNovo ? "/niveis" : `/niveis/${encodeURIComponent(nivelEditando.label)}`
+  const method  = isNovo ? "POST" : "PUT"
+
+  try {
+    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+    if (!res.ok) { const e = await res.json(); return showToast(e.erro || "Erro ao salvar.", "error") }
+    showToast(isNovo ? "Nível criado!" : "Nível atualizado!", "success")
+    await inicializarNiveis()
+    const updated = niveisData.find(n => n.label === label)
+    if (updated) selecionarNivel(updated)
+  } catch { showToast("Erro ao salvar nível.", "error") }
+}
+
+async function deletarNivel() {
+  if (!nivelEditando) return
+  if (!confirm(`Deletar o nível "${nivelEditando.label}"?`)) return
+  try {
+    const res = await fetch(`/niveis/${encodeURIComponent(nivelEditando.label)}`, { method: "DELETE" })
+    if (!res.ok) { const e = await res.json(); return showToast(e.erro || "Erro ao deletar.", "error") }
+    showToast("Nível deletado.", "success")
+    nivelEditando = null
+    document.getElementById("niveis-empty").style.display = ""
+    document.getElementById("niveis-form").style.display  = "none"
+    await inicializarNiveis()
+  } catch { showToast("Erro ao deletar nível.", "error") }
+}
+
+function cancelarNivel() {
+  nivelEditando = null
+  document.getElementById("niveis-empty").style.display = ""
+  document.getElementById("niveis-form").style.display  = "none"
+  renderizarListaNiveis()
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  AUTENTICAÇÃO
+// ═══════════════════════════════════════════════════════════════
+
+function mostrarLogin() {
+  document.getElementById("login-overlay").style.display = "flex"
+  document.getElementById("app-content").style.display   = "none"
+}
+
+async function esconderLogin() {
+  const loginEl = document.getElementById("login-overlay")
+  const splash  = document.getElementById("splash")
+
+  if (splash) {
+    // Ainda no contexto do splash: fade out ambos juntos
+    loginEl.style.transition = "opacity 0.6s ease"
+    splash.style.transition  = "opacity 0.6s ease"
+    loginEl.style.opacity    = "0"
+    splash.style.opacity     = "0"
+    await new Promise(r => setTimeout(r, 650))
+    splash.remove()
+    loginEl.style.display    = "none"
+    loginEl.style.opacity    = ""
+    loginEl.style.background = ""
+    loginEl.style.transition = ""
+  } else {
+    loginEl.style.display = "none"
+  }
+  document.getElementById("app-content").style.display = ""
+}
+
+async function verificarAuth() {
+  try {
+    const r = await fetch("/auth/me")
+    if (!r.ok) { mostrarLogin(); return }
+    const { user, empresa } = await r.json()
+    usuarioAtual = user
+    empresaAtual = empresa
+    esconderLogin()
+    atualizarBarraTitulo()
+    await inicializarApp()
+  } catch { mostrarLogin() }
+}
+
+function atualizarBarraTitulo() {
+  const el = document.getElementById("user-info-bar")
+  if (!el || !usuarioAtual) return
+  document.getElementById("tb-empresa-nome").textContent = empresaAtual?.nome || ""
+  document.getElementById("tb-usuario-nome").textContent = usuarioAtual.nome || ""
+  el.style.display = "flex"
+  // Mostrar aba usuários apenas para admin
+  const tabUsuarios = document.getElementById("tab-usuarios")
+  if (tabUsuarios) tabUsuarios.style.display = usuarioAtual.papel === "admin" ? "" : "none"
+}
+
+async function inicializarApp() {
+  await Promise.all([
+    inicializarAreas(),
+    inicializarCargos(),
+    inicializarConhecimento(),
+    inicializarNiveis()
+  ])
+}
+
+function trocarAbaLogin(aba) {
+  document.getElementById("login-tab-entrar").classList.toggle("active", aba === "entrar")
+  document.getElementById("login-tab-criar").classList.toggle("active", aba === "criar")
+  document.getElementById("login-form-entrar").style.display = aba === "entrar" ? "flex" : "none"
+  document.getElementById("login-form-criar").style.display  = aba === "criar"  ? "flex" : "none"
+  document.getElementById("login-erro").textContent = ""
+}
+
+async function fazerLogin() {
+  const email = document.getElementById("login-email").value.trim()
+  const senha = document.getElementById("login-senha").value
+  const erroEl = document.getElementById("login-erro")
+  erroEl.textContent = ""
+
+  if (!email || !senha) { erroEl.textContent = "Preencha e-mail e senha."; return }
+
+  const btn = document.getElementById("login-btn-entrar")
+  btn.disabled = true
+  btn.textContent = "Entrando..."
+
+  try {
+    const res  = await fetch("/auth/login", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ email, senha })
+    })
+    const data = await res.json()
+    if (!res.ok) { erroEl.textContent = data.erro || "Erro ao entrar."; return }
+
+    usuarioAtual = data.user
+    empresaAtual = data.empresa
+    esconderLogin()
+    atualizarBarraTitulo()
+    await inicializarApp()
+    showToast(`Bem-vindo, ${data.user.nome}!`, "success")
+  } catch { erroEl.textContent = "Falha de conexão. Tente novamente." }
+  finally { btn.disabled = false; btn.textContent = "Entrar" }
+}
+
+async function fazerRegistro() {
+  const empresa = document.getElementById("reg-empresa").value.trim()
+  const nome    = document.getElementById("reg-nome").value.trim()
+  const email   = document.getElementById("reg-email").value.trim()
+  const senha   = document.getElementById("reg-senha").value
+  const senha2  = document.getElementById("reg-senha2").value
+  const erroEl  = document.getElementById("login-erro")
+  erroEl.textContent = ""
+
+  if (!empresa || !nome || !email || !senha) { erroEl.textContent = "Preencha todos os campos."; return }
+  if (senha.length < 6) { erroEl.textContent = "A senha deve ter ao menos 6 caracteres."; return }
+  if (senha !== senha2) { erroEl.textContent = "As senhas não coincidem."; return }
+
+  const btn = document.getElementById("reg-btn-criar")
+  btn.disabled = true
+  btn.textContent = "Criando conta..."
+
+  try {
+    const res  = await fetch("/auth/registrar", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ empresa, nome, email, senha })
+    })
+    const data = await res.json()
+    if (!res.ok) { erroEl.textContent = data.erro || "Erro ao criar conta."; return }
+
+    usuarioAtual = data.user
+    empresaAtual = data.empresa
+    esconderLogin()
+    atualizarBarraTitulo()
+    await inicializarApp()
+    showToast(`Conta criada! Bem-vindo, ${data.user.nome}!`, "success")
+  } catch { erroEl.textContent = "Falha de conexão. Tente novamente." }
+  finally { btn.disabled = false; btn.textContent = "Criar conta" }
+}
+
+async function fazerLogout() {
+  try { await fetch("/auth/logout", { method: "POST" }) } catch { /* silencioso */ }
+  usuarioAtual = null
+  empresaAtual = null
+  areasData = []; cargosData = []; conhecimentoData = []; niveisData = []
+  mostrarLogin()
+}
+
+// ── Atalho: Enter nos campos de login/registro ─────────────────
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const overlay = document.getElementById("login-overlay")
+    if (!overlay || overlay.style.display === "none") return
+    const formEntrar = document.getElementById("login-form-entrar")
+    const formCriar  = document.getElementById("login-form-criar")
+    if (formEntrar && formEntrar.style.display !== "none") fazerLogin()
+    else if (formCriar && formCriar.style.display !== "none") fazerRegistro()
+  }
+})
+
+// ═══════════════════════════════════════════════════════════════
+//  GERENCIAMENTO DE USUÁRIOS (admin only)
+// ═══════════════════════════════════════════════════════════════
+
+async function carregarUsuarios() {
+  try {
+    const res = await fetch("/usuarios")
+    if (!res.ok) return
+    usuariosData = await res.json()
+    renderizarUsuarios()
+  } catch { showToast("Erro ao carregar usuários.", "error") }
+}
+
+function renderizarUsuarios() {
+  const lista = document.getElementById("usuarios-list")
+  if (!lista) return
+  lista.innerHTML = ""
+  if (!usuariosData.length) {
+    lista.innerHTML = `<li style="pointer-events:none;opacity:0.5;padding:12px 14px">Nenhum usuário cadastrado</li>`
+    return
+  }
+  usuariosData.forEach(u => {
+    const li = document.createElement("li")
+    li.className = "areas-list-item"
+    const ativo  = u.ativo ? "" : ' <span style="color:var(--error);font-size:10px">(inativo)</span>'
+    const papelBadge = u.papel === "admin"
+      ? `<span style="font-size:10px;background:var(--accent-dim);color:var(--accent);padding:1px 6px;border-radius:4px">admin</span>`
+      : `<span style="font-size:10px;background:var(--bg-hover);color:var(--text-muted);padding:1px 6px;border-radius:4px">membro</span>`
+    li.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;flex:1">
+        <div>
+          <div style="font-size:12px;font-weight:600">${u.nome}${ativo} ${papelBadge}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${u.email}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px">
+        ${u.id !== usuarioAtual?.id ? `
+          <button class="btn-salvar-area" style="padding:3px 8px;font-size:11px" onclick="alternarPapel('${u.id}','${u.papel}')">
+            ${u.papel === "admin" ? "Tornar membro" : "Tornar admin"}
+          </button>
+          ${u.ativo ? `<button class="btn-deletar-area" style="padding:3px 8px;font-size:11px" onclick="desativarUsuario('${u.id}')">Desativar</button>` : ""}
+        ` : `<span style="font-size:11px;color:var(--text-sub)">(você)</span>`}
+      </div>`
+    lista.appendChild(li)
+  })
+}
+
+async function criarUsuario() {
+  const nome  = document.getElementById("novo-usuario-nome").value.trim()
+  const email = document.getElementById("novo-usuario-email").value.trim()
+  const senha = document.getElementById("novo-usuario-senha").value
+  const papel = document.getElementById("novo-usuario-papel").value
+
+  if (!nome || !email || !senha) { showToast("Preencha todos os campos.", "error"); return }
+  if (senha.length < 6) { showToast("Senha mínima: 6 caracteres.", "error"); return }
+
+  try {
+    const res = await fetch("/usuarios", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ nome, email, senha, papel })
+    })
+    const data = await res.json()
+    if (!res.ok) { showToast(data.erro || "Erro ao criar usuário.", "error"); return }
+    showToast("Usuário criado com sucesso!", "success")
+    document.getElementById("novo-usuario-nome").value  = ""
+    document.getElementById("novo-usuario-email").value = ""
+    document.getElementById("novo-usuario-senha").value = ""
+    await carregarUsuarios()
+  } catch { showToast("Erro ao criar usuário.", "error") }
+}
+
+async function alternarPapel(id, papelAtual) {
+  const novoPapel = papelAtual === "admin" ? "membro" : "admin"
+  try {
+    const res = await fetch(`/usuarios/${id}`, {
+      method:  "PUT",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ papel: novoPapel })
+    })
+    if (!res.ok) { const d = await res.json(); showToast(d.erro || "Erro.", "error"); return }
+    showToast("Papel atualizado.", "success")
+    await carregarUsuarios()
+  } catch { showToast("Erro ao atualizar papel.", "error") }
+}
+
+async function desativarUsuario(id) {
+  if (!confirm("Desativar este usuário? Ele não conseguirá mais fazer login.")) return
+  try {
+    const res = await fetch(`/usuarios/${id}`, { method: "DELETE" })
+    if (!res.ok) { const d = await res.json(); showToast(d.erro || "Erro.", "error"); return }
+    showToast("Usuário desativado.", "info")
+    await carregarUsuarios()
+  } catch { showToast("Erro ao desativar usuário.", "error") }
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  UTILITÁRIOS
@@ -357,6 +728,8 @@ async function gerarDescricao() {
   document.getElementById("dots-anim").classList.add("generating")
   setIAStatus("busy")
   textoGerado = textoGen = textoDet = ""
+  analiseAtual = null
+  document.getElementById("analise-badge").style.display = "none"
   btnGerar.disabled = true
   cboBadge.style.display = "none"
   loadingEl.style.display = "flex"
@@ -450,6 +823,7 @@ async function gerarDescricao() {
           setIAStatus("done")
           showToast("Descrições geradas com sucesso!", "success")
           autoSalvarCargo(cargo, area, nivel, textoGen + "\n\n---\n\n" + textoDet)
+          analisarJuridico(cargo, nivel, textoGen + "\n\n" + textoDet, provedorAtual)
         }
       }
     }
@@ -474,6 +848,185 @@ async function gerarDescricao() {
 
 // ═══════════════════════════════════════════════════════════════
 //  COPIAR TEXTO — copia o conteúdo bruto para a área de transferência
+// ═══════════════════════════════════════════════════════════════
+//  ANÁLISE JURÍDICA
+// ═══════════════════════════════════════════════════════════════
+
+let analiseAtual = null
+
+async function analisarJuridico(cargo, nivel, texto, provedor) {
+  const badge = document.getElementById("analise-badge")
+  badge.style.display = ""
+  badge.className = "analise-badge ab-loading"
+  badge.innerHTML = `<i class="uil uil-gavel"></i> Analisando...`
+  analiseAtual = null
+
+  try {
+    const res = await fetch("/analisar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cargo, nivel, texto, provedor })
+    })
+    if (!res.ok) throw new Error("Falha na análise")
+    const data = await res.json()
+    analiseAtual = data
+
+    let cls, label
+    if (data.aprovado) {
+      cls = "ab-ok"; label = "Aprovado juridicamente"
+    } else if (data.score >= 50) {
+      const n = data.alertas?.length || 0
+      cls = "ab-warn"; label = `${n} alerta${n !== 1 ? "s" : ""} jurídico${n !== 1 ? "s" : ""}`
+    } else {
+      cls = "ab-fail"; label = "Não aprovado"
+    }
+    // Re-dispara animação removendo e readicionando a classe
+    badge.className = "analise-badge"
+    badge.innerHTML = `<i class="uil uil-gavel"></i> ${label}`
+    void badge.offsetWidth  // força reflow para reiniciar animação CSS
+    badge.className = `analise-badge ${cls}`
+  } catch {
+    badge.className = "analise-badge"
+    badge.innerHTML = `<i class="uil uil-gavel"></i> Análise indisponível`
+    void badge.offsetWidth
+    badge.className = "analise-badge ab-warn"
+  }
+}
+
+function abrirModalAnalise() {
+  const modal = document.getElementById("modal-analise")
+  const body  = document.getElementById("modal-analise-body")
+  if (!analiseAtual) return
+  const d = analiseAtual
+
+  const scoreClass = d.aprovado ? "ok" : d.score >= 50 ? "warn" : "fail"
+  const scoreLabel = d.aprovado ? "Aprovado" : d.score >= 50 ? "Com ressalvas" : "Não aprovado"
+
+  const alertasHTML = (d.alertas?.length)
+    ? d.alertas.map((a, i) => {
+        const descricao = typeof a === "string" ? a : a.descricao
+        const sugestao  = typeof a === "string" ? "" : (a.sugestao || "")
+        const grav      = typeof a === "string" ? "moderado" : (a.gravidade || "moderado")
+        const sid       = `sugestao-${i}`
+        return `<div class="analise-item alerta-item" id="alerta-${i}">
+          <span class="grav-dot grav-${grav}"></span>
+          <div class="alerta-corpo">
+            <span>${descricao}</span>
+            ${sugestao ? `<div class="alerta-sugestao" id="${sid}" style="display:none">
+              <span class="alerta-sugestao-label">Sugestão:</span> ${sugestao}
+            </div>` : ""}
+            <div class="alerta-acoes">
+              ${sugestao ? `<button class="btn-alerta btn-modificar" onclick="corrigirAlerta(${i})">Corrigir no texto</button>` : ""}
+              <button class="btn-alerta btn-ignorar" onclick="ignorarAlerta(${i})">Ignorar</button>
+            </div>
+          </div>
+        </div>`
+      }).join("")
+    : `<div class="analise-item"><span class="analise-icon">✓</span><span>Nenhum alerta identificado.</span></div>`
+
+  const okHTML = (d.pontos_ok?.length)
+    ? d.pontos_ok.map(p => `<div class="analise-item"><span class="analise-icon">✓</span><span>${p}</span></div>`).join("")
+    : ""
+
+  body.innerHTML = `
+    <div class="analise-score">
+      <div class="analise-score-num ${scoreClass}">${d.score}</div>
+      <div>
+        <div style="font-weight:600">${scoreLabel}</div>
+        <div class="analise-score-label">Pontuação jurídica (0–100)</div>
+      </div>
+    </div>
+    ${d.alertas?.length ? `<div class="analise-section">
+      <div class="analise-section-title">Alertas</div>
+      ${alertasHTML}
+    </div>` : ""}
+    ${d.pontos_ok?.length ? `<div class="analise-section">
+      <div class="analise-section-title">Pontos positivos</div>
+      ${okHTML}
+    </div>` : ""}
+  `
+  modal.style.display = "flex"
+}
+
+function fecharModalAnalise(e) {
+  if (!e || e.target === document.getElementById("modal-analise") || e.currentTarget?.classList?.contains("modal-close"))
+    document.getElementById("modal-analise").style.display = "none"
+}
+
+async function corrigirAlerta(i) {
+  if (!analiseAtual?.alertas?.[i]) return
+  const alerta = analiseAtual.alertas[i]
+  if (typeof alerta === "string" || !alerta.sugestao) return
+
+  const cargo = cargoInput.value.trim()
+  const nivel = document.getElementById("nivel").value
+
+  // Fecha modal, garante que painel descricao e aba gen estão visíveis
+  document.getElementById("modal-analise").style.display = "none"
+  if (abaAtiva !== "descricao") trocarAba("descricao")
+  verSecao("gen")
+
+  const elGen = document.getElementById("resultado-gen")
+  elGen.classList.add("corrigindo")
+  elGen.scrollTop = 0
+
+  let textoCorrigido = ""
+
+  try {
+    const res = await fetch("/corrigir", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ cargo, nivel, texto: textoGen, alerta, provedor: provedorAtual })
+    })
+    if (!res.ok) throw new Error("Falha na correção")
+
+    const reader  = res.body.getReader()
+    const decoder = new TextDecoder()
+    let   buffer  = ""
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const linhas = buffer.split("\n")
+      buffer = linhas.pop()
+
+      for (const linha of linhas) {
+        if (!linha.startsWith("data: ")) continue
+        let data
+        try { data = JSON.parse(linha.slice(6)) } catch { continue }
+        if (data.erro) throw new Error(data.erro)
+        if (data.texto) {
+          textoCorrigido += data.texto
+          elGen.textContent = textoCorrigido
+          elGen.scrollTop   = elGen.scrollHeight
+        }
+        if (data.fim) {
+          textoGen    = textoCorrigido
+          textoGerado = textoCorrigido
+          elGen.innerHTML  = renderMarkdown(textoGen)
+          elGen.className  = "resultado_content res-content"
+          analiseAtual = null
+          document.getElementById("analise-badge").style.display = "none"
+          analisarJuridico(cargo, nivel, textoGen + "\n\n" + textoDet, provedorAtual)
+          return
+        }
+      }
+    }
+  } catch (err) {
+    elGen.classList.remove("corrigindo")
+    showToast("Erro ao corrigir: " + err.message, "error")
+  }
+}
+
+function ignorarAlerta(i) {
+  const item = document.getElementById(`alerta-${i}`)
+  if (!item) return
+  item.classList.toggle("alerta-ignorado")
+  const btn = item.querySelector(".btn-ignorar")
+  if (btn) btn.textContent = item.classList.contains("alerta-ignorado") ? "Restaurar" : "Ignorar"
+}
+
 // ═══════════════════════════════════════════════════════════════
 
 async function copiarTexto() {
@@ -538,19 +1091,25 @@ function limparResultado() {
 
 function trocarAba(aba) {
   abaAtiva = aba
-  ;["descricao","cargos","areas","conhecimento"].forEach(id => {
-    document.getElementById("tab-"    + id).classList.toggle("active", aba === id)
-    document.getElementById("painel-" + id).style.display = aba === id ? "flex" : "none"
+  ;["descricao","cargos","areas","conhecimento","niveis","usuarios"].forEach(id => {
+    const tabEl    = document.getElementById("tab-"    + id)
+    const painelEl = document.getElementById("painel-" + id)
+    if (tabEl)    tabEl.classList.toggle("active", aba === id)
+    if (painelEl) painelEl.style.display = aba === id ? "flex" : "none"
   })
   if (aba === "areas")       renderizarListaAreas()
   if (aba === "cargos")      renderizarListaCargos()
   if (aba === "conhecimento") renderizarListaConhecimento()
+  if (aba === "niveis")      renderizarListaNiveis()
+  if (aba === "usuarios")    carregarUsuarios()
 }
 
 
 // ═══════════════════════════════════════════════════════════════
 //  GERENCIAR CARGOS
 // ═══════════════════════════════════════════════════════════════
+
+let cargoIdAtual = null  // id do cargo salvo mais recentemente (para histórico)
 
 async function autoSalvarCargo(cargo, area, nivel, texto) {
   try {
@@ -560,11 +1119,367 @@ async function autoSalvarCargo(cargo, area, nivel, texto) {
       body:    JSON.stringify({ cargo, area, nivel, texto })
     })
     if (res.ok) {
-      await res.json()
+      const data = await res.json()
+      cargoIdAtual = data.id || null
+      document.getElementById("historico-btn").style.display = cargoIdAtual ? "" : "none"
       await inicializarCargos()
       showToast("Cargo salvo automaticamente.", "info")
     }
   } catch { /* silencioso */ }
+}
+
+async function abrirHistorico() {
+  if (!cargoIdAtual) return
+  const modal = document.getElementById("modal-historico")
+  const body  = document.getElementById("modal-historico-body")
+  body.innerHTML = `<div style="padding:16px;opacity:.6">Carregando...</div>`
+  modal.style.display = "flex"
+
+  try {
+    const res  = await fetch(`/versoes/${cargoIdAtual}`)
+    const rows = await res.json()
+
+    if (!rows.length) {
+      body.innerHTML = `<div style="padding:16px;opacity:.6">Nenhuma versão encontrada.</div>`
+      return
+    }
+
+    body.innerHTML = rows.map((v, i) => {
+      const data    = new Date(v.criado_em).toLocaleString("pt-BR")
+      const hashCur = v.hash.slice(0, 8)
+      const hashPrev = v.hash_prev ? v.hash_prev.slice(0, 8) : "—"
+      const label   = i === 0 ? '<span class="versao-atual">atual</span>' : ""
+      return `<div class="versao-item" onclick="verVersao('${v.id}', this)">
+        <div class="versao-meta">
+          <span class="versao-data">${data}</span>${label}
+        </div>
+        <div class="versao-hash">
+          <span title="hash desta versão"># ${hashCur}</span>
+          <span class="versao-hash-chain" title="encadeado de">&larr; ${hashPrev}</span>
+        </div>
+        <div class="versao-texto-preview" id="vtxt-${v.id}" style="display:none"></div>
+      </div>`
+    }).join("")
+  } catch {
+    body.innerHTML = `<div style="padding:16px;opacity:.6">Erro ao carregar histórico.</div>`
+  }
+}
+
+async function verVersao(versaoId) {
+  const preview = document.getElementById(`vtxt-${versaoId}`)
+  if (!preview) return
+  if (preview.style.display !== "none") {
+    preview.style.display = "none"
+    return
+  }
+  if (!preview.dataset.carregado) {
+    preview.textContent = "Carregando..."
+    preview.style.display = ""
+    try {
+      const res  = await fetch(`/versoes/${cargoIdAtual}/${versaoId}/texto`)
+      const data = await res.json()
+      preview.textContent = data.texto
+      preview.dataset.carregado = "1"
+    } catch {
+      preview.textContent = "Erro ao carregar."
+    }
+  } else {
+    preview.style.display = ""
+  }
+}
+
+// ── Strip markdown para textarea ───────────────────────────────
+function stripMarkdown(txt) {
+  return (txt || "")
+    .replace(/\*\*(.+?)\*\*/gs, "$1")
+    .replace(/\*(.+?)\*/gs,     "$1")
+    .replace(/__(.+?)__/gs,     "$1")
+    .replace(/_(.+?)_/gs,       "$1")
+    .replace(/`(.+?)`/g,        "$1")
+    .replace(/^#{1,6}\s+/gm,    "")
+    .trim()
+}
+
+// ── Copiar conteúdo de textarea ────────────────────────────────
+function copiarTextarea(id) {
+  const val = document.getElementById(id)?.value || ""
+  if (!val.trim()) return showToast("Nada para copiar.", "error")
+  navigator.clipboard.writeText(val)
+    .then(() => showToast("Copiado!", "success"))
+    .catch(() => showToast("Erro ao copiar.", "error"))
+}
+
+// ── Histórico geral de mudanças ────────────────────────────────
+let historicoGeralData = []
+
+async function abrirHistoricoGeral() {
+  const modal = document.getElementById("modal-historico-geral")
+  const body  = document.getElementById("modal-historico-geral-body")
+  body.innerHTML = `<div style="padding:16px;opacity:.6">Carregando...</div>`
+  modal.style.display = "flex"
+  document.getElementById("hist-filtro").value = ""
+
+  try {
+    const res = await fetch("/changelog")
+    historicoGeralData = await res.json()
+    renderHistoricoGeral(historicoGeralData)
+  } catch {
+    body.innerHTML = `<div style="padding:16px;opacity:.6">Erro ao carregar histórico.</div>`
+  }
+}
+
+function filtrarHistorico(q) {
+  const filtrado = q.trim()
+    ? historicoGeralData.filter(v => v.cargo.toLowerCase().includes(q.toLowerCase()))
+    : historicoGeralData
+  renderHistoricoGeral(filtrado)
+}
+
+function renderHistoricoGeral(rows) {
+  const body = document.getElementById("modal-historico-geral-body")
+  if (!rows.length) {
+    body.innerHTML = `<div style="padding:16px;opacity:.6">Nenhuma alteração encontrada.</div>`
+    return
+  }
+
+  // Agrupa por data (dia)
+  const grupos = {}
+  rows.forEach(v => {
+    const dia = new Date(v.criado_em).toLocaleDateString("pt-BR", { weekday:"long", day:"2-digit", month:"long", year:"numeric" })
+    if (!grupos[dia]) grupos[dia] = []
+    grupos[dia].push(v)
+  })
+
+  body.innerHTML = Object.entries(grupos).map(([dia, vers]) => `
+    <div class="hg-grupo">
+      <div class="hg-dia">${dia}</div>
+      ${vers.map(v => {
+        const hora  = new Date(v.criado_em).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" })
+        const hash  = v.hash.slice(0, 8)
+        const nivel = v.nivel ? `<span class="hg-nivel">${v.nivel}</span>` : ""
+        const area  = v.area  ? `<span class="hg-area">${v.area}</span>`   : ""
+        return `<div class="hg-item">
+          <div class="hg-hora">${hora}</div>
+          <div class="hg-info">
+            <span class="hg-cargo">${v.cargo}</span>
+            ${nivel}${area}
+          </div>
+          <code class="hg-hash">${hash}</code>
+        </div>`
+      }).join("")}
+    </div>
+  `).join("")
+}
+
+function fecharHistoricoGeral(e) {
+  if (!e || e.target === document.getElementById("modal-historico-geral") || e.currentTarget?.classList?.contains("modal-close"))
+    document.getElementById("modal-historico-geral").style.display = "none"
+}
+
+function fecharHistorico(e) {
+  if (!e || e.target === document.getElementById("modal-historico") || e.currentTarget?.classList?.contains("modal-close"))
+    document.getElementById("modal-historico").style.display = "none"
+}
+
+// ── Calendário de Mudanças ─────────────────────────────────────
+let calData     = []   // todos os registros de versoes
+let calAno      = new Date().getFullYear()
+let calMes      = new Date().getMonth()  // 0-11
+let calDiaSel   = null
+
+const MESES_PT = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+                  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+
+async function abrirCalendario() {
+  document.getElementById("modal-calendario").style.display = "flex"
+  calAno = new Date().getFullYear()
+  calMes = new Date().getMonth()
+  calDiaSel = null
+  mudarAbaCalendario("cal")
+  try {
+    const r = await fetch("/changelog")
+    calData = await r.json()
+  } catch { calData = [] }
+  renderCalendario()
+}
+
+function fecharCalendario(e) {
+  const el = document.getElementById("modal-calendario")
+  if (!e || e.target === el || e.currentTarget?.classList?.contains("modal-close"))
+    el.style.display = "none"
+}
+
+function mudarAbaCalendario(aba) {
+  ["cal","exp","sobre"].forEach(a => {
+    document.getElementById("cal-pane-" + a).style.display = a === aba ? "flex" : "none"
+    document.getElementById("cal-tab-"  + a).classList.toggle("active", a === aba)
+  })
+  if (aba === "cal") renderCalendario()
+}
+
+function navegarMes(delta) {
+  calMes += delta
+  if (calMes > 11) { calMes = 0;  calAno++ }
+  if (calMes < 0)  { calMes = 11; calAno-- }
+  calDiaSel = null
+  renderCalendario()
+}
+
+function renderCalendario() {
+  const grid    = document.getElementById("cal-grid")
+  const label   = document.getElementById("cal-mes-label")
+  const summary = document.getElementById("cal-summary")
+  if (!grid) return
+
+  label.textContent = `${MESES_PT[calMes]} ${calAno}`
+
+  // agrupar por dia YYYY-MM-DD
+  const byDay = {}
+  calData.forEach(v => {
+    const d = v.criado_em?.slice(0, 10)
+    if (!d) return
+    if (!byDay[d]) byDay[d] = []
+    byDay[d].push(v)
+  })
+
+  // contar para o mês corrente
+  const prefixo = `${calAno}-${String(calMes + 1).padStart(2, "0")}`
+  const totalMes = Object.entries(byDay)
+    .filter(([d]) => d.startsWith(prefixo))
+    .reduce((s, [, vs]) => s + vs.length, 0)
+
+  summary.textContent = totalMes
+    ? `${totalMes} modificação${totalMes > 1 ? "ões" : ""} neste mês`
+    : "Sem modificações neste mês"
+
+  // calcular heat máximo para normalização
+  const counts = Object.values(byDay).map(a => a.length)
+  const maxCount = Math.max(1, ...counts)
+
+  // construir o grid
+  const primeiroDia = new Date(calAno, calMes, 1).getDay()  // 0=Dom
+  const diasNoMes   = new Date(calAno, calMes + 1, 0).getDate()
+  const hoje = new Date().toISOString().slice(0, 10)
+
+  let html = ""
+
+  // células do mês anterior (padding)
+  const mesAntes  = calMes === 0 ? 11 : calMes - 1
+  const anoAntes  = calMes === 0 ? calAno - 1 : calAno
+  const diasAntes = new Date(anoAntes, mesAntes + 1, 0).getDate()
+  for (let i = primeiroDia - 1; i >= 0; i--) {
+    html += `<div class="cal-cell cal-outro-mes">${diasAntes - i}</div>`
+  }
+
+  // células do mês atual
+  for (let d = 1; d <= diasNoMes; d++) {
+    const key    = `${calAno}-${String(calMes + 1).padStart(2,"0")}-${String(d).padStart(2,"0")}`
+    const items  = byDay[key] || []
+    const count  = items.length
+    const isHoje = key === hoje
+    const isSel  = key === calDiaSel
+
+    let cls = "cal-cell"
+    if (isHoje)  cls += " cal-hoje"
+    if (isSel)   cls += " cal-selecionado"
+    if (count)   cls += " cal-tem-dado"
+
+    // heat map: 1-4 classes
+    if (count && !isSel) {
+      const ratio = count / maxCount
+      const heat  = ratio < 0.25 ? 1 : ratio < 0.5 ? 2 : ratio < 0.75 ? 3 : 4
+      cls += ` cal-heat-${heat}`
+    }
+
+    const badge = count ? `<span class="cal-badge">${count}</span>` : ""
+    html += `<div class="${cls}" onclick="selecionarDia('${key}')">${d}${badge}</div>`
+  }
+
+  // células do mês seguinte (padding)
+  const total = primeiroDia + diasNoMes
+  const resto = total % 7 === 0 ? 0 : 7 - (total % 7)
+  for (let i = 1; i <= resto; i++) {
+    html += `<div class="cal-cell cal-outro-mes">${i}</div>`
+  }
+
+  grid.innerHTML = html
+
+  // se havia dia selecionado, renderiza detalhes
+  if (calDiaSel && byDay[calDiaSel]) renderDiaDetalhe(calDiaSel, byDay[calDiaSel])
+}
+
+function selecionarDia(key) {
+  calDiaSel = key
+  renderCalendario()
+
+  // agrupar para encontrar itens daquele dia
+  const items = calData.filter(v => v.criado_em?.slice(0, 10) === key)
+  renderDiaDetalhe(key, items)
+}
+
+function renderDiaDetalhe(key, items) {
+  const header = document.getElementById("cal-day-header")
+  const list   = document.getElementById("cal-day-list")
+
+  const [ano, mes, dia] = key.split("-")
+  header.textContent = `${parseInt(dia)} de ${MESES_PT[parseInt(mes) - 1]} de ${ano} — ${items.length} modificação${items.length !== 1 ? "ões" : ""}`
+
+  if (!items.length) {
+    list.innerHTML = `<p class="cal-empty">Sem modificações neste dia</p>`
+    return
+  }
+
+  list.innerHTML = items.map(v => {
+    const hora  = v.criado_em?.slice(11, 16) || ""
+    const tags  = [v.nivel, v.area].filter(Boolean)
+    const hash6 = v.hash?.slice(0, 12) || ""
+    return `
+      <div class="cal-item">
+        <div class="cal-item-top">
+          <span class="cal-item-cargo">${v.cargo}</span>
+          <span class="cal-item-hora">${hora}</span>
+        </div>
+        <div class="cal-item-meta">
+          ${tags.map(t => `<span class="cal-item-tag">${t}</span>`).join("")}
+        </div>
+        <div class="cal-item-hash">#${hash6}…</div>
+      </div>`
+  }).join("")
+}
+
+function expQueryString() {
+  const de  = document.getElementById("exp-de").value
+  const ate = document.getElementById("exp-ate").value
+  const p   = []
+  if (de)  p.push("de="  + de)
+  if (ate) p.push("ate=" + ate)
+  return p.length ? "?" + p.join("&") : ""
+}
+
+async function baixarExport() {
+  const url = "/exportar" + expQueryString()
+  const btn = document.querySelector(".btn-exportar")
+  btn.disabled = true
+  btn.innerHTML = `<i class="uil uil-spinner-alt"></i> Gerando...`
+  try {
+    const r    = await fetch(url)
+    const blob = await r.blob()
+    const a    = document.createElement("a")
+    a.href     = URL.createObjectURL(blob)
+    a.download = `joydesc-export-${new Date().toISOString().slice(0,10)}.json`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  } catch (e) {
+    alert("Erro ao exportar: " + e.message)
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = `<i class="uil uil-brackets-curly"></i> Baixar JSON assinado`
+  }
+}
+
+function exportarPDF() {
+  const url = "/exportar/pdf" + expQueryString()
+  window.open(url, "_blank")
 }
 
 function renderizarListaCargos() {
@@ -600,7 +1515,7 @@ function abrirEdicaoCargo(id) {
   document.getElementById("cargo-nome").value  = c.cargo
   document.getElementById("cargo-area").value  = c.area
   document.getElementById("cargo-nivel").value = c.nivel
-  document.getElementById("cargo-texto").value = c.texto
+  document.getElementById("cargo-texto").value = stripMarkdown(c.texto)
 
   renderizarListaCargos()
 }
@@ -819,8 +1734,11 @@ function renderizarListaConhecimento() {
     const li = document.createElement("li")
     li.className = artigoEditando === a.id ? "selected" : ""
     li.innerHTML = `
-      <span class="cargo-titulo">${a.ativo ? "●" : "○"} ${a.titulo}</span>
-      <span class="cargo-meta">${a.categoria}</span>
+      <span class="conh-item-main">
+        <i class="uil uil-book-alt" style="flex-shrink:0;opacity:${a.ativo ? 1 : 0.35}"></i>
+        <span class="conh-item-titulo" style="opacity:${a.ativo ? 1 : 0.45}">${a.titulo}</span>
+      </span>
+      ${a.categoria ? `<span class="conh-item-cat">${a.categoria}</span>` : ""}
     `
     li.onclick = () => abrirEdicaoArtigo(a.id)
     ul.appendChild(li)
@@ -1126,16 +2044,16 @@ function menuAcao(acao) {
   const wordmark = document.querySelector(".sp-wordmark")
   const delay    = ms => new Promise(r => setTimeout(r, ms))
 
-  // ── Efeito glitch: letra por letra ───────────────────────────
+  // ── Efeito glitch: letra por letra — sincronizado com barra ──
   await new Promise(resolve => {
     const target       = "JoyDesc"
     const chars        = "!@#$%&?§±×÷ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    const glitchFrames = 9   // frames de caos por letra
-    const snapFrame    = 7   // frame em que a letra trava
-    const ms           = 42  // ms por frame
-    const isJoy        = i => i < 3  // J o y
+    const glitchFrames = 9
+    const snapFrame    = 7
+    const ms           = 42
+    const isJoy        = i => i < 3
 
-    let letterIdx    = 0
+    let letterIdx     = 0
     let frameInLetter = 0
 
     const rand = () => chars[Math.floor(Math.random() * chars.length)]
@@ -1157,18 +2075,22 @@ function menuAcao(acao) {
 
     wordmark.classList.add("glitching")
     wordmark.innerHTML = render(0, rand())
+    // barra começa junto com as letras
+    barEl.style.width = "0%"
 
     const tick = setInterval(() => {
       frameInLetter++
 
-      const snapping = frameInLetter >= snapFrame
+      const snapping  = frameInLetter >= snapFrame
       const activeChar = snapping ? target[letterIdx] : rand()
 
       if (frameInLetter >= glitchFrames) {
         letterIdx++
         frameInLetter = 0
 
-        // reduz glitch nas últimas 2 letras
+        // avança a barra a cada letra que trava (0 → 48%)
+        barEl.style.width = (letterIdx / target.length * 48) + "%"
+
         if (letterIdx >= target.length - 2) wordmark.classList.add("glitch-low")
 
         if (letterIdx >= target.length) {
@@ -1184,31 +2106,63 @@ function menuAcao(acao) {
     }, ms)
   })
 
-  // ── Mensagens de loading ──────────────────────────────────────
+  // ── Verifica auth em paralelo com as mensagens ───────────────
+  const authPromise = fetch("/auth/me")
+    .then(r => r.ok ? r.json() : null)
+    .catch(() => null)
+
+  // ── Mensagens de loading (continua de ~48% → 100%) ───────────
   const msgs = [
-    { text: "Inicializando JoyDesc...",           pct: 14,  wait:   0 },
-    { text: "Conectando ao Groq...",              pct: 34,  wait: 480 },
-    { text: "Carregando base CBO 2002...",         pct: 60,  wait: 600 },
-    { text: "11.097 ocupações indexadas ✓",        pct: 76,  wait: 520 },
-    { text: "Carregando base de conhecimento...",  pct: 90,  wait: 480 },
-    { text: "Sistema pronto ✓",                   pct: 100, wait: 480 },
+    { text: "Conectando ao Groq...",                pct: 56,  wait: 100 },
+    { text: "Indexando IA jurídica...",              pct: 64,  wait: 440 },
+    { text: "Carregando base CBO 2002...",           pct: 73,  wait: 420 },
+    { text: "11.097 ocupações indexadas ✓",          pct: 82,  wait: 380 },
+    { text: "Verificando conformidade CLT...",       pct: 89,  wait: 400 },
+    { text: "Carregando base de conhecimento...",    pct: 95,  wait: 380 },
+    { text: "Calibrando análise de cargos...",       pct: 99,  wait: 340 },
+    { text: "Sistema pronto ✓",                      pct: 100, wait: 320 },
   ]
 
   for (const { text, pct, wait } of msgs) {
     await delay(wait)
     msgEl.classList.add("sp-fading")
-    await delay(160)
+    await delay(150)
     msgEl.textContent = text
     barEl.style.width = pct + "%"
     msgEl.classList.remove("sp-fading")
   }
 
-  await delay(700)
-  splash.style.transition = "opacity 0.7s ease"
-  splash.style.opacity    = "0"
-  await delay(750)
-  splash.remove()
-
-  // inicia Groq como provider padrão (silencioso)
+  await delay(500)
   setProvedor("groq", true)
+
+  const authData = await authPromise
+
+  if (authData) {
+    // ── Autenticado: fade normal do splash → mostra app ──────
+    usuarioAtual = authData.user
+    empresaAtual = authData.empresa
+    splash.style.transition = "opacity 0.7s ease"
+    splash.style.opacity    = "0"
+    await delay(750)
+    splash.remove()
+    atualizarBarraTitulo()
+    await inicializarApp()
+  } else {
+    // ── Não autenticado: morphar splash → login ───────────────
+    // 1. Fade out o conteúdo da animação
+    const spContent = document.getElementById("sp-content")
+    spContent.style.transition = "opacity 0.35s ease"
+    spContent.style.opacity    = "0"
+    await delay(380)
+    spContent.style.display = "none"
+
+    // 2. Login aparece sobre o fundo do splash (sem fundo próprio)
+    const loginEl = document.getElementById("login-overlay")
+    loginEl.style.background  = "transparent"
+    loginEl.style.opacity     = "0"
+    loginEl.style.display     = "flex"
+    loginEl.style.transition  = "opacity 0.45s ease"
+    await delay(30)
+    loginEl.style.opacity     = "1"
+  }
 })()

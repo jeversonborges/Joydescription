@@ -7,7 +7,7 @@
     "start": "node server.mjs",
     "dev": "nodemon --watch server.mjs --ext mjs server.mjs",
     "electron": "node electron-launcher.cjs",
-    "dist": "electron-builder --win --x64"
+    "dist": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --x64"
   },
   "keywords": [],
   "author": "JoyDesc",
@@ -55,6 +55,7 @@
       "!meta/**",
       "!dist-electron/**"
     ],
+    "npmRebuild": false,
     "asarUnpack": [
       "node_modules/better-sqlite3/**"
     ],
