@@ -315,8 +315,11 @@ function atualizarBarraTitulo() {
   document.getElementById("tb-usuario-nome").textContent = usuarioAtual.nome || ""
   el.style.display = "flex"
   // Mostrar aba usuários apenas para admin
+  const isAdmin = usuarioAtual.papel === "admin"
   const tabUsuarios = document.getElementById("tab-usuarios")
-  if (tabUsuarios) tabUsuarios.style.display = usuarioAtual.papel === "admin" ? "" : "none"
+  if (tabUsuarios) tabUsuarios.style.display = isAdmin ? "" : "none"
+  const tabBackup = document.getElementById("tab-backup")
+  if (tabBackup) tabBackup.style.display = isAdmin ? "" : "none"
 }
 
 async function inicializarApp() {
@@ -530,18 +533,69 @@ async function excluirUsuario(id, nome) {
   } catch { showToast("Erro ao excluir usuário.", "error") }
 }
 
+async function abrirBackup() {
+  await Promise.all([carregarStatusBackup(), carregarHistoricoBackup()])
+}
+
+async function carregarStatusBackup() {
+  try {
+    const res = await fetch("/backup/status")
+    if (!res.ok) return
+    const d = await res.json()
+    const kb = (d.tamanho / 1024).toFixed(0)
+    const mb = d.tamanho >= 1048576 ? ` (${(d.tamanho/1048576).toFixed(1)} MB)` : ""
+    document.getElementById("bk-tamanho").textContent  = kb + " KB" + mb
+    document.getElementById("bk-cargos").textContent   = d.cargos
+    document.getElementById("bk-areas").textContent    = d.areas
+    document.getElementById("bk-conhec").textContent   = d.conhec
+    document.getElementById("bk-versoes").textContent  = d.versoes
+    document.getElementById("bk-usuarios").textContent = d.usuarios
+    const ub = document.getElementById("bk-ultimo-backup")
+    if (d.ultimoBackup) {
+      const dt = new Date(d.ultimoBackup.criado_em).toLocaleString("pt-BR")
+      ub.textContent = `Último backup: ${dt} por ${d.ultimoBackup.usuario_nome}`
+      ub.style.color = "var(--accent)"
+    } else {
+      ub.textContent = "Nenhum backup realizado ainda."
+      ub.style.color = "var(--error)"
+    }
+  } catch {}
+}
+
+async function carregarHistoricoBackup() {
+  try {
+    const res = await fetch("/backup/historico")
+    if (!res.ok) return
+    const rows = await res.json()
+    const ul = document.getElementById("bk-historico")
+    if (!rows.length) { ul.innerHTML = '<li class="bk-historico-vazio">Nenhum backup realizado ainda.</li>'; return }
+    ul.innerHTML = rows.map(r => {
+      const dt = new Date(r.criado_em).toLocaleString("pt-BR")
+      const kb = (r.tamanho_bytes / 1024).toFixed(0)
+      return `<li class="bk-historico-item">
+        <div class="bk-hist-info">
+          <span class="bk-hist-data">${dt}</span>
+          <span class="bk-hist-user">${r.usuario_nome} — ${r.tamanho_bytes ? kb + " KB" : "?"}</span>
+        </div>
+        <i class="uil uil-check-circle" style="color:var(--accent);flex-shrink:0"></i>
+      </li>`
+    }).join("")
+  } catch {}
+}
+
 function baixarBackup() {
   window.location.href = "/backup/download"
+  setTimeout(() => Promise.all([carregarStatusBackup(), carregarHistoricoBackup()]), 2000)
 }
 
 async function restaurarBackup(input) {
   const file = input.files[0]
   if (!file) return
-  if (!confirm(`Restaurar "${file.name}"? O sistema vai reiniciar e todos os dados atuais serão substituídos pelo backup.`)) {
+  if (!confirm(`Restaurar "${file.name}"?\n\nTodos os dados inseridos após esse backup serão perdidos. O sistema vai reiniciar automaticamente.`)) {
     input.value = ""; return
   }
   try {
-    showToast("Enviando backup...", "info")
+    showToast("Enviando e restaurando...", "info")
     const buf = await file.arrayBuffer()
     const res = await fetch("/backup/restaurar", {
       method: "POST",
@@ -550,7 +604,7 @@ async function restaurarBackup(input) {
     })
     const data = await res.json()
     if (!res.ok) { showToast(data.erro || "Erro ao restaurar.", "error"); return }
-    showToast("Restaurado! Reconectando em 5s...", "success")
+    showToast("Restaurado com sucesso! Reconectando em 5s...", "success")
     setTimeout(() => location.reload(), 5000)
   } catch { showToast("Erro ao enviar o arquivo.", "error") }
   input.value = ""
@@ -1128,17 +1182,18 @@ function limparResultado() {
 
 function trocarAba(aba) {
   abaAtiva = aba
-  ;["descricao","cargos","areas","conhecimento","niveis","usuarios"].forEach(id => {
+  ;["descricao","cargos","areas","conhecimento","niveis","usuarios","backup"].forEach(id => {
     const tabEl    = document.getElementById("tab-"    + id)
     const painelEl = document.getElementById("painel-" + id)
     if (tabEl)    tabEl.classList.toggle("active", aba === id)
-    if (painelEl) painelEl.style.display = aba === id ? "flex" : "none"
+    if (painelEl) painelEl.style.display = aba === id ? (id === "backup" ? "block" : "flex") : "none"
   })
-  if (aba === "areas")       renderizarListaAreas()
-  if (aba === "cargos")      renderizarListaCargos()
+  if (aba === "areas")        renderizarListaAreas()
+  if (aba === "cargos")       renderizarListaCargos()
   if (aba === "conhecimento") renderizarListaConhecimento()
-  if (aba === "niveis")      renderizarListaNiveis()
-  if (aba === "usuarios")    carregarUsuarios()
+  if (aba === "niveis")       renderizarListaNiveis()
+  if (aba === "usuarios")     carregarUsuarios()
+  if (aba === "backup")       abrirBackup()
 }
 
 

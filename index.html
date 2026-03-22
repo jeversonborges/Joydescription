@@ -350,6 +350,10 @@
             <i class="uil uil-users-alt"></i>
             Usuários
           </div>
+          <div class="tab" id="tab-backup" onclick="trocarAba('backup')" style="display:none">
+            <i class="uil uil-database"></i>
+            Backup
+          </div>
           <div class="tab-bar-right">
             <div id="cbo_badge" class="cbo-badge" style="display:none">
               <i class="uil uil-tag-alt"></i>
@@ -734,24 +738,78 @@
               </div>
             </div>
 
-            <!-- Backup -->
-            <div class="areas-form-header" style="margin-top:24px">
-              <span>Backup do banco de dados</span>
-            </div>
-            <div class="areas-fields" style="gap:10px">
-              <p style="font-size:12px;color:var(--text-muted);margin:0">Baixe uma cópia completa do banco ou restaure a partir de um backup anterior. A restauração reinicia o servidor automaticamente.</p>
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button class="btn-salvar-area" onclick="baixarBackup()">
-                  <i class="uil uil-download-alt"></i> Baixar backup
-                </button>
-                <label class="btn-salvar-area" style="cursor:pointer;margin:0">
-                  <i class="uil uil-upload-alt"></i> Restaurar backup
-                  <input type="file" accept=".db" style="display:none" onchange="restaurarBackup(this)">
-                </label>
-              </div>
             </div>
           </div>
 
+        </div>
+
+        <!-- ── ABA: BACKUP ─────────────────────────────────── -->
+        <div id="painel-backup" class="result-area" style="display:none;padding:24px;overflow-y:auto">
+
+          <div class="bk-grid">
+
+            <!-- Coluna esquerda -->
+            <div class="bk-col">
+
+              <!-- Status do banco -->
+              <div class="bk-card">
+                <div class="bk-card-title"><i class="uil uil-server"></i> Status do banco</div>
+                <div class="bk-stats" id="bk-stats">
+                  <div class="bk-stat"><span class="bk-stat-val" id="bk-tamanho">—</span><span class="bk-stat-label">Tamanho</span></div>
+                  <div class="bk-stat"><span class="bk-stat-val" id="bk-cargos">—</span><span class="bk-stat-label">Cargos</span></div>
+                  <div class="bk-stat"><span class="bk-stat-val" id="bk-areas">—</span><span class="bk-stat-label">Áreas</span></div>
+                  <div class="bk-stat"><span class="bk-stat-val" id="bk-conhec">—</span><span class="bk-stat-label">Conhecimentos</span></div>
+                  <div class="bk-stat"><span class="bk-stat-val" id="bk-versoes">—</span><span class="bk-stat-label">Versões</span></div>
+                  <div class="bk-stat"><span class="bk-stat-val" id="bk-usuarios">—</span><span class="bk-stat-label">Usuários</span></div>
+                </div>
+                <div class="bk-ultimo" id="bk-ultimo-backup"></div>
+              </div>
+
+              <!-- Backup manual -->
+              <div class="bk-card">
+                <div class="bk-card-title"><i class="uil uil-download-alt"></i> Backup manual</div>
+                <p class="bk-desc">Gera e baixa uma cópia completa do banco de dados agora. O arquivo pode ser guardado localmente, em nuvem ou enviado por e-mail.</p>
+                <button class="bk-btn-primary" onclick="baixarBackup()">
+                  <i class="uil uil-download-alt"></i> Baixar backup agora
+                </button>
+              </div>
+
+              <!-- Restaurar -->
+              <div class="bk-card bk-card-warn">
+                <div class="bk-card-title"><i class="uil uil-upload-alt"></i> Restaurar backup</div>
+                <p class="bk-desc">Substitui o banco atual por um arquivo de backup. <strong>Todos os dados inseridos após o backup serão perdidos.</strong> O sistema reinicia automaticamente após a restauração.</p>
+                <label class="bk-btn-danger" style="cursor:pointer">
+                  <i class="uil uil-folder-upload"></i> Selecionar arquivo .db
+                  <input type="file" accept=".db" style="display:none" onchange="restaurarBackup(this)">
+                </label>
+              </div>
+
+            </div>
+
+            <!-- Coluna direita: histórico -->
+            <div class="bk-col">
+              <div class="bk-card" style="flex:1">
+                <div class="bk-card-title"><i class="uil uil-history"></i> Histórico de backups</div>
+                <p class="bk-desc">Registra todos os backups baixados. Guarde os arquivos em local seguro.</p>
+                <ul id="bk-historico" class="bk-historico-list">
+                  <li class="bk-historico-vazio">Nenhum backup realizado ainda.</li>
+                </ul>
+              </div>
+
+              <!-- Boas práticas -->
+              <div class="bk-card">
+                <div class="bk-card-title"><i class="uil uil-shield-check"></i> Boas práticas</div>
+                <ul class="bk-dicas">
+                  <li><i class="uil uil-check-circle"></i> Faça backup antes de grandes alterações</li>
+                  <li><i class="uil uil-check-circle"></i> Guarde ao menos os 3 últimos backups</li>
+                  <li><i class="uil uil-check-circle"></i> Salve em local diferente do servidor (Drive, pendrive)</li>
+                  <li><i class="uil uil-check-circle"></i> Rotina recomendada: semanal ou após cada sessão importante</li>
+                  <li><i class="uil uil-check-circle"></i> Teste a restauração periodicamente em ambiente separado</li>
+                </ul>
+              </div>
+            </div>
+
+          </div>
         </div>
 
         <!-- Inner status bar -->
