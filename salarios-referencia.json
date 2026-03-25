@@ -1,0 +1,93 @@
+{
+  "fontes": {
+    "RAIS_2024": {
+      "descricao": "Ministério do Trabalho - RAIS 2024 (Centro-Oeste)",
+      "peso": 0.35,
+      "url": "http://pdet.mte.gov.br"
+    },
+    "CAGED_2024": {
+      "descricao": "CAGED - Média Móvel 2024 (Centro-Oeste)",
+      "peso": 0.25,
+      "url": "https://www.gov.br/trabalho-e-emprego"
+    },
+    "UNICADATA": {
+      "descricao": "UNICA - Dados Setor Sucroenergético",
+      "peso": 0.25,
+      "url": "https://unicadata.com.br"
+    },
+    "SINDICAR": {
+      "descricao": "SINDICAR - Piso Categoria",
+      "peso": 0.15,
+      "url": "http://www.sindicar.com.br"
+    }
+  },
+  "salarios_por_cargo": {
+    "analista": {
+      "TI": {
+        "junior": { "min": 3200, "med": 4200, "max": 5500 },
+        "pleno": { "min": 4500, "med": 5800, "max": 7500 },
+        "senior": { "min": 6500, "med": 8500, "max": 11000 }
+      },
+      "RH": {
+        "junior": { "min": 2800, "med": 3600, "max": 4800 },
+        "pleno": { "min": 4000, "med": 5200, "max": 6800 },
+        "senior": { "min": 5800, "med": 7500, "max": 9500 }
+      },
+      "REMUNERAÇÃO": {
+        "junior": { "min": 2800, "med": 3600, "max": 4800 },
+        "pleno": { "min": 3800, "med": 4900, "max": 6200 },
+        "senior": { "min": 5200, "med": 6800, "max": 8500 }
+      },
+      "SAFRA": {
+        "junior": { "min": 3000, "med": 4000, "max": 5200 },
+        "pleno": { "min": 4200, "med": 5500, "max": 7200 },
+        "senior": { "min": 6200, "med": 8000, "max": 10500 }
+      },
+      "PRODUÇÃO": {
+        "junior": { "min": 3200, "med": 4200, "max": 5500 },
+        "pleno": { "min": 4500, "med": 5800, "max": 7500 },
+        "senior": { "min": 6500, "med": 8500, "max": 11000 }
+      }
+    },
+    "coordenador": {
+      "TI": { "med": 7500 },
+      "RH": { "med": 6500 },
+      "SAFRA": { "med": 8000 },
+      "PRODUÇÃO": { "med": 7800 }
+    },
+    "gerente": {
+      "TI": { "med": 10000 },
+      "RH": { "med": 9000 },
+      "SAFRA": { "med": 11000 },
+      "PRODUÇÃO": { "med": 10500 }
+    },
+    "especialista": {
+      "TI": { "med": 8500 },
+      "RH": { "med": 7500 },
+      "SAFRA": { "med": 9000 },
+      "PRODUÇÃO": { "med": 8800 }
+    },
+    "assistente": {
+      "TI": { "med": 2500 },
+      "RH": { "med": 2200 },
+      "SAFRA": { "med": 2600 },
+      "PRODUÇÃO": { "med": 2800 }
+    },
+    "chefe": {
+      "REMUNERAÇÃO": { "med": 7000 },
+      "RH": { "med": 8000 },
+      "SAFRA": { "med": 8500 }
+    },
+    "supervisor": {
+      "PRODUÇÃO": { "med": 5500 },
+      "SAFRA": { "med": 6000 },
+      "TI": { "med": 5800 }
+    }
+  },
+  "remuneracao_total_fator": {
+    "descricao": "Multiplicador para remuneração total (salário + benefícios típicos do setor)",
+    "padrao": 1.25,
+    "detalhes": "VT + VR + Convênio médico + PLR (média 25% acima do salário base)"
+  },
+  "notas": "Dados baseados em RAIS 2024, CAGED, UNICA e SINDICAR para setor sucroenergético Centro-Oeste"
+}

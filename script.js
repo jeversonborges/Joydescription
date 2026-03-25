@@ -2011,9 +2011,6 @@ function exibirDadosSalariais(dados) {
   document.getElementById("rem-total-min").textContent = fmt(dados.rem_total_min)
   document.getElementById("rem-total-med").textContent = fmt(dados.rem_total_med)
   document.getElementById("rem-total-max").textContent = fmt(dados.rem_total_max)
-  document.getElementById("rem-anual-min").textContent = fmt(dados.rem_anual_min)
-  document.getElementById("rem-anual-med").textContent = fmt(dados.rem_anual_med)
-  document.getElementById("rem-anual-max").textContent = fmt(dados.rem_anual_max)
 
   document.getElementById("salarios-wrap").style.display = "block"
   dadosSalariaisAtuais = dados
@@ -2036,9 +2033,6 @@ function exibirDadosSalaraisNoCargo(dados) {
   document.getElementById("cargos-rem-total-min").textContent = fmt(dados.rem_total_min)
   document.getElementById("cargos-rem-total-med").textContent = fmt(dados.rem_total_med)
   document.getElementById("cargos-rem-total-max").textContent = fmt(dados.rem_total_max)
-  document.getElementById("cargos-rem-anual-min").textContent = fmt(dados.rem_anual_min)
-  document.getElementById("cargos-rem-anual-med").textContent = fmt(dados.rem_anual_med)
-  document.getElementById("cargos-rem-anual-max").textContent = fmt(dados.rem_anual_max)
 
   document.getElementById("cargos-salarios-wrap").style.display = "block"
 }

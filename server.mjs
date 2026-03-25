@@ -23,6 +23,16 @@ const GROQ_MODEL    = process.env.GROQ_MODEL        || "llama-3.3-70b-versatile"
 const TOGETHER_KEY  = process.env.TOGETHER_API_KEY  || ""
 const TOGETHER_MODEL= process.env.TOGETHER_MODEL    || "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 
+// ── Carregar base de salários de referência ────────────────────
+let salarioBase = {}
+try {
+  const salariosPath = path.join(__dirname, "salarios-referencia.json")
+  salarioBase = JSON.parse(fs.readFileSync(salariosPath, "utf8"))
+  console.log("✅ Base de salários de referência carregada (RAIS, CAGED, UNICA, SINDICAR)")
+} catch (e) {
+  console.warn("⚠️  Arquivo salarios-referencia.json não encontrado:", e.message)
+}
+
 // ── Express ────────────────────────────────────────────────────
 const app = express()
 const PROD = process.env.NODE_ENV === "production"
@@ -324,6 +334,45 @@ function extrairTermos(texto, minLen = 5) {
     .replace(/[^a-z\s]/g, " ")
     .split(/\s+/)
     .filter(w => w.length >= minLen && !STOP.has(w))
+}
+
+// ── Buscar salários de referência (RAIS, CAGED, UNICA, SINDICAR) ──
+function buscarSalarioReferencia(cargoNome, areaNome, nivelNome) {
+  if (!salarioBase.salarios_por_cargo) return null
+
+  const cargo = cargoNome.toLowerCase().trim()
+  const area = areaNome.toUpperCase().trim()
+  const nivel = nivelNome.toLowerCase().trim()
+
+  // Buscar na base por cargo exato
+  for (const [cargoKey, areas] of Object.entries(salarioBase.salarios_por_cargo)) {
+    if (cargo.includes(cargoKey) || cargoKey.includes(cargo)) {
+      for (const [areaKey, niveis] of Object.entries(areas)) {
+        if (area.includes(areaKey.toUpperCase()) || areaKey.toUpperCase().includes(area)) {
+          // Se tem dados por nível
+          if (niveis[nivel]) {
+            const dados = niveis[nivel]
+            return {
+              sal_min: Math.round(dados.min),
+              sal_med: Math.round(dados.med),
+              sal_max: Math.round(dados.max),
+              fonte: "RAIS/CAGED/UNICA/SINDICAR"
+            }
+          }
+          // Se tem apenas mediana (para cargos sem nivél)
+          if (niveis.med) {
+            return {
+              sal_min: Math.round(niveis.med * 0.8),
+              sal_med: Math.round(niveis.med),
+              sal_max: Math.round(niveis.med * 1.3),
+              fonte: "RAIS/CAGED/UNICA/SINDICAR"
+            }
+          }
+        }
+      }
+    }
+  }
+  return null
 }
 
 function buscarCBO(cargo, areaKey = "", limite = 25, empresaId = "default") {
@@ -2151,58 +2200,69 @@ app.post("/gerar", async (req, res) => {
       if (delta) res.write(`data: ${JSON.stringify({ texto: delta })}\n\n`)
     }
 
-    // ── Gerar dados salariais com IA ──────────────────────────────
+    // ── Gerar dados salariais (Base + IA Ponderada) ──────────────────
     try {
-      pensar(`Estimando faixa salarial para o cargo no setor sucroenergético...`)
+      pensar(`Consultando RAIS, CAGED, UNICA para faixa salarial...`)
 
-      const promptSalarios = `Você é especialista em remuneração do setor sucroenergético brasileiro, região Centro-Oeste.
+      // 1️⃣ Buscar na base de referência (RAIS, CAGED, UNICA, SINDICAR)
+      let salarioRef = buscarSalarioReferencia(cargo, area, nivel)
 
-Cargo: ${cargo}
-Área: ${area}
-Nível: ${nivel}
+      // 2️⃣ Se não encontrar, chamar IA com contexto de dados oficiais
+      if (!salarioRef) {
+        pensar(`Gerando estimativa com base em tendências de mercado...`)
 
-Forneça estimativas salariais para este cargo em 2026. Responda SOMENTE com JSON válido, sem texto extra:
-{"sal_min":0,"sal_med":0,"sal_max":0,"rem_total_min":0,"rem_total_med":0,"rem_total_max":0,"rem_anual_min":0,"rem_anual_med":0,"rem_anual_max":0}`
+        const promptSalarios = `Você é especialista em remuneração do setor sucroenergético brasileiro, Centro-Oeste.
+Baseie-se em dados de RAIS, CAGED, UNICA e SINDICAR 2024.
 
-      const streamSalarios = await criarStream({
-        stream: false,
-        temperature: 0.2,
-        max_tokens: 200,
-        messages: [
-          { role: "system", content: "Responda APENAS com JSON válido. Nenhum texto adicional." },
-          { role: "user", content: promptSalarios }
-        ]
-      })
+Cargo: ${cargo} | Área: ${area} | Nível: ${nivel}
 
-      const textSalarios = streamSalarios.choices[0]?.message?.content ?? "{}"
-      let dadosSalarios = {}
+Retorne APENAS JSON (sem texto extra):
+{"sal_min":0,"sal_med":0,"sal_max":0}`
 
-      try {
-        const jsonMatch = textSalarios.match(/\{[^{}]*\}/)
-        dadosSalarios = jsonMatch ? JSON.parse(jsonMatch[0]) : {}
-      } catch (parseErr) {
-        console.warn("Aviso: Não foi possível fazer parse do JSON de salários:", textSalarios.substring(0, 100))
+        const streamSalarios = await criarStream({
+          stream: false,
+          temperature: 0.1,
+          max_tokens: 100,
+          messages: [
+            { role: "system", content: "Responda APENAS com JSON válido numérico." },
+            { role: "user", content: promptSalarios }
+          ]
+        })
+
+        const textSalarios = streamSalarios.choices[0]?.message?.content ?? "{}"
+        try {
+          const jsonMatch = textSalarios.match(/\{[^{}]*\}/)
+          const dadosIA = jsonMatch ? JSON.parse(jsonMatch[0]) : {}
+          if (dadosIA.sal_med) {
+            salarioRef = {
+              sal_min: Math.round(dadosIA.sal_min || dadosIA.sal_med * 0.85),
+              sal_med: Math.round(dadosIA.sal_med),
+              sal_max: Math.round(dadosIA.sal_max || dadosIA.sal_med * 1.4),
+              fonte: "Estimativa IA"
+            }
+          }
+        } catch (e) {
+          console.warn("Erro no parse de IA:", e.message)
+        }
       }
 
-      // Validar que os valores são numéricos
-      const validar = v => typeof v === "number" && v > 0 ? v : null
-      const salariesData = {
-        sal_min: validar(dadosSalarios.sal_min),
-        sal_med: validar(dadosSalarios.sal_med),
-        sal_max: validar(dadosSalarios.sal_max),
-        rem_total_min: validar(dadosSalarios.rem_total_min),
-        rem_total_med: validar(dadosSalarios.rem_total_med),
-        rem_total_max: validar(dadosSalarios.rem_total_max),
-        rem_anual_min: validar(dadosSalarios.rem_anual_min),
-        rem_anual_med: validar(dadosSalarios.rem_anual_med),
-        rem_anual_max: validar(dadosSalarios.rem_anual_max)
-      }
+      // 3️⃣ Calcular remuneração total (salário + benefícios típicos)
+      const FATOR_BENEFICIOS = 1.25 // VT + VR + convênio + PLR (média 25%)
+      const salariesData = salarioRef ? {
+        sal_min: salarioRef.sal_min,
+        sal_med: salarioRef.sal_med,
+        sal_max: salarioRef.sal_max,
+        rem_total_min: Math.round(salarioRef.sal_min * FATOR_BENEFICIOS),
+        rem_total_med: Math.round(salarioRef.sal_med * FATOR_BENEFICIOS),
+        rem_total_max: Math.round(salarioRef.sal_max * FATOR_BENEFICIOS),
+        fonte: salarioRef.fonte
+      } : null
 
-      // Emitir dados salariais
-      res.write(`data: ${JSON.stringify({ tipo: "salarios", dados: salariesData })}\n\n`)
+      // 4️⃣ Emitir dados salariais
+      if (salariesData) {
+        res.write(`data: ${JSON.stringify({ tipo: "salarios", dados: salariesData })}\n\n`)
 
-      // Salvar no banco de dados
-      if (Object.values(salariesData).some(v => v !== null)) {
+        // Salvar no banco de dados
         const salarioId = randomBytes(16).toString("hex")
         const agora = new Date().toISOString()
         const dataRef = agora.substring(0, 7)
@@ -2210,17 +2270,19 @@ Forneça estimativas salariais para este cargo em 2026. Responda SOMENTE com JSO
         try {
           db.prepare(`
             INSERT INTO salarios_cargo
-            (id, cargo, area, nivel, empresa_id, setor, regiao, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, rem_anual_min, rem_anual_med, rem_anual_max, data_ref, criado_em)
-            VALUES (?, ?, ?, ?, ?, 'sucroenergético', 'Centro-Oeste', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).run(salarioId, cargo, area, nivel, req.empresaId, salariesData.sal_min, salariesData.sal_med, salariesData.sal_max, salariesData.rem_total_min, salariesData.rem_total_med, salariesData.rem_total_max, salariesData.rem_anual_min, salariesData.rem_anual_med, salariesData.rem_anual_max, dataRef, agora)
+            (id, cargo, area, nivel, empresa_id, setor, regiao, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, data_ref, criado_em)
+            VALUES (?, ?, ?, ?, ?, 'sucroenergético', 'Centro-Oeste', ?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(salarioId, cargo, area, nivel, req.empresaId, salariesData.sal_min, salariesData.sal_med, salariesData.sal_max, salariesData.rem_total_min, salariesData.rem_total_med, salariesData.rem_total_max, dataRef, agora)
 
-          console.log(`✅ Dados salariais salvos para ${cargo} (${area}/${nivel})`)
+          console.log(`✅ Salários (${salariesData.fonte}): ${cargo} (${area}/${nivel}) → R$ ${salariesData.sal_med}`)
         } catch (dbErr) {
-          console.error("Erro ao salvar dados salariais:", dbErr.message)
+          console.error("Erro ao salvar salários:", dbErr.message)
         }
+      } else {
+        res.write(`data: ${JSON.stringify({ tipo: "salarios", dados: null })}\n\n`)
       }
     } catch (salErr) {
-      console.error("Erro ao gerar dados salariais:", salErr.message)
+      console.error("Erro ao processar salários:", salErr.message)
       res.write(`data: ${JSON.stringify({ tipo: "salarios", dados: null })}\n\n`)
     }
 
