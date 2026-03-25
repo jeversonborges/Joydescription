@@ -559,6 +559,39 @@
                   </div>
                   <textarea id="cargo-texto" class="field-input area-textarea" style="min-height:240px"></textarea>
                 </div>
+                <div id="cargos-salarios-wrap" style="display:none;padding:12px;border:1px solid var(--border);border-radius:8px;margin-top:12px;background:var(--bg-hover)">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+                    <i class="uil uil-chart-line" style="font-size:16px;color:var(--accent)"></i>
+                    <span style="font-weight:600;color:var(--text);font-size:12px">Faixa Salarial</span>
+                    <span style="margin-left:auto;font-size:10px;background:var(--accent);color:white;padding:3px 6px;border-radius:10px">Sucroenergético</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:11px">
+                    <div style="display:flex;flex-direction:column;gap:4px">
+                      <span style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:9px">Salário Base</span>
+                      <div style="display:flex;gap:4px;flex-wrap:wrap">
+                        <span style="display:flex;flex-direction:column;font-size:9px;padding:4px;border-radius:3px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2)"><span style="color:var(--text-muted)">Mín</span><b id="cargos-sal-min" style="color:var(--text);font-size:10px">—</b></span>
+                        <span style="display:flex;flex-direction:column;font-size:9px;padding:4px;border-radius:3px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2)"><span style="color:var(--text-muted)">Med</span><b id="cargos-sal-med" style="color:var(--text);font-size:10px">—</b></span>
+                        <span style="display:flex;flex-direction:column;font-size:9px;padding:4px;border-radius:3px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.2)"><span style="color:var(--text-muted)">Máx</span><b id="cargos-sal-max" style="color:var(--text);font-size:10px">—</b></span>
+                      </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:4px">
+                      <span style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:9px">Rem. Total Mês</span>
+                      <div style="display:flex;gap:4px;flex-wrap:wrap">
+                        <span style="display:flex;flex-direction:column;font-size:9px;padding:4px;border-radius:3px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2)"><span style="color:var(--text-muted)">Mín</span><b id="cargos-rem-total-min" style="color:var(--text);font-size:10px">—</b></span>
+                        <span style="display:flex;flex-direction:column;font-size:9px;padding:4px;border-radius:3px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2)"><span style="color:var(--text-muted)">Med</span><b id="cargos-rem-total-med" style="color:var(--text);font-size:10px">—</b></span>
+                        <span style="display:flex;flex-direction:column;font-size:9px;padding:4px;border-radius:3px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.2)"><span style="color:var(--text-muted)">Máx</span><b id="cargos-rem-total-max" style="color:var(--text);font-size:10px">—</b></span>
+                      </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:4px">
+                      <span style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:9px">Rem. Total Ano</span>
+                      <div style="display:flex;gap:4px;flex-wrap:wrap">
+                        <span style="display:flex;flex-direction:column;font-size:9px;padding:4px;border-radius:3px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2)"><span style="color:var(--text-muted)">Mín</span><b id="cargos-rem-anual-min" style="color:var(--text);font-size:10px">—</b></span>
+                        <span style="display:flex;flex-direction:column;font-size:9px;padding:4px;border-radius:3px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2)"><span style="color:var(--text-muted)">Med</span><b id="cargos-rem-anual-med" style="color:var(--text);font-size:10px">—</b></span>
+                        <span style="display:flex;flex-direction:column;font-size:9px;padding:4px;border-radius:3px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.2)"><span style="color:var(--text-muted)">Máx</span><b id="cargos-rem-anual-max" style="color:var(--text);font-size:10px">—</b></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div class="areas-form-actions">
                   <button class="btn-salvar-area" onclick="salvarEdicaoCargo()">
                     <i class="uil uil-check"></i> Salvar alterações

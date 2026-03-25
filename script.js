@@ -1933,7 +1933,7 @@ async function abrirEdicaoCargo(id) {
   try {
     const res = await fetch(`/salarios?cargo=${encodeURIComponent(c.cargo)}&area=${encodeURIComponent(c.area)}&nivel=${encodeURIComponent(c.nivel)}`)
     const salarios = await res.json()
-    if (salarios) exibirDadosSalariais(salarios)
+    if (salarios) exibirDadosSalaraisNoCargo(salarios)
   } catch (e) {
     console.error("Erro ao buscar salários:", e)
   }
@@ -1988,6 +1988,7 @@ function cancelarCargo() {
   cargoEditando = null
   document.getElementById("cargos-form").style.display  = "none"
   document.getElementById("cargos-empty").style.display = "flex"
+  document.getElementById("cargos-salarios-wrap").style.display = "none"
   document.querySelectorAll(".cargos-list li").forEach(li => li.classList.remove("selected"))
 }
 
@@ -2016,6 +2017,30 @@ function exibirDadosSalariais(dados) {
 
   document.getElementById("salarios-wrap").style.display = "block"
   dadosSalariaisAtuais = dados
+}
+
+function exibirDadosSalaraisNoCargo(dados) {
+  if (!dados) {
+    document.getElementById("cargos-salarios-wrap").style.display = "none"
+    return
+  }
+
+  const fmt = v => {
+    if (!v || typeof v !== "number") return "—"
+    return "R$ " + v.toLocaleString("pt-BR", { maximumFractionDigits: 0 })
+  }
+
+  document.getElementById("cargos-sal-min").textContent = fmt(dados.sal_min)
+  document.getElementById("cargos-sal-med").textContent = fmt(dados.sal_med)
+  document.getElementById("cargos-sal-max").textContent = fmt(dados.sal_max)
+  document.getElementById("cargos-rem-total-min").textContent = fmt(dados.rem_total_min)
+  document.getElementById("cargos-rem-total-med").textContent = fmt(dados.rem_total_med)
+  document.getElementById("cargos-rem-total-max").textContent = fmt(dados.rem_total_max)
+  document.getElementById("cargos-rem-anual-min").textContent = fmt(dados.rem_anual_min)
+  document.getElementById("cargos-rem-anual-med").textContent = fmt(dados.rem_anual_med)
+  document.getElementById("cargos-rem-anual-max").textContent = fmt(dados.rem_anual_max)
+
+  document.getElementById("cargos-salarios-wrap").style.display = "block"
 }
 
 function verSecao(qual) {
