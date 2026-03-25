@@ -435,6 +435,57 @@
                 <i class="uil uil-history"></i>
               </button>
             </div>
+            <div id="salarios-wrap" style="display:none;padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;background:var(--bg-hover)">
+              <div class="salarios-header" style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+                <i class="uil uil-chart-line" style="font-size:18px;color:var(--accent)"></i>
+                <span style="font-weight:600;color:var(--text)">Faixa Salarial</span>
+                <span class="salarios-badge" style="margin-left:auto;font-size:11px;background:var(--accent);color:white;padding:4px 8px;border-radius:12px">Sucroenergético · Centro-Oeste</span>
+              </div>
+              <div class="salarios-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+                <div class="sal-grupo" style="display:flex;flex-direction:column;gap:6px">
+                  <span class="sal-label" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Salário Base Mensal</span>
+                  <div class="sal-linha" style="display:flex;gap:6px;flex-wrap:wrap">
+                    <span class="sal-tag min" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--text-muted)">
+                      <span>Mín</span><b id="sal-min" style="color:var(--text);font-size:12px">—</b>
+                    </span>
+                    <span class="sal-tag med" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--text-muted)">
+                      <span>Mediana</span><b id="sal-med" style="color:var(--text);font-size:12px">—</b>
+                    </span>
+                    <span class="sal-tag max" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);color:var(--text-muted)">
+                      <span>Máx</span><b id="sal-max" style="color:var(--text);font-size:12px">—</b>
+                    </span>
+                  </div>
+                </div>
+                <div class="sal-grupo" style="display:flex;flex-direction:column;gap:6px">
+                  <span class="sal-label" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Remuneração Total Mensal</span>
+                  <div class="sal-linha" style="display:flex;gap:6px;flex-wrap:wrap">
+                    <span class="sal-tag min" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--text-muted)">
+                      <span>Mín</span><b id="rem-total-min" style="color:var(--text);font-size:12px">—</b>
+                    </span>
+                    <span class="sal-tag med" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--text-muted)">
+                      <span>Mediana</span><b id="rem-total-med" style="color:var(--text);font-size:12px">—</b>
+                    </span>
+                    <span class="sal-tag max" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);color:var(--text-muted)">
+                      <span>Máx</span><b id="rem-total-max" style="color:var(--text);font-size:12px">—</b>
+                    </span>
+                  </div>
+                </div>
+                <div class="sal-grupo" style="display:flex;flex-direction:column;gap:6px">
+                  <span class="sal-label" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Remuneração Total Anual</span>
+                  <div class="sal-linha" style="display:flex;gap:6px;flex-wrap:wrap">
+                    <span class="sal-tag min" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--text-muted)">
+                      <span>Mín</span><b id="rem-anual-min" style="color:var(--text);font-size:12px">—</b>
+                    </span>
+                    <span class="sal-tag med" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--text-muted)">
+                      <span>Mediana</span><b id="rem-anual-med" style="color:var(--text);font-size:12px">—</b>
+                    </span>
+                    <span class="sal-tag max" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);color:var(--text-muted)">
+                      <span>Máx</span><b id="rem-anual-max" style="color:var(--text);font-size:12px">—</b>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div id="resultado-gen" class="resultado_content" style="display:block"></div>
             <div id="resultado-det" class="resultado_content" style="display:none"></div>
           </div>

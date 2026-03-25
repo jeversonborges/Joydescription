@@ -59,6 +59,7 @@ let abaAtiva           = "descricao"
 let usuarioAtual       = null
 let empresaAtual       = null
 let usuariosData       = []
+let dadosSalariaisAtuais = null
 
 // ── Referências DOM ────────────────────────────────────────────
 const cargoInput  = document.getElementById("cargoInput")
@@ -1119,7 +1120,9 @@ async function gerarDescricao() {
   setIAStatus("busy")
   textoGerado = textoGen = textoDet = ""
   analiseAtual = null
+  dadosSalariaisAtuais = null
   document.getElementById("analise-badge").style.display = "none"
+  document.getElementById("salarios-wrap").style.display = "none"
   btnGerar.disabled = true
   cboBadge.style.display = "none"
   loadingEl.style.display = "flex"
@@ -1180,6 +1183,11 @@ async function gerarDescricao() {
         if (data.tipo === "failover") {
           setProvedor(data.para, true)
           showToast("Groq indisponível — usando Ollama como fallback", "info")
+          continue
+        }
+
+        if (data.tipo === "salarios") {
+          if (data.dados) exibirDadosSalariais(data.dados)
           continue
         }
 
@@ -1872,7 +1880,7 @@ function exportarPDF() {
   window.open(url, "_blank")
 }
 
-function renderizarListaCargos() {
+async function renderizarListaCargos() {
   const ul = document.getElementById("cargos-list")
   ul.innerHTML = ""
   if (!cargosData.length) {
@@ -1883,6 +1891,22 @@ function renderizarListaCargos() {
     const li = document.createElement("li")
     li.className = cargoEditando === c.id ? "selected" : ""
     const data = new Date(c.criadoEm).toLocaleDateString("pt-BR")
+    let salarioHTML = ""
+
+    // Buscar dados salariais para adicionar badge
+    fetch(`/salarios?cargo=${encodeURIComponent(c.cargo)}&area=${encodeURIComponent(c.area)}&nivel=${encodeURIComponent(c.nivel)}`)
+      .then(r => r.json())
+      .then(salarios => {
+        if (salarios && salarios.rem_total_med) {
+          const fmt = salarios.rem_total_med.toLocaleString("pt-BR", { maximumFractionDigits: 0 })
+          const badge = document.createElement("span")
+          badge.style.cssText = "font-size:11px;margin-left:auto;background:var(--accent);color:white;padding:4px 8px;border-radius:12px;white-space:nowrap"
+          badge.textContent = `R$ ${fmt}`
+          li.appendChild(badge)
+        }
+      })
+      .catch(() => {})
+
     li.innerHTML = `
       <span class="cargo-titulo">${c.cargo}</span>
       <span class="cargo-meta">${c.area} · ${c.nivel} · ${data}</span>
@@ -1892,7 +1916,7 @@ function renderizarListaCargos() {
   })
 }
 
-function abrirEdicaoCargo(id) {
+async function abrirEdicaoCargo(id) {
   const c = cargosData.find(x => x.id === id)
   if (!c) return
 
@@ -1906,6 +1930,15 @@ function abrirEdicaoCargo(id) {
   document.getElementById("cargo-area").value  = c.area
   document.getElementById("cargo-nivel").value = c.nivel
   document.getElementById("cargo-texto").value = stripMarkdown(c.texto)
+
+  // Buscar e exibir dados salariais do cargo
+  try {
+    const res = await fetch(`/salarios?cargo=${encodeURIComponent(c.cargo)}&area=${encodeURIComponent(c.area)}&nivel=${encodeURIComponent(c.nivel)}`)
+    const salarios = await res.json()
+    if (salarios) exibirDadosSalariais(salarios)
+  } catch (e) {
+    console.error("Erro ao buscar salários:", e)
+  }
 
   renderizarListaCargos()
 }
@@ -1961,6 +1994,31 @@ function cancelarCargo() {
 }
 
 let secaoVisivelAtual = "gen"
+
+function exibirDadosSalariais(dados) {
+  if (!dados) {
+    document.getElementById("salarios-wrap").style.display = "none"
+    return
+  }
+
+  const fmt = v => {
+    if (!v || typeof v !== "number") return "—"
+    return "R$ " + v.toLocaleString("pt-BR", { maximumFractionDigits: 0 })
+  }
+
+  document.getElementById("sal-min").textContent = fmt(dados.sal_min)
+  document.getElementById("sal-med").textContent = fmt(dados.sal_med)
+  document.getElementById("sal-max").textContent = fmt(dados.sal_max)
+  document.getElementById("rem-total-min").textContent = fmt(dados.rem_total_min)
+  document.getElementById("rem-total-med").textContent = fmt(dados.rem_total_med)
+  document.getElementById("rem-total-max").textContent = fmt(dados.rem_total_max)
+  document.getElementById("rem-anual-min").textContent = fmt(dados.rem_anual_min)
+  document.getElementById("rem-anual-med").textContent = fmt(dados.rem_anual_med)
+  document.getElementById("rem-anual-max").textContent = fmt(dados.rem_anual_max)
+
+  document.getElementById("salarios-wrap").style.display = "block"
+  dadosSalariaisAtuais = dados
+}
 
 function verSecao(qual) {
   secaoVisivelAtual = qual

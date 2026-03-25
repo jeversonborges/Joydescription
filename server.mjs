@@ -157,6 +157,28 @@ db.exec(`
     hash_prev  TEXT NOT NULL DEFAULT '',
     criado_em  TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS salarios_cargo (
+    id             TEXT PRIMARY KEY,
+    cargo_id       TEXT,
+    cargo          TEXT NOT NULL,
+    area           TEXT NOT NULL,
+    nivel          TEXT NOT NULL,
+    empresa_id     TEXT NOT NULL DEFAULT 'default',
+    setor          TEXT NOT NULL DEFAULT 'sucroenergético',
+    regiao         TEXT NOT NULL DEFAULT 'Centro-Oeste',
+    sal_min        REAL,
+    sal_med        REAL,
+    sal_max        REAL,
+    rem_total_min  REAL,
+    rem_total_med  REAL,
+    rem_total_max  REAL,
+    rem_anual_min  REAL,
+    rem_anual_med  REAL,
+    rem_anual_max  REAL,
+    data_ref       TEXT NOT NULL,
+    criado_em      TEXT NOT NULL
+  );
 `)
 
 // ── Migrações de multi-tenant: adiciona empresa_id às tabelas existentes ──
@@ -1325,6 +1347,49 @@ app.get("/versoes/:cargo_id/:versao_id/texto", (req, res) => {
   res.json(row)
 })
 
+// ═══════════════════════════════════════════════════════════════
+//  ROTA — SALÁRIOS
+// ═══════════════════════════════════════════════════════════════
+
+app.get("/salarios", (req, res) => {
+  const { cargo, area, nivel } = req.query
+  if (!cargo || !area || !nivel)
+    return res.status(400).json({ erro: "Parâmetros obrigatórios: cargo, area, nivel" })
+
+  const row = db.prepare(
+    `SELECT * FROM salarios_cargo
+     WHERE cargo = ? AND area = ? AND nivel = ? AND empresa_id = ?
+     ORDER BY criado_em DESC LIMIT 1`
+  ).get(cargo, area, nivel, req.empresaId)
+
+  res.json(row || null)
+})
+
+app.post("/salarios", (req, res) => {
+  const { cargo, area, nivel, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, rem_anual_min, rem_anual_med, rem_anual_max, cargo_id } = req.body
+
+  if (!cargo?.trim() || !area?.trim() || !nivel?.trim())
+    return res.status(400).json({ erro: "Campos obrigatórios: cargo, area, nivel" })
+
+  const id = randomBytes(16).toString("hex")
+  const agora = new Date().toISOString()
+  const dataRef = agora.substring(0, 7)
+
+  try {
+    db.prepare(`
+      INSERT INTO salarios_cargo
+      (id, cargo_id, cargo, area, nivel, empresa_id, setor, regiao, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, rem_anual_min, rem_anual_med, rem_anual_max, data_ref, criado_em)
+      VALUES (?, ?, ?, ?, ?, ?, 'sucroenergético', 'Centro-Oeste', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, cargo_id||null, cargo, area, nivel, req.empresaId, sal_min||null, sal_med||null, sal_max||null, rem_total_min||null, rem_total_med||null, rem_total_max||null, rem_anual_min||null, rem_anual_med||null, rem_anual_max||null, dataRef, agora)
+
+    auditReq(req, "salarios.criar", `${cargo} (${area}/${nivel})`)
+    res.json({ ok: true, id })
+  } catch (e) {
+    console.error("Erro ao salvar salários:", e.message)
+    res.status(500).json({ erro: "Erro ao salvar dados salariais" })
+  }
+})
+
 
 // ═══════════════════════════════════════════════════════════════
 //  ROTA — EXPORTAR (bundle assinado com hash manifesto)
@@ -2102,6 +2167,79 @@ Escreva apenas o conteúdo do documento, começando pelo primeiro título.`
     for await (const chunk of streamDet) {
       const delta = chunk.choices[0]?.delta?.content ?? ""
       if (delta) res.write(`data: ${JSON.stringify({ texto: delta })}\n\n`)
+    }
+
+    // ── Gerar dados salariais com IA ──────────────────────────────
+    try {
+      pensar(`Estimando faixa salarial para o cargo no setor sucroenergético...`)
+
+      const promptSalarios = `Você é especialista em remuneração do setor sucroenergético brasileiro, região Centro-Oeste.
+
+Cargo: ${cargo}
+Área: ${area}
+Nível: ${nivel}
+
+Forneça estimativas salariais para este cargo em 2026. Responda SOMENTE com JSON válido, sem texto extra:
+{"sal_min":0,"sal_med":0,"sal_max":0,"rem_total_min":0,"rem_total_med":0,"rem_total_max":0,"rem_anual_min":0,"rem_anual_med":0,"rem_anual_max":0}`
+
+      const streamSalarios = await criarStream({
+        stream: false,
+        temperature: 0.2,
+        max_tokens: 200,
+        messages: [
+          { role: "system", content: "Responda APENAS com JSON válido. Nenhum texto adicional." },
+          { role: "user", content: promptSalarios }
+        ]
+      })
+
+      const textSalarios = streamSalarios.choices[0]?.message?.content ?? "{}"
+      let dadosSalarios = {}
+
+      try {
+        const jsonMatch = textSalarios.match(/\{[^{}]*\}/)
+        dadosSalarios = jsonMatch ? JSON.parse(jsonMatch[0]) : {}
+      } catch (parseErr) {
+        console.warn("Aviso: Não foi possível fazer parse do JSON de salários:", textSalarios.substring(0, 100))
+      }
+
+      // Validar que os valores são numéricos
+      const validar = v => typeof v === "number" && v > 0 ? v : null
+      const salariesData = {
+        sal_min: validar(dadosSalarios.sal_min),
+        sal_med: validar(dadosSalarios.sal_med),
+        sal_max: validar(dadosSalarios.sal_max),
+        rem_total_min: validar(dadosSalarios.rem_total_min),
+        rem_total_med: validar(dadosSalarios.rem_total_med),
+        rem_total_max: validar(dadosSalarios.rem_total_max),
+        rem_anual_min: validar(dadosSalarios.rem_anual_min),
+        rem_anual_med: validar(dadosSalarios.rem_anual_med),
+        rem_anual_max: validar(dadosSalarios.rem_anual_max)
+      }
+
+      // Emitir dados salariais
+      res.write(`data: ${JSON.stringify({ tipo: "salarios", dados: salariesData })}\n\n`)
+
+      // Salvar no banco de dados
+      if (Object.values(salariesData).some(v => v !== null)) {
+        const salarioId = randomBytes(16).toString("hex")
+        const agora = new Date().toISOString()
+        const dataRef = agora.substring(0, 7)
+
+        try {
+          db.prepare(`
+            INSERT INTO salarios_cargo
+            (id, cargo, area, nivel, empresa_id, setor, regiao, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, rem_anual_min, rem_anual_med, rem_anual_max, data_ref, criado_em)
+            VALUES (?, ?, ?, ?, ?, 'sucroenergético', 'Centro-Oeste', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(salarioId, cargo, area, nivel, req.empresaId, salariesData.sal_min, salariesData.sal_med, salariesData.sal_max, salariesData.rem_total_min, salariesData.rem_total_med, salariesData.rem_total_max, salariesData.rem_anual_min, salariesData.rem_anual_med, salariesData.rem_anual_max, dataRef, agora)
+
+          console.log(`✅ Dados salariais salvos para ${cargo} (${area}/${nivel})`)
+        } catch (dbErr) {
+          console.error("Erro ao salvar dados salariais:", dbErr.message)
+        }
+      }
+    } catch (salErr) {
+      console.error("Erro ao gerar dados salariais:", salErr.message)
+      res.write(`data: ${JSON.stringify({ tipo: "salarios", dados: null })}\n\n`)
     }
 
     res.write(`data: ${JSON.stringify({ fim: true })}\n\n`)
