@@ -6,6 +6,7 @@ primary_region = "gru"
 [env]
   PORT = "3000"
   OLLAMA_URL = ""
+  JOY_DB_PATH = "/data/joydescription.db"
 
 [http_service]
   internal_port = 3000
