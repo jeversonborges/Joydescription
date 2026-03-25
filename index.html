@@ -259,13 +259,9 @@
       </button>
       <div class="tb-spacer"></div>
       <div class="provedor-selector" id="provedor-selector">
-        <button class="prov-btn prov-btn-ollama" id="prov-ollama" onclick="setProvedor('ollama')" title="Ollama — processamento local">
-          <i class="uil uil-processor"></i>
-          <span>Ollama</span>
-        </button>
-        <button class="prov-btn prov-btn-groq active" id="prov-groq" onclick="setProvedor('groq')" title="Groq — processamento em nuvem">
+        <button class="prov-btn prov-btn-groq active" id="prov-groq" title="Groq — processamento em nuvem (Together AI como fallback automático)">
           <i class="uil uil-cloud"></i>
-          <span>Groq</span>
+          <span id="prov-label">Groq</span>
         </button>
       </div>
     </div>
@@ -344,8 +340,8 @@
                 <i class="uil uil-processor" id="ia-card-ico"></i>
               </div>
               <div class="ia-card-body">
-                <div class="ia-card-name" id="ia-card-name">Ollama · qwen2.5</div>
-                <div class="ia-card-desc" id="ia-card-desc">Local · privacidade total · sem internet</div>
+                <div class="ia-card-name" id="ia-card-name">Groq · llama-3.3-70b</div>
+                <div class="ia-card-desc" id="ia-card-desc">Nuvem · 70B parâmetros · ~500 tok/s</div>
               </div>
             </div>
             <div class="ia-card-status" id="ia-card-status">
@@ -757,7 +753,7 @@
                   </label>
                 </div>
                 <div class="field">
-                  <label>Descrição curta — para modelo Ollama</label>
+                  <label>Descrição curta</label>
                   <input type="text" id="nivel-curto" class="field-input" placeholder="Ex: responsável pela área, chefe dos coordenadores" style="padding-left:10px">
                 </div>
                 <div class="field" style="flex:1">
@@ -847,7 +843,7 @@
       <span class="asb-sep">|</span>
       <span class="asb-item">Base CBO 2002 · 11.097 ocupações</span>
       <span class="asb-sep">|</span>
-      <span class="asb-item"><i class="uil uil-processor"></i> Ollama · qwen2.5</span>
+      <span class="asb-item"><i class="uil uil-cloud"></i> Groq · llama-3.3-70b</span>
       <div class="asb-right">
         <span class="asb-live-dot"></span>
         <span class="asb-item">Pronto</span>

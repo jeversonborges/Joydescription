@@ -2,6 +2,7 @@ node_modules/
 dist-electron/
 .env
 *.log
+joydescription.db
 joydescription.db-shm
 joydescription.db-wal
 areas.json
