@@ -1782,11 +1782,14 @@ app.get("/exportar/salarios-pdf", (req, res) => {
 
   const fmt = v => v ? "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 0 }) : "—"
 
-  const linhasHtml = pesquisas.map((p, i) => `
+  const linhasHtml = pesquisas.map((p, i) => {
+    const fonteBadge = !p.fonte_tipo || p.fonte_tipo === 'manual' ? '📋' : '🤖'
+    return `
     <tr style="${i % 2 === 0 ? 'background:#f8fafc' : 'background:#fff'}">
       <td style="font-weight:600">${p.cargo}</td>
       <td>${p.area}</td>
       <td><span class="nivel-pill">${p.nivel}</span></td>
+      <td class="fonte-badge" title="${p.fonte_tipo || 'manual'}">${fonteBadge}</td>
       <td class="num">${fmt(p.sal_min)}</td>
       <td class="num med">${fmt(p.sal_med)}</td>
       <td class="num">${fmt(p.sal_max)}</td>
@@ -1795,7 +1798,7 @@ app.get("/exportar/salarios-pdf", (req, res) => {
       <td class="num">${fmt(p.rem_total_max)}</td>
       <td class="obs">${p.observacoes || "—"}</td>
     </tr>
-  `).join("")
+  `}).join("")
 
   // Agrupar por área para resumo
   const porArea = {}
@@ -1843,6 +1846,8 @@ app.get("/exportar/salarios-pdf", (req, res) => {
   .metodologia-text { font-size: 9.5px; color: #475569; line-height: 1.6; }
   .metodologia-text strong { color: #1e293b; }
 
+  .fonte-badge { font-size: 10px; text-align: center; color: #64748b; }
+
   .fontes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
   .fonte-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; }
   .fonte-nome { font-size: 10px; font-weight: 700; color: #1e293b; }
@@ -1885,45 +1890,55 @@ app.get("/exportar/salarios-pdf", (req, res) => {
 </div>
 
 <div class="metodologia-box">
-  <div class="metodologia-title">Metodologia e Fontes</div>
+  <div class="metodologia-title">Metodologia, Fontes e Cálculos</div>
   <div class="metodologia-text">
-    Os valores apresentados neste relatorio foram obtidos por meio de consulta as seguintes fontes de dados salariais,
-    com aplicacao de fator de ajuste regional para o Sul Goiano (Tier 3 — defasagem de 12% a 25% em relacao ao Interior de SP).
-    A metodologia consiste na media ponderada entre as fontes primarias (50% cada), com ajuste regional aplicado conforme
-    nivel hierarquico do cargo.
+    <strong>Origem dos dados:</strong> Média ponderada de três fontes primárias: CAGED/MTE (60% — dados oficiais CLT),
+    Dissídio.com.br (25% — pisos sindicais), Glassdoor Brasil (15% — autodeclarado).<br><br>
+    <strong>Fórmulas de cálculo:</strong><br>
+    • Salário base PLENO = CAGED×0.60 + Dissídio×0.25 + Glassdoor×0.15<br>
+    • Salário por nível = Base PLENO × fator (Estágio 0.35 ... Diretor 3.50)<br>
+    • Faixas mínima/máxima = ±18% da mediana (quando não fornecido)<br>
+    • Remuneração total = Salário base × 1.15 (VT, VR, convênio)<br><br>
+    <strong>Ajuste regional:</strong> Defasagem de 12–25% aplicada para Sul Goiano (Quirinópolis, Jataí, Rio Verde) vs Interior de São Paulo,
+    baseada em metodologia CEPEA/USP 2024–2025.
   </div>
 
   <div class="fontes-grid">
     <div class="fonte-card">
-      <div class="fonte-nome">Glassdoor Brasil</div>
-      <div class="fonte-desc">Salarios reais informados por profissionais. Peso: 50%</div>
-      <div class="fonte-url">glassdoor.com.br</div>
-    </div>
-    <div class="fonte-card">
-      <div class="fonte-nome">Dissidio.com.br</div>
-      <div class="fonte-desc">Dissidios coletivos, acordos sindicais e reajustes. Peso: 50%</div>
-      <div class="fonte-url">dissidio.com.br/salario</div>
-    </div>
-    <div class="fonte-card">
-      <div class="fonte-nome">CAGED / MTE</div>
-      <div class="fonte-desc">Cadastro Geral de Empregados e Desempregados. Referencia cruzada.</div>
+      <div class="fonte-nome">CAGED / MTE (60%)</div>
+      <div class="fonte-desc">Dados oficiais do Ministério do Trabalho de admissões/demissões CLT.</div>
       <div class="fonte-url">pdet.mte.gov.br</div>
     </div>
     <div class="fonte-card">
-      <div class="fonte-nome">Portal Salario</div>
-      <div class="fonte-desc">Pesquisa salarial aberta com dados do setor sucroenergetico.</div>
-      <div class="fonte-url">salario.com.br</div>
+      <div class="fonte-nome">Dissídio.com.br (25%)</div>
+      <div class="fonte-desc">Pisos sindicais, acordos coletivos e reajustes do setor sucroenergetico.</div>
+      <div class="fonte-url">dissidio.com.br</div>
     </div>
     <div class="fonte-card">
-      <div class="fonte-nome">CEPEA / Esalq</div>
-      <div class="fonte-desc">Centro de Pesquisas Economicas — dados do agronegocio.</div>
-      <div class="fonte-url">cepea.esalq.usp.br</div>
+      <div class="fonte-nome">Glassdoor Brasil (15%)</div>
+      <div class="fonte-desc">Salários autodeclarados por profissionais. Complementa fontes oficiais.</div>
+      <div class="fonte-url">glassdoor.com.br</div>
     </div>
     <div class="fonte-card">
       <div class="fonte-nome">Ajuste Regional</div>
-      <div class="fonte-desc">Fator de correcao Sul Goiano vs Interior SP: x0.75 a x0.90 conforme nivel.</div>
-      <div class="fonte-url">Relatorio interno de defasagem</div>
+      <div class="fonte-desc">Fator de defasagem Sul Goiano baseado em CEPEA/Esalq.</div>
+      <div class="fonte-url">cepea.esalq.usp.br</div>
     </div>
+    <div class="fonte-card">
+      <div class="fonte-nome">Rastreabilidade IA</div>
+      <div class="fonte-desc">Pesquisas via IA incluem prompt e resposta bruta para auditoria completa.</div>
+      <div class="fonte-url">AUDITORIA.md</div>
+    </div>
+    <div class="fonte-card">
+      <div class="fonte-nome">Tipo de Origem</div>
+      <div class="fonte-desc">📋 Manual | 🤖 IA (Groq/Together). Ver coluna Fonte nos dados.</div>
+      <div class="fonte-url">/pesquisas-salariais/:id/auditoria</div>
+    </div>
+  </div>
+
+  <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:6px;padding:10px;margin-top:12px;font-size:8.5px;color:#78350f;line-height:1.5">
+    <strong>⚠️ AVISO IMPORTANTE:</strong> Dados contêm estimativas via IA e <strong>NÃO são adequados para decisões legais/judiciais sem verificação independente</strong>.
+    Destina-se à orientação interna de RH e comparativo preliminar. Consulte AUDITORIA.md para conformidade formal e assinatura técnica.
   </div>
 </div>
 
@@ -1937,12 +1952,13 @@ app.get("/exportar/salarios-pdf", (req, res) => {
       <th>Cargo</th>
       <th>Area</th>
       <th>Nivel</th>
+      <th>Fonte</th>
       <th colspan="3" style="text-align:center">Salario Base (R$)</th>
       <th colspan="3" style="text-align:center">Remuneracao Total (R$)</th>
       <th>Obs.</th>
     </tr>
     <tr>
-      <th></th><th></th><th></th>
+      <th></th><th></th><th></th><th></th>
       <th style="font-weight:400;font-size:7.5px">Min</th>
       <th style="font-weight:400;font-size:7.5px">Med</th>
       <th style="font-weight:400;font-size:7.5px">Max</th>
