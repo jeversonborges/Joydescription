@@ -576,14 +576,14 @@ FRONTEIRA LEGAL:
 VERBOS PERMITIDOS: definir padrões técnicos, auditar, certificar, assessorar, conduzir pesquisas, implementar metodologias, emitir pareceres técnicos, validar projetos, estabelecer requisitos técnicos, representar a empresa em fóruns especializados.`,
 
   "Gestor":
-`PERFIL: Liderança sênior de área — nível acima do Gerente, abaixo do Superintendente. Nas usinas sucroenergéticas do Sul Goiano, o Gestor é o responsável máximo operacional de uma área quando não há Superintendente ou Diretor presente. Em áreas sem Gerente, o Gestor exerce também as funções gerenciais. Cargo de confiança pleno (CLT art. 62, II) com amplo poder decisório.
+`PERFIL: Liderança de área — nível abaixo do Gerente. Nas usinas sucroenergéticas do Sul Goiano, o Gestor é o responsável exclusivo de uma área quando essa área não possui Gerente. Lidera coordenadores e equipes operacionais, respondendo diretamente ao Gerente da unidade ou ao Superintendente. Cargo de confiança (CLT art. 62, II).
 
 OBRIGAÇÕES LEGAIS DO CARGO:
-- As FUNCOES DEVEM conter gestão estratégica da área e decisões de alto impacto operacional
-- Deve exercer poder decisório real e autônomo — sem isso, enquadramento pode ser contestado em reclamatória
+- As FUNCOES DEVEM conter gestão de pessoas e resultados operacionais da área
+- Deve exercer poder decisório real no nível operacional — sem isso, enquadramento pode ser contestado em reclamatória
 
-FUNCOES OBRIGATÓRIAS: definir a estratégia operacional da área alinhada à superintendência/diretoria, liderar gerentes e coordenadores da área (quando existentes), gerir orçamento integral da área e responder pelos resultados perante a superintendência, tomar decisões de contratação e desligamento dentro da área, garantir conformidade com normas regulatórias e políticas da empresa, representar a área em instâncias internas e externas.
-PODE TAMBÉM: aprovar investimentos dentro da alçada da área, representar a empresa em negociações operacionais de médio e alto impacto, homologar políticas e procedimentos da área.`,
+FUNCOES OBRIGATÓRIAS: coordenar e liderar a equipe operacional da área, definir metas e acompanhar indicadores, reportar resultados ao Gerente ou Superintendente, garantir cumprimento de normas e procedimentos, gerir recursos e materiais da área, participar de processos seletivos da equipe.
+PODE TAMBÉM: aprovar requisições operacionais dentro da alçada definida, representar a área em reuniões interdepartamentais, propor melhorias de processo ao Gerente.`,
 
   "Coordenador":
 `PERFIL: Primeiro nível de liderança formal com subordinados diretos. Responde pelos resultados operacionais da equipe perante a gerência. Tem poder disciplinar dentro das políticas da empresa. Enquadra-se como CARGO DE CONFIANÇA (CLT art. 62, II) — diferenciado por padrão salarial superior e fidúcia do empregador.
@@ -650,7 +650,7 @@ const NIVEL_CURTO = {
   "Senior":       "6+ anos, define padrões técnicos, referência máxima da área, lidera projetos técnicos",
   "Especialista": "domínio profundo de especialidade, ponto focal consultivo, sem subordinados",
   "Coordenador":  "primeiro nível de liderança formal — DEVE ter funções de gestão de equipe",
-  "Gestor":       "liderança sênior de área — acima do Gerente, abaixo do Superintendente, DEVE ter autonomia decisória e gestão de gerentes/coordenadores",
+  "Gestor":       "liderança de área — abaixo do Gerente, responsável exclusivo quando não há Gerente na área, DEVE ter gestão de equipe e resultados operacionais",
   "Gerente":      "liderança de área com orçamento e decisão de pessoas",
   "Diretor":      "liderança executiva, estratégia, decisões de alto impacto",
 }
@@ -706,12 +706,12 @@ function seedNiveis(empresaId) {
     console.log("✅ Nível Superintendente adicionado")
   }
 
-  // Garante ordem correta: Gerente=7, Gestor=8, Superintendente=9, Diretor=10
-  db.prepare("UPDATE niveis SET ordem = 7 WHERE label = 'Gerente' AND empresa_id = 'default'").run()
-  db.prepare("UPDATE niveis SET ordem = 8 WHERE label = 'Gestor' AND empresa_id = 'default'").run()
+  // Garante ordem correta Goiasa: Gestor=7, Gerente=8, Superintendente=9, Diretor=10
+  db.prepare("UPDATE niveis SET ordem = 7 WHERE label = 'Gestor' AND empresa_id = 'default'").run()
+  db.prepare("UPDATE niveis SET ordem = 8 WHERE label = 'Gerente' AND empresa_id = 'default'").run()
   db.prepare("UPDATE niveis SET ordem = 9 WHERE label = 'Superintendente' AND empresa_id = 'default'").run()
   db.prepare("UPDATE niveis SET ordem = 10 WHERE label = 'Diretor' AND empresa_id = 'default'").run()
-  console.log("✅ Hierarquia de níveis reordenada: Gerente < Gestor < Superintendente < Diretor")
+  console.log("✅ Hierarquia reordenada: Gestor < Gerente < Superintendente < Diretor")
 })()
 
 // Prompt ultra-enxuto para Ollama — modelos pequenos perdem o fio em prompts longos
@@ -2420,16 +2420,16 @@ app.post("/gerar-pesquisa-salarial", async (req, res) => {
 
     // Fator multiplicador por nível — base = Pleno (1.0)
     const FATORES_NIVEL = {
-      "Trainee":       0.60,
-      "Junior":        0.80,
-      "Pleno":         1.00,
-      "Senior":        1.25,
-      "Especialista":  1.40,
-      "Coordenador":   1.55,
-      "Gerente":       1.80,
-      "Gestor":        2.10,
+      "Trainee":         0.60,
+      "Junior":          0.80,
+      "Pleno":           1.00,
+      "Senior":          1.25,
+      "Especialista":    1.40,
+      "Coordenador":     1.55,
+      "Gestor":          1.70,
+      "Gerente":         2.10,
       "Superintendente": 2.70,
-      "Diretor":       3.50
+      "Diretor":         3.50
     }
     const fatorNivel = FATORES_NIVEL[nivelFinal] || 1.0
 
