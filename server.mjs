@@ -2211,14 +2211,13 @@ app.post("/gerar", async (req, res) => {
       if (!salarioRef) {
         pensar(`Gerando estimativa com base em tendências de mercado...`)
 
-        const promptSalarios = `CONTEXTO: Salário em USINAS DE CANA-DE-AÇÚCAR em Goiás/Centro-Oeste (NOT São Paulo, NOT governo, NOT indústria geral).
-Usinas pagam MENOS que média nacional de indústria.
+        const promptSalarios = `CONTEXTO: Salário em USINAS DE CANA-DE-AÇÚCAR em Goiás/Centro-Oeste (interior, não São Paulo ou centros urbanos).
 
 Cargo: ${cargo} | Área: ${area} | Nível: ${nivel}
 
-Busque especificamente em Glassdoor + Salário.com.br o intervalo MÍNIMO (piso real das usinas), MEDIANA e MÁXIMO para esse cargo em usinas de cana no Centro-Oeste.
-Use valores 10-15% ABAIXO da média geral se necessário para refletir a realidade das usinas interiores.
-SEM inflação. JSON:
+Busque especificamente em Glassdoor + Salário.com.br os valores reais para esse cargo em usinas de cana no Centro-Oeste.
+Retorne MÍNIMO, MEDIANA e MÁXIMO das pesquisas diretas — sem inflação de mercado geral.
+JSON:
 {"sal_min":0,"sal_med":0,"sal_max":0}`
 
         const streamSalarios = await criarStream({
