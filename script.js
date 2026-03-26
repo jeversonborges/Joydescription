@@ -2168,7 +2168,7 @@ async function gerarDescricaoAreaIA(btnElement) {
 
   const textOriginal = btnElement.innerHTML
   btnElement.disabled = true
-  btnElement.innerHTML = "<span style=\"font-size:14px\">⏳</span> Gerando..."
+  btnElement.innerHTML = "<i class=\"uil uil-processor\" style=\"animation:spin 1s linear infinite\"></i>"
 
   try {
     const res = await fetch("/gerar-descricao-area", {

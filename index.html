@@ -628,12 +628,7 @@
                   <input type="text" id="area-label" class="field-input" placeholder="Ex: Manutenção Industrial" style="padding-left:10px">
                 </div>
                 <div class="field" style="flex:1">
-                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-                    <label style="margin:0">Descrição do setor (contexto operacional)</label>
-                    <button type="button" id="btn-gerar-descricao" onclick="gerarDescricaoAreaIA(this)" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg-hover);color:var(--text-muted);cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;transition:all 0.2s" title="Gerar descrição com IA">
-                      <span style="font-size:14px">🤖</span> Gerar com IA
-                    </button>
-                  </div>
+                  <label>Descrição do setor (contexto operacional)</label>
                   <div class="format-toolbar" data-target="area-universo">
                     <button class="ft-btn ft-bold"   onclick="wrapTexto('area-universo','**')"     title="Negrito"><b>B</b></button>
                     <button class="ft-btn ft-italic" onclick="wrapTexto('area-universo','_')"      title="Itálico"><i>I</i></button>
@@ -650,6 +645,8 @@
                     <div class="ft-sep"></div>
                     <button class="ft-btn ft-copy"  onclick="copiarTextarea('area-universo')"   title="Copiar texto"><i class="uil uil-copy"></i></button>
                     <button class="ft-btn ft-clear" onclick="limparFormatacao('area-universo')" title="Limpar formatação">✕</button>
+                    <div class="ft-sep"></div>
+                    <button class="ft-btn" id="btn-gerar-descricao" onclick="gerarDescricaoAreaIA(this)" title="Gerar descrição com IA" style="color:var(--accent)"><i class="uil uil-processor"></i></button>
                   </div>
                   <textarea id="area-universo" class="field-input area-textarea" placeholder="Descreva o setor: o que faz, processos, sistemas, perfil dos profissionais..."></textarea>
                 </div>
