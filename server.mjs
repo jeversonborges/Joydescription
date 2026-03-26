@@ -189,6 +189,25 @@ db.exec(`
     data_ref       TEXT NOT NULL,
     criado_em      TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS pesquisas_salariais (
+    id             TEXT PRIMARY KEY,
+    cargo          TEXT NOT NULL,
+    area           TEXT NOT NULL,
+    nivel          TEXT NOT NULL,
+    empresa_id     TEXT NOT NULL DEFAULT 'default',
+    setor          TEXT NOT NULL DEFAULT 'sucroenergético',
+    regiao         TEXT NOT NULL DEFAULT 'Centro-Oeste',
+    sal_min        REAL,
+    sal_med        REAL,
+    sal_max        REAL,
+    rem_total_min  REAL,
+    rem_total_med  REAL,
+    rem_total_max  REAL,
+    observacoes    TEXT DEFAULT '',
+    criado_em      TEXT NOT NULL,
+    atualizado_em  TEXT NOT NULL
+  );
 `)
 
 // ── Migrações de multi-tenant: adiciona empresa_id às tabelas existentes ──
@@ -1774,6 +1793,112 @@ NÃO use bullet points, NÃO use títulos, NÃO use markdown. Apenas texto corri
   } catch (err) {
     console.error(`❌ Erro ao gerar descrição da área "${nomeArea}":`, err.message)
     return res.status(500).json({ erro: "Erro ao gerar descrição: " + err.message })
+  }
+})
+
+// ═══════════════════════════════════════════════════════════════
+//  ROTAS — PESQUISA SALARIAL
+// ═══════════════════════════════════════════════════════════════
+
+app.get("/pesquisas-salariais", (req, res) => {
+  res.json(db.prepare("SELECT * FROM pesquisas_salariais WHERE empresa_id = ? ORDER BY atualizado_em DESC").all(req.empresaId))
+})
+
+app.post("/pesquisas-salariais", (req, res) => {
+  const { cargo, area, nivel, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, observacoes } = req.body
+  if (!cargo?.trim() || !area?.trim()) return res.status(400).json({ erro: "Cargo e área são obrigatórios." })
+
+  const id = randomBytes(16).toString("hex")
+  const agora = new Date().toISOString()
+
+  try {
+    db.prepare(`
+      INSERT INTO pesquisas_salariais (id, cargo, area, nivel, empresa_id, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, observacoes, criado_em, atualizado_em)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, cargo.trim(), area.trim(), nivel || "Pleno", req.empresaId, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, observacoes || "", agora, agora)
+    auditReq(req, "pesquisa_salarial.criar", `${cargo} (${area}/${nivel})`)
+    res.json({ ok: true, id })
+  } catch (e) {
+    res.status(500).json({ erro: e.message })
+  }
+})
+
+app.put("/pesquisas-salariais/:id", (req, res) => {
+  const { cargo, area, nivel, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, observacoes } = req.body
+  const agora = new Date().toISOString()
+
+  const info = db.prepare(`
+    UPDATE pesquisas_salariais SET cargo=?, area=?, nivel=?, sal_min=?, sal_med=?, sal_max=?, rem_total_min=?, rem_total_med=?, rem_total_max=?, observacoes=?, atualizado_em=?
+    WHERE id = ? AND empresa_id = ?
+  `).run(cargo, area, nivel, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, observacoes || "", agora, req.params.id, req.empresaId)
+
+  if (info.changes === 0) return res.status(404).json({ erro: "Pesquisa não encontrada." })
+  auditReq(req, "pesquisa_salarial.editar", `${cargo} (${area}/${nivel})`)
+  res.json({ ok: true })
+})
+
+app.delete("/pesquisas-salariais/:id", (req, res) => {
+  const info = db.prepare("DELETE FROM pesquisas_salariais WHERE id = ? AND empresa_id = ?").run(req.params.id, req.empresaId)
+  if (info.changes === 0) return res.status(404).json({ erro: "Pesquisa não encontrada." })
+  auditReq(req, "pesquisa_salarial.deletar", req.params.id)
+  res.json({ ok: true })
+})
+
+app.post("/gerar-pesquisa-salarial", async (req, res) => {
+  const { cargo, area, nivel } = req.body
+  if (!cargo?.trim() || !area?.trim()) return res.status(400).json({ erro: "Cargo e área são obrigatórios." })
+  if (!GROQ_KEY && !TOGETHER_KEY) return res.status(500).json({ erro: "Nenhuma API de IA configurada." })
+
+  try {
+    const client = GROQ_KEY ? groqClient : togetherClient
+    const model  = GROQ_KEY ? GROQ_MODEL : TOGETHER_MODEL
+
+    const prompt = `CONTEXTO: Pesquisa salarial para o setor SUCROENERGÉTICO (usinas de cana) em Goiás/Centro-Oeste.
+
+Cargo: ${cargo.trim()} | Área: ${area.trim()} | Nível: ${nivel || "Pleno"}
+
+Busque em Glassdoor Brasil + Dissídio.com.br os valores reais para esse cargo em usinas de cana no Centro-Oeste.
+Faça a MÉDIA dos valores encontrados em ambas as fontes (50% Glassdoor + 50% Dissídio).
+NÃO considere hierarquia de cargo — salário é definido por ÁREA + NÍVEL.
+Retorne MÍNIMO, MEDIANA e MÁXIMO (média das duas fontes).
+JSON:
+{"sal_min":0,"sal_med":0,"sal_max":0}`
+
+    const resultado = await client.chat.completions.create({
+      model, stream: false, temperature: 0.1, max_tokens: 100,
+      messages: [
+        { role: "system", content: "Responda APENAS com JSON válido numérico." },
+        { role: "user", content: prompt }
+      ]
+    })
+
+    const text = resultado.choices?.[0]?.message?.content || "{}"
+    const jsonMatch = text.match(/\{[\s\S]*\}/)
+    let dados = null
+
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0])
+        if (parsed.sal_med) {
+          const FATOR = 1.15
+          dados = {
+            sal_min: parsed.sal_min ? Math.round(parsed.sal_min) : null,
+            sal_med: Math.round(parsed.sal_med),
+            sal_max: parsed.sal_max ? Math.round(parsed.sal_max) : null,
+            rem_total_min: parsed.sal_min ? Math.round(parsed.sal_min * FATOR) : null,
+            rem_total_med: Math.round(parsed.sal_med * FATOR),
+            rem_total_max: parsed.sal_max ? Math.round(parsed.sal_max * FATOR) : null
+          }
+        }
+      } catch { /* parse error */ }
+    }
+
+    console.log(`✅ Pesquisa salarial: ${cargo} (${area}/${nivel}) → ${dados ? "R$ " + dados.sal_med : "sem dados"}`)
+    return res.json({ dados })
+
+  } catch (err) {
+    console.error("❌ Erro pesquisa salarial:", err.message)
+    return res.status(500).json({ erro: err.message })
   }
 })
 

@@ -369,6 +369,10 @@
             <i class="uil uil-briefcase-alt"></i>
             Gerenciar Cargos
           </div>
+          <div class="tab" id="tab-salarios" onclick="trocarAba('salarios')">
+            <i class="uil uil-chart-line"></i>
+            Pesquisa Salarial
+          </div>
           <div class="tab" id="tab-areas" onclick="trocarAba('areas')">
             <i class="uil uil-layer-group"></i>
             Gerenciar Áreas
@@ -591,6 +595,128 @@
             </div>
           </div>
 
+        </div>
+
+        <!-- ── ABA: PESQUISA SALARIAL ─────────────────────── -->
+        <div id="painel-salarios" class="result-area areas-panel" style="display:none">
+
+          <div class="areas-list-col">
+            <div class="areas-list-header">
+              <span>Pesquisas salariais</span>
+              <button class="btn-nova-area" onclick="novaPesquisaSalarial()">
+                <i class="uil uil-plus"></i> Nova
+              </button>
+            </div>
+            <ul id="salarios-list" class="areas-list salarios-pesquisa-list"></ul>
+          </div>
+
+          <div class="areas-form-col">
+            <div id="salarios-pesq-empty" class="areas-empty">
+              <i class="uil uil-chart-line"></i>
+              <p>Pesquisa Salarial</p>
+              <span>Dados salariais do setor sucroenergético — Glassdoor + Dissídio.com.br</span>
+            </div>
+            <div id="salarios-pesq-form" style="display:none;flex-direction:column;height:100%">
+              <div class="areas-form-header">
+                <div style="display:flex;flex-direction:column;gap:2px">
+                  <span id="salarios-pesq-titulo" style="font-size:13px;font-weight:600;color:var(--text)">Nova Pesquisa</span>
+                  <span id="salarios-pesq-meta" style="font-size:11px;color:var(--text-muted)"></span>
+                </div>
+                <button class="btn-deletar-area" onclick="deletarPesquisaSalarial()" title="Deletar pesquisa">
+                  <i class="uil uil-trash-alt"></i> Deletar
+                </button>
+              </div>
+
+              <div class="areas-fields" style="overflow-y:auto;flex:1;gap:12px">
+                <!-- Cargo / Área / Nível -->
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                  <div class="field">
+                    <label>Cargo</label>
+                    <input type="text" id="pesq-cargo" class="field-input" placeholder="Ex: Mecânico" style="padding-left:10px">
+                  </div>
+                  <div class="field">
+                    <label>Área</label>
+                    <input type="text" id="pesq-area" class="field-input" placeholder="Ex: Manutenção" style="padding-left:10px">
+                  </div>
+                  <div class="field">
+                    <label>Nível</label>
+                    <select id="pesq-nivel" class="field-input" style="padding-left:10px">
+                      <option value="Junior">Júnior</option>
+                      <option value="Pleno" selected>Pleno</option>
+                      <option value="Senior">Sênior</option>
+                      <option value="Coordenador">Coordenador</option>
+                      <option value="Gerente">Gerente</option>
+                      <option value="Especialista">Especialista</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Botão Gerar com IA -->
+                <div style="display:flex;justify-content:center">
+                  <button type="button" id="btn-gerar-pesq-salarial" onclick="gerarPesquisaSalarialIA(this)" style="padding:8px 16px;border:1px solid var(--accent);border-radius:6px;background:var(--accent);color:white;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;font-weight:600">
+                    <i class="uil uil-processor"></i> Pesquisar salários com IA
+                  </button>
+                </div>
+
+                <!-- Salário Base -->
+                <div style="padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg)">
+                  <span style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:8px">💼 Salário Base Mensal</span>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                    <div class="field">
+                      <label style="font-size:10px">Mínimo</label>
+                      <input type="number" id="pesq-sal-min" class="field-input" placeholder="R$" style="padding-left:10px">
+                    </div>
+                    <div class="field">
+                      <label style="font-size:10px">Mediana</label>
+                      <input type="number" id="pesq-sal-med" class="field-input" placeholder="R$" style="padding-left:10px;font-weight:700">
+                    </div>
+                    <div class="field">
+                      <label style="font-size:10px">Máximo</label>
+                      <input type="number" id="pesq-sal-max" class="field-input" placeholder="R$" style="padding-left:10px">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Remuneração Total -->
+                <div style="padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg)">
+                  <span style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:8px">💰 Remuneração Total Mensal</span>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                    <div class="field">
+                      <label style="font-size:10px">Mínimo</label>
+                      <input type="number" id="pesq-rem-min" class="field-input" placeholder="R$" style="padding-left:10px">
+                    </div>
+                    <div class="field">
+                      <label style="font-size:10px">Mediana</label>
+                      <input type="number" id="pesq-rem-med" class="field-input" placeholder="R$" style="padding-left:10px;font-weight:700">
+                    </div>
+                    <div class="field">
+                      <label style="font-size:10px">Máximo</label>
+                      <input type="number" id="pesq-rem-max" class="field-input" placeholder="R$" style="padding-left:10px">
+                    </div>
+                  </div>
+                  <span style="font-size:9px;color:var(--text-muted);margin-top:6px;display:block">*Inclui VT, VR, convênio, PLR</span>
+                </div>
+
+                <!-- Fonte / Observações -->
+                <div class="field">
+                  <label>Observações</label>
+                  <textarea id="pesq-obs" class="field-input" style="min-height:60px;padding:8px 10px" placeholder="Notas sobre a pesquisa, contexto, data da coleta..."></textarea>
+                </div>
+
+                <div style="border-top:1px solid var(--border);padding-top:10px;font-size:10px;color:var(--text-muted);line-height:1.5">
+                  <strong style="color:var(--text)">📊 Fonte de dados:</strong>
+                  <strong>Glassdoor Brasil</strong> (50%) + <strong>Dissídio.com.br</strong> (50%) — Setor sucroenergético, Centro-Oeste.
+                </div>
+              </div>
+
+              <div class="areas-form-actions">
+                <button class="btn-salvar-area" onclick="salvarPesquisaSalarial()">
+                  <i class="uil uil-check"></i> Salvar pesquisa
+                </button>
+                <button class="btn-cancelar-area" onclick="cancelarPesquisaSalarial()">Cancelar</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- ── ABA: GERENCIAR ÁREAS ───────────────────────── -->

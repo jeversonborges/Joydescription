@@ -1487,7 +1487,7 @@ function limparResultado() {
 
 function trocarAba(aba) {
   abaAtiva = aba
-  ;["descricao","cargos","areas","conhecimento","niveis","usuarios"].forEach(id => {
+  ;["descricao","cargos","salarios","areas","conhecimento","niveis","usuarios"].forEach(id => {
     const tabEl    = document.getElementById("tab-"    + id)
     const painelEl = document.getElementById("painel-" + id)
     if (tabEl)    tabEl.classList.toggle("active", aba === id)
@@ -1495,6 +1495,7 @@ function trocarAba(aba) {
   })
   if (aba === "areas")        renderizarListaAreas()
   if (aba === "cargos")       renderizarListaCargos()
+  if (aba === "salarios")     renderizarListaPesquisasSalariais()
   if (aba === "conhecimento") renderizarListaConhecimento()
   if (aba === "niveis")       renderizarListaNiveis()
   if (aba === "usuarios")     carregarUsuarios()
@@ -2071,6 +2072,200 @@ function exportarCargo() {
   showToast("Arquivo exportado.", "success")
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+//  PESQUISA SALARIAL
+// ═══════════════════════════════════════════════════════════════
+
+let pesquisasSalariais = []
+let pesquisaEditando = null
+
+async function carregarPesquisasSalariais() {
+  try {
+    const res = await fetch("/pesquisas-salariais")
+    if (res.ok) pesquisasSalariais = await res.json()
+  } catch { pesquisasSalariais = [] }
+}
+
+function renderizarListaPesquisasSalariais() {
+  carregarPesquisasSalariais().then(() => {
+    const ul = document.getElementById("salarios-list")
+    ul.innerHTML = ""
+    if (pesquisasSalariais.length === 0) {
+      ul.innerHTML = "<li style='color:var(--text-muted);font-size:11px;padding:12px;text-align:center'>Nenhuma pesquisa salva</li>"
+      return
+    }
+    pesquisasSalariais.forEach(p => {
+      const li = document.createElement("li")
+      li.className = pesquisaEditando === p.id ? "selected" : ""
+      li.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-weight:600;font-size:12px">${p.cargo}</span>
+          <span style="font-size:10px;color:var(--text-muted)">${p.area} · ${p.nivel} · R$ ${Number(p.sal_med||0).toLocaleString('pt-BR')}</span>
+        </div>`
+      li.onclick = () => abrirPesquisaSalarial(p.id)
+      ul.appendChild(li)
+    })
+  })
+}
+
+function abrirPesquisaSalarial(id) {
+  const p = pesquisasSalariais.find(x => x.id === id)
+  if (!p) return
+
+  pesquisaEditando = id
+  document.getElementById("salarios-pesq-empty").style.display = "none"
+  document.getElementById("salarios-pesq-form").style.display  = "flex"
+  document.getElementById("salarios-pesq-titulo").textContent  = `${p.cargo} — ${p.area}`
+  document.getElementById("salarios-pesq-meta").textContent    = `${p.nivel} · Atualizado em ${p.criado_em?.slice(0,10) || '—'}`
+
+  document.getElementById("pesq-cargo").value   = p.cargo || ""
+  document.getElementById("pesq-area").value    = p.area || ""
+  document.getElementById("pesq-nivel").value   = p.nivel || "Pleno"
+  document.getElementById("pesq-sal-min").value = p.sal_min || ""
+  document.getElementById("pesq-sal-med").value = p.sal_med || ""
+  document.getElementById("pesq-sal-max").value = p.sal_max || ""
+  document.getElementById("pesq-rem-min").value = p.rem_total_min || ""
+  document.getElementById("pesq-rem-med").value = p.rem_total_med || ""
+  document.getElementById("pesq-rem-max").value = p.rem_total_max || ""
+  document.getElementById("pesq-obs").value     = p.observacoes || ""
+
+  renderizarListaPesquisasSalariais()
+}
+
+function novaPesquisaSalarial() {
+  pesquisaEditando = null
+  document.getElementById("salarios-pesq-empty").style.display = "none"
+  document.getElementById("salarios-pesq-form").style.display  = "flex"
+  document.getElementById("salarios-pesq-titulo").textContent  = "Nova Pesquisa Salarial"
+  document.getElementById("salarios-pesq-meta").textContent    = "Setor sucroenergético · Centro-Oeste"
+
+  ;["pesq-cargo","pesq-area","pesq-sal-min","pesq-sal-med","pesq-sal-max","pesq-rem-min","pesq-rem-med","pesq-rem-max","pesq-obs"].forEach(id => {
+    document.getElementById(id).value = ""
+  })
+  document.getElementById("pesq-nivel").value = "Pleno"
+}
+
+async function salvarPesquisaSalarial() {
+  const dados = {
+    cargo: document.getElementById("pesq-cargo").value.trim(),
+    area:  document.getElementById("pesq-area").value.trim(),
+    nivel: document.getElementById("pesq-nivel").value,
+    sal_min: Number(document.getElementById("pesq-sal-min").value) || null,
+    sal_med: Number(document.getElementById("pesq-sal-med").value) || null,
+    sal_max: Number(document.getElementById("pesq-sal-max").value) || null,
+    rem_total_min: Number(document.getElementById("pesq-rem-min").value) || null,
+    rem_total_med: Number(document.getElementById("pesq-rem-med").value) || null,
+    rem_total_max: Number(document.getElementById("pesq-rem-max").value) || null,
+    observacoes: document.getElementById("pesq-obs").value.trim()
+  }
+
+  if (!dados.cargo || !dados.area) {
+    showToast("Preencha cargo e área.", "error")
+    return
+  }
+
+  try {
+    let res
+    if (pesquisaEditando) {
+      res = await fetch(`/pesquisas-salariais/${pesquisaEditando}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dados)
+      })
+    } else {
+      res = await fetch("/pesquisas-salariais", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dados)
+      })
+    }
+
+    const data = await res.json()
+    if (!res.ok) { showToast(data.erro || "Erro ao salvar.", "error"); return }
+
+    showToast("Pesquisa salarial salva!", "success")
+    if (data.id) pesquisaEditando = data.id
+    renderizarListaPesquisasSalariais()
+  } catch {
+    showToast("Erro ao salvar pesquisa.", "error")
+  }
+}
+
+async function deletarPesquisaSalarial() {
+  if (!pesquisaEditando) return
+  if (!await confirmar("Deletar esta pesquisa salarial?", { titulo: "Deletar pesquisa", labelOk: "Deletar" })) return
+
+  try {
+    const res = await fetch(`/pesquisas-salariais/${pesquisaEditando}`, { method: "DELETE" })
+    if (!res.ok) { showToast("Erro ao deletar.", "error"); return }
+
+    showToast("Pesquisa deletada.", "info")
+    cancelarPesquisaSalarial()
+    renderizarListaPesquisasSalariais()
+  } catch {
+    showToast("Erro ao deletar.", "error")
+  }
+}
+
+function cancelarPesquisaSalarial() {
+  pesquisaEditando = null
+  document.getElementById("salarios-pesq-form").style.display  = "none"
+  document.getElementById("salarios-pesq-empty").style.display = "flex"
+  renderizarListaPesquisasSalariais()
+}
+
+async function gerarPesquisaSalarialIA(btnElement) {
+  const cargo = document.getElementById("pesq-cargo").value.trim()
+  const area  = document.getElementById("pesq-area").value.trim()
+  const nivel = document.getElementById("pesq-nivel").value
+
+  if (!cargo || !area) {
+    showToast("Preencha cargo e área primeiro.", "error")
+    return
+  }
+
+  const textOriginal = btnElement.innerHTML
+  btnElement.disabled = true
+  btnElement.innerHTML = "<i class=\"uil uil-processor\" style=\"animation:spin 1s linear infinite\"></i> Pesquisando..."
+
+  try {
+    const res = await fetch("/gerar-pesquisa-salarial", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cargo, area, nivel })
+    })
+
+    const text = await res.text()
+    let data
+    try { data = JSON.parse(text) } catch {
+      throw new Error("Resposta inválida do servidor")
+    }
+
+    if (!res.ok) {
+      showToast(data.erro || "Erro ao gerar pesquisa.", "error")
+      return
+    }
+
+    if (data.dados) {
+      document.getElementById("pesq-sal-min").value = data.dados.sal_min || ""
+      document.getElementById("pesq-sal-med").value = data.dados.sal_med || ""
+      document.getElementById("pesq-sal-max").value = data.dados.sal_max || ""
+      document.getElementById("pesq-rem-min").value = data.dados.rem_total_min || ""
+      document.getElementById("pesq-rem-med").value = data.dados.rem_total_med || ""
+      document.getElementById("pesq-rem-max").value = data.dados.rem_total_max || ""
+      showToast("Pesquisa salarial gerada!", "success")
+    } else {
+      showToast("Não foi possível estimar salários.", "error")
+    }
+
+  } catch (err) {
+    showToast("Erro: " + err.message, "error")
+  } finally {
+    btnElement.disabled = false
+    btnElement.innerHTML = textOriginal
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  GERENCIAR ÁREAS
