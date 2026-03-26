@@ -1720,6 +1720,37 @@ ${gruposHtml}
 //  ROTAS — ÁREAS
 // ═══════════════════════════════════════════════════════════════
 
+app.post("/gerar-descricao-area", async (req, res) => {
+  const { areaLabel } = req.body
+  if (!areaLabel?.trim()) {
+    return res.status(400).json({ erro: "Nome da área é obrigatório" })
+  }
+
+  try {
+    const prompt = `Escreva uma descrição profissional e concisa para a área "${areaLabel.trim()}" em uma usina de cana-de-açúcar.
+
+Incluir: o que faz, principais processos, tecnologias/sistemas, perfil dos profissionais, responsabilidades-chave.
+Formato: 2-3 parágrafos, linguagem clara e objetiva.`
+
+    const stream = await criarStream({
+      stream: false,
+      temperature: 0.7,
+      max_tokens: 300,
+      messages: [
+        { role: "system", content: "Você é um especialista em descrição de áreas operacionais em usinas de cana-de-açúcar. Escreva de forma clara e profissional." },
+        { role: "user", content: prompt }
+      ]
+    })
+
+    const descricao = stream.choices[0]?.message?.content || ""
+    res.json({ descricao: descricao.trim() })
+
+  } catch (err) {
+    console.error("Erro ao gerar descrição:", err.message)
+    res.status(500).json({ erro: "Erro ao gerar descrição: " + err.message })
+  }
+})
+
 app.get("/areas", (req, res) => {
   res.json(db.prepare("SELECT * FROM areas WHERE empresa_id = ?").all(req.empresaId))
 })

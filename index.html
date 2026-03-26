@@ -628,7 +628,12 @@
                   <input type="text" id="area-label" class="field-input" placeholder="Ex: Manutenção Industrial" style="padding-left:10px">
                 </div>
                 <div class="field" style="flex:1">
-                  <label>Descrição do setor (contexto operacional)</label>
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                    <label style="margin:0">Descrição do setor (contexto operacional)</label>
+                    <button type="button" onclick="gerarDescricaoAreaIA()" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg-hover);color:var(--text-muted);cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;transition:all 0.2s" title="Gerar descrição com IA">
+                      <span style="font-size:14px">🤖</span> Gerar com IA
+                    </button>
+                  </div>
                   <div class="format-toolbar" data-target="area-universo">
                     <button class="ft-btn ft-bold"   onclick="wrapTexto('area-universo','**')"     title="Negrito"><b>B</b></button>
                     <button class="ft-btn ft-italic" onclick="wrapTexto('area-universo','_')"      title="Itálico"><i>I</i></button>

@@ -2157,6 +2157,45 @@ async function salvarArea() {
   }
 }
 
+async function gerarDescricaoAreaIA() {
+  const label = document.getElementById("area-label").value.trim()
+  const universoTextarea = document.getElementById("area-universo")
+
+  if (!label) {
+    showToast("Preencha o nome da área primeiro.", "error")
+    return
+  }
+
+  const btnGerar = event.target.closest("button")
+  const textOriginal = btnGerar.innerHTML
+  btnGerar.disabled = true
+  btnGerar.innerHTML = "<span style=\"font-size:14px\">⏳</span> Gerando..."
+
+  try {
+    const res = await fetch("/gerar-descricao-area", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ areaLabel: label })
+    })
+
+    const data = await res.json()
+    if (!res.ok) {
+      showToast(data.erro || "Erro ao gerar descrição.", "error")
+      return
+    }
+
+    universoTextarea.value = data.descricao || ""
+    showToast("Descrição gerada com sucesso!", "success")
+
+  } catch (err) {
+    console.error("Erro ao gerar descrição:", err)
+    showToast("Erro ao gerar descrição.", "error")
+  } finally {
+    btnGerar.disabled = false
+    btnGerar.innerHTML = textOriginal
+  }
+}
+
 async function deletarArea() {
   if (!areaEditando) return
   if (!await confirmar(`Deletar a área <strong>${areaEditando}</strong>?\nEsta ação não pode ser desfeita.`, { titulo: "Deletar área", labelOk: "Deletar" })) return
