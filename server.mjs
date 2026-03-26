@@ -2211,12 +2211,13 @@ app.post("/gerar", async (req, res) => {
       if (!salarioRef) {
         pensar(`Gerando estimativa com base em tendências de mercado...`)
 
-        const promptSalarios = `CONTEXTO: Salário em USINAS DE CANA-DE-AÇÚCAR em Goiás/Centro-Oeste (interior, não São Paulo ou centros urbanos).
+        const promptSalarios = `CONTEXTO: Salário em USINAS DE CANA-DE-AÇÚCAR em Goiás/Centro-Oeste.
 
-Cargo: ${cargo} | Área: ${area} | Nível: ${nivel}
+Área: ${area} | Nível: ${nivel}
 
-Busque especificamente em Glassdoor + Salário.com.br os valores reais para esse cargo em usinas de cana no Centro-Oeste.
-Retorne MÍNIMO, MEDIANA e MÁXIMO das pesquisas diretas — sem inflação de mercado geral.
+Busque em Glassdoor + Salário.com.br o salário REAL para profissionais com esse nível nessa área, em usinas de cana.
+NÃO considere hierarquia de cargo — salário é definido por ÁREA + NÍVEL, não por título.
+Retorne MÍNIMO, MEDIANA e MÁXIMO diretos das fontes.
 JSON:
 {"sal_min":0,"sal_med":0,"sal_max":0}`
 
