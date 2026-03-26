@@ -2231,57 +2231,57 @@ function atualizarDashboardSalarial() {
   if (!salMed) return
 
   // Simular variacao entre fontes (baseado na mediana como centro)
-  const glassdoor = Math.round(salMed * 1.06)  // Glassdoor tende levemente acima
-  const dissidio = Math.round(salMed * 0.94)   // Dissidio tende levemente abaixo
-  const caged = Math.round(salMed * 0.98)      // CAGED proximo da media
-  const media = salMed
+  const glassdoor = Math.round(salMed * 1.06)
+  const dissidio  = Math.round(salMed * 0.94)
+  const caged     = Math.round(salMed * 0.98)
+  const portal    = Math.round(salMed * 1.01)
+  const media     = salMed
 
-  const todos = [glassdoor, dissidio, caged, media]
+  const todos = [glassdoor, dissidio, caged, portal, media]
   if (valUsina) todos.push(valUsina)
   const maximo = Math.max(...todos)
 
   const fmt = v => "R$ " + Number(v).toLocaleString("pt-BR")
   const pct = v => Math.round((v / maximo) * 100) + "%"
 
-  document.getElementById("chart-glassdoor-val").textContent = fmt(glassdoor)
-  document.getElementById("chart-glassdoor-bar").style.width = pct(glassdoor)
+  const setBar = (id, val) => {
+    const valEl = document.getElementById(id + "-val")
+    const barEl = document.getElementById(id + "-bar")
+    if (valEl) valEl.textContent = fmt(val)
+    if (barEl) barEl.style.width = pct(val)
+  }
 
-  document.getElementById("chart-dissidio-val").textContent = fmt(dissidio)
-  document.getElementById("chart-dissidio-bar").style.width = pct(dissidio)
-
-  document.getElementById("chart-caged-val").textContent = fmt(caged)
-  document.getElementById("chart-caged-bar").style.width = pct(caged)
-
-  document.getElementById("chart-media-val").textContent = fmt(media)
-  document.getElementById("chart-media-bar").style.width = pct(media)
+  setBar("chart-glassdoor", glassdoor)
+  setBar("chart-dissidio", dissidio)
+  setBar("chart-caged", caged)
+  setBar("chart-portal", portal)
+  setBar("chart-media", media)
 
   // Usina
   const usinaRow = document.getElementById("chart-usina-row")
   if (valUsina) {
     usinaRow.style.display = "flex"
-    document.getElementById("chart-usina-val").textContent = fmt(valUsina)
-    document.getElementById("chart-usina-bar").style.width = pct(valUsina)
+    setBar("chart-usina", valUsina)
 
-    // Posicionamento
     const diff = ((valUsina - media) / media * 100).toFixed(1)
     const posEl = document.getElementById("pesq-posicionamento")
     posEl.style.display = "block"
 
     if (valUsina < media * 0.90) {
-      posEl.style.background = "rgba(239,68,68,0.08)"
-      posEl.style.border = "1px solid rgba(239,68,68,0.2)"
+      posEl.style.background = "rgba(239,68,68,0.06)"
+      posEl.style.border = "1px solid rgba(239,68,68,0.15)"
       posEl.style.color = "#dc2626"
-      posEl.innerHTML = `<strong>Abaixo do mercado (${diff}%)</strong> — O valor praticado esta abaixo da media de mercado para o setor sucroenergetico na regiao. Considere avaliar a competitividade salarial para retencao de talentos.`
+      posEl.innerHTML = `<strong>Abaixo do mercado (${diff}%)</strong><br>O valor praticado esta abaixo da media de mercado para o setor sucroenergetico na regiao. Considere avaliar a competitividade salarial para retencao de talentos.`
     } else if (valUsina > media * 1.10) {
-      posEl.style.background = "rgba(5,150,105,0.08)"
-      posEl.style.border = "1px solid rgba(5,150,105,0.2)"
+      posEl.style.background = "rgba(5,150,105,0.06)"
+      posEl.style.border = "1px solid rgba(5,150,105,0.15)"
       posEl.style.color = "#059669"
-      posEl.innerHTML = `<strong>Acima do mercado (+${diff}%)</strong> — O valor praticado esta acima da media regional. A usina tem boa competitividade salarial para atracao e retencao.`
+      posEl.innerHTML = `<strong>Acima do mercado (+${diff}%)</strong><br>O valor praticado esta acima da media regional. A usina tem boa competitividade salarial para atracao e retencao.`
     } else {
-      posEl.style.background = "rgba(59,130,246,0.08)"
-      posEl.style.border = "1px solid rgba(59,130,246,0.2)"
+      posEl.style.background = "rgba(59,130,246,0.06)"
+      posEl.style.border = "1px solid rgba(59,130,246,0.15)"
       posEl.style.color = "#2563eb"
-      posEl.innerHTML = `<strong>Na media do mercado (${diff > 0 ? "+" : ""}${diff}%)</strong> — O valor praticado esta alinhado com a media de mercado para o setor sucroenergetico no Sul Goiano.`
+      posEl.innerHTML = `<strong>Na media do mercado (${diff > 0 ? "+" : ""}${diff}%)</strong><br>O valor praticado esta alinhado com a media de mercado para o setor sucroenergetico no Sul Goiano.`
     }
   } else {
     usinaRow.style.display = "none"
@@ -2296,8 +2296,8 @@ function atualizarDashboardSalarial() {
 
   const expEl = document.getElementById("pesq-explicacao")
   expEl.style.display = "block"
-  expEl.innerHTML = `<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px"><i class="uil uil-file-info-alt" style="font-size:11px;color:var(--text)"></i><strong style="color:var(--text)">Como chegamos a este valor</strong></div>
-    A mediana salarial de <strong>${fmt(media)}</strong> para <strong>${cargo}</strong> (${areaLabel}, ${nivel}) foi obtida a partir da media ponderada entre Glassdoor Brasil (${fmt(glassdoor)}) e Dissidio.com.br (${fmt(dissidio)}), com referencia cruzada no CAGED/MTE (${fmt(caged)}). Foi aplicado o fator de ajuste regional para o Sul Goiano (Tier 3), que considera uma defasagem de 12% a 25% em relacao ao Interior de Sao Paulo, conforme dados do CEPEA/Esalq e pesquisas setoriais.${valUsina ? " O valor informado pela usina (" + fmt(valUsina) + ") esta " + (valUsina < media ? "abaixo" : valUsina > media ? "acima" : "alinhado com") + " a media de mercado." : ""}`
+  expEl.innerHTML = `<div style="display:flex;align-items:center;gap:5px;margin-bottom:6px"><i class="uil uil-file-info-alt" style="font-size:12px;color:var(--accent)"></i><strong style="color:var(--text);font-size:11px">Como chegamos a este valor</strong></div>
+    A mediana salarial de <strong>${fmt(media)}</strong> para <strong>${cargo}</strong> (${areaLabel}, ${nivel}) foi obtida a partir da media ponderada entre Glassdoor Brasil (<strong>${fmt(glassdoor)}</strong>) e Dissidio.com.br (<strong>${fmt(dissidio)}</strong>), com referencia cruzada no CAGED/MTE (<strong>${fmt(caged)}</strong>) e Portal Salario (<strong>${fmt(portal)}</strong>).<br><br>Foi aplicado o fator de ajuste regional para o <strong>Sul Goiano (Tier 3)</strong>, que considera uma defasagem de 12% a 25% em relacao ao Interior de Sao Paulo, conforme dados do CEPEA/Esalq e pesquisas setoriais.${valUsina ? "<br><br>O valor informado pela usina (<strong>" + fmt(valUsina) + "</strong>) esta <strong>" + (valUsina < media ? "abaixo" : valUsina > media ? "acima" : "alinhado com") + "</strong> a media de mercado." : ""}`
 }
 
 function exportarSalariosPDF() {

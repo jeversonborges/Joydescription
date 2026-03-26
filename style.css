@@ -2982,38 +2982,202 @@ body.dark .login-tab.active {
 /* ═══════════════════════════════════════════════════════════════
    DASHBOARD COMPARATIVO SALARIAL
 ═══════════════════════════════════════════════════════════════ */
-.chart-row {
+/* ── Pesquisa Salarial: Painel Analítico ── */
+.pesq-analitico {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-panel);
+}
+.pesq-section {
+  border-bottom: 1px solid var(--border);
+}
+.pesq-section:last-child { border-bottom: none; }
+.pesq-section-header {
+  padding: 10px 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-.chart-label {
-  width: 130px;
-  flex-shrink: 0;
-  display: flex;
   justify-content: space-between;
+}
+.pesq-section-title {
+  display: flex;
   align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.2px;
 }
-.chart-source {
-  font-size: 10px;
-  color: var(--text-muted);
+.pesq-section-title i { font-size: 14px; color: var(--accent); }
+.pesq-section-badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(5,150,105,0.08);
+  color: #059669;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
 }
-.chart-value {
+
+/* Chart Items */
+.pesq-chart-area {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pesq-chart-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.pesq-chart-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pesq-chart-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 10px;
-  font-family: 'Courier New', monospace;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.pesq-chart-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.pesq-chart-name {
+  font-size: 11px;
+  font-weight: 600;
   color: var(--text);
 }
-.chart-bar-wrap {
-  flex: 1;
-  height: 18px;
-  background: var(--bg-hover);
-  border-radius: 4px;
-  overflow: hidden;
-  position: relative;
+.pesq-chart-desc {
+  font-size: 9px;
+  color: var(--text-sub);
 }
-.chart-bar {
+.pesq-chart-val {
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  color: var(--text);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.pesq-bar-track {
+  height: 6px;
+  background: var(--bg-hover);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-left: 32px;
+}
+.pesq-bar {
   height: 100%;
-  border-radius: 4px;
-  transition: width 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border-radius: 3px;
+  transition: width 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   min-width: 2px;
+}
+.pesq-chart-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+.pesq-chart-destaque {
+  padding: 8px 10px;
+  background: rgba(5,150,105,0.03);
+  border-radius: 6px;
+  border: 1px solid rgba(5,150,105,0.1);
+}
+
+/* Posicionamento */
+.pesq-posicionamento {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* Explicação */
+.pesq-explicacao {
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+/* Metodologia */
+.pesq-metodologia {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  background: var(--bg-panel);
+}
+.pesq-metodo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.pesq-metodo-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  transition: border-color 0.15s;
+}
+.pesq-metodo-card:hover { border-color: var(--border-lit); }
+.pesq-metodo-card strong {
+  display: block;
+  font-size: 10px;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.pesq-metodo-card span {
+  font-size: 9px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.pesq-metodo-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.pesq-metodo-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(59,130,246,0.04);
+  border: 1px solid rgba(59,130,246,0.1);
+  border-radius: 6px;
+  font-size: 9px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.pesq-metodo-nota i {
+  font-size: 13px;
+  color: #3b82f6;
+  flex-shrink: 0;
+  margin-top: 1px;
 }
