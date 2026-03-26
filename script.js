@@ -222,8 +222,8 @@ function renderizarListaNiveis() {
     li.className = "areas-list-item" + (nivelEditando?.label === n.label ? " active" : "")
     li.onclick = () => selecionarNivel(n)
     li.innerHTML = `
-      <span class="ali-label"><span style="color:var(--text-muted);font-size:10px;min-width:18px;display:inline-block">${n.ordem}.</span> ${n.label}</span>
-      <span class="ali-sub">${n.eh_lideranca ? "Liderança" : "Técnico/Op."} · x${(n.fator_salarial ?? 1).toFixed(2)}</span>`
+      <span class="ali-label">${n.label}</span>
+      <span class="ali-sub">${n.eh_lideranca ? "Liderança" : "Técnico/Operacional"}</span>`
     lista.appendChild(li)
   })
 }
