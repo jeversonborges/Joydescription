@@ -2254,9 +2254,9 @@ SEM inflação. JSON:
         sal_min: salarioRef.sal_min,
         sal_med: salarioRef.sal_med,
         sal_max: salarioRef.sal_max,
-        rem_total_min: salarioRef.sal_min ? Math.round(salarioRef.sal_min * FATOR_BENEFICIOS) : null,
-        rem_total_med: salarioRef.sal_min ? Math.round(salarioRef.sal_min * FATOR_BENEFICIOS) : null,
-        rem_total_max: salarioRef.sal_min ? Math.round(salarioRef.sal_min * FATOR_BENEFICIOS * 1.2) : null,
+        rem_total_min: Math.round(salarioRef.sal_min * FATOR_BENEFICIOS),
+        rem_total_med: Math.round(salarioRef.sal_med * FATOR_BENEFICIOS),
+        rem_total_max: Math.round(salarioRef.sal_max * FATOR_BENEFICIOS),
         fonte: salarioRef.fonte
       } : null
 
