@@ -2265,8 +2265,18 @@ JSON:
 
         const textSalarios = streamSalarios.choices[0]?.message?.content ?? "{}"
         try {
-          const jsonMatch = textSalarios.match(/\{[^{}]*\}/)
-          const dadosIA = jsonMatch ? JSON.parse(jsonMatch[0]) : {}
+          let dadosIA = {}
+          // Tenta extrair JSON de forma mais robusta
+          const jsonMatch = textSalarios.match(/\{[\s\S]*\}/)
+          if (jsonMatch) {
+            try {
+              dadosIA = JSON.parse(jsonMatch[0])
+            } catch {
+              // Se falhar, tenta parsear a resposta inteira
+              dadosIA = JSON.parse(textSalarios)
+            }
+          }
+
           if (dadosIA.sal_med) {
             salarioRef = {
               sal_min: dadosIA.sal_min ? Math.round(dadosIA.sal_min) : null,
@@ -2276,7 +2286,7 @@ JSON:
             }
           }
         } catch (e) {
-          console.warn("Erro no parse de IA:", e.message)
+          console.warn("⚠️  Erro ao parsear dados salariais da IA:", e.message, "Resposta:", textSalarios.slice(0, 100))
         }
       }
 
