@@ -688,14 +688,24 @@ function seedNiveis(empresaId) {
   console.log("✅ Níveis padrão inseridos para empresa default")
 })()
 
-// ── Migração: insere Gestor se banco antigo não tiver ──────────
-;(function addGestor() {
-  if (db.prepare("SELECT COUNT(*) as n FROM niveis WHERE label='Gestor' AND empresa_id='default'").get().n > 0) return
-  db.prepare("UPDATE niveis SET ordem = 9  WHERE label = 'Gerente' AND empresa_id = 'default'").run()
-  db.prepare("UPDATE niveis SET ordem = 10 WHERE label = 'Diretor' AND empresa_id = 'default'").run()
-  db.prepare("INSERT OR IGNORE INTO niveis (empresa_id,label,ordem,eh_lideranca,descricao,descricao_curta) VALUES (?,?,?,?,?,?)")
-    .run("default", "Gestor", 8, 1, NIVEL_DEF["Gestor"], NIVEL_CURTO["Gestor"])
-  console.log("✅ Nível Gestor adicionado para empresa default")
+// ── Migração: remove Estágio, adiciona Superintendente ──────────
+;(function migrateHierarchy() {
+  // Remove Estágio se existir
+  const temEstágio = db.prepare("SELECT COUNT(*) as n FROM niveis WHERE label='Estágio' AND empresa_id='default'").get().n > 0
+  if (temEstágio) {
+    db.prepare("DELETE FROM niveis WHERE label='Estágio' AND empresa_id='default'").run()
+    console.log("✅ Nível Estágio removido")
+  }
+
+  // Adiciona Superintendente se não existir
+  const temSuperintendente = db.prepare("SELECT COUNT(*) as n FROM niveis WHERE label='Superintendente' AND empresa_id='default'").get().n > 0
+  if (!temSuperintendente) {
+    db.prepare("INSERT INTO niveis (empresa_id,label,ordem,eh_lideranca,descricao,descricao_curta) VALUES (?,?,?,?,?,?)")
+      .run("default", "Superintendente", 9, 1, "Superintendente — liderança estratégica operacional, acima de gestor, abaixo de diretor", "Superintendente")
+    // Reordena Diretor
+    db.prepare("UPDATE niveis SET ordem = 10 WHERE label = 'Diretor' AND empresa_id = 'default'").run()
+    console.log("✅ Nível Superintendente adicionado, hierarquia atualizada")
+  }
 })()
 
 // Prompt ultra-enxuto para Ollama — modelos pequenos perdem o fio em prompts longos
