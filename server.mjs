@@ -2211,11 +2211,11 @@ app.post("/gerar", async (req, res) => {
       if (!salarioRef) {
         pensar(`Gerando estimativa com base em tendências de mercado...`)
 
-        const promptSalarios = `Estime o salário REALISTA do cargo no Centro-Oeste (Glassdoor + Salário.com.br).
+        const promptSalarios = `Estime o salário REALISTA do cargo no Centro-Oeste baseado em Glassdoor + Salário.com.br.
 
 Cargo: ${cargo} | Área: ${area} | Nível: ${nivel}
 
-Valores CONSERVADORES e realistas (não inflacionados). Retorne JSON:
+Retorne EXATAMENTE o mínimo, mediana e máximo encontrados nessas fontes — SEM adicionar percentuais. Valores puros das pesquisas. JSON:
 {"sal_min":0,"sal_med":0,"sal_max":0}`
 
         const streamSalarios = await criarStream({
@@ -2234,9 +2234,9 @@ Valores CONSERVADORES e realistas (não inflacionados). Retorne JSON:
           const dadosIA = jsonMatch ? JSON.parse(jsonMatch[0]) : {}
           if (dadosIA.sal_med) {
             salarioRef = {
-              sal_min: Math.round(dadosIA.sal_min || dadosIA.sal_med * 0.80),
+              sal_min: dadosIA.sal_min ? Math.round(dadosIA.sal_min) : null,
               sal_med: Math.round(dadosIA.sal_med),
-              sal_max: Math.round(dadosIA.sal_max || dadosIA.sal_med * 1.25),
+              sal_max: dadosIA.sal_max ? Math.round(dadosIA.sal_max) : null,
               fonte: "Estimativa IA"
             }
           }

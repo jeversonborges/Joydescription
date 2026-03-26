@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat -ano)",
+      "Bash(node -e \"import\\(''''./server.mjs''''\\)\")",
+      "Bash(npm install:*)",
+      "Bash(\"e:/JoyDesc/Joydescription/node_modules/electron/dist/electron.exe\" --version)",
+      "Bash(node node_modules/electron/install.js)",
+      "Bash(rm -rf \"e:/JoyDesc/Joydescription/node_modules/electron/dist\")",
+      "Bash(ELECTRON_SKIP_BINARY_DOWNLOAD=false npm install electron@33)",
+      "Bash(node -e \"require\\(''''@electron/get''''\\).downloadArtifact\\({ version: ''''33.4.0'''', artifactName: ''''electron'''' }\\).then\\(p => console.log\\(''''Downloaded to:'''', p\\)\\).catch\\(e => console.error\\(''''Error:'''', e.message\\)\\)\")",
+      "Bash(node -e \":*)",
+      "Bash(wmic datafile:*)",
+      "Bash(powershell -Command \"\\(Get-Item ''''e:/JoyDesc/Joydescription/node_modules/electron/dist/electron.exe''''\\).length\")",
+      "Bash(node_modules/electron/dist/electron.exe -e \"const e = require\\(''electron''\\); console.log\\(JSON.stringify\\(Object.keys\\(e\\)\\)\\)\")",
+      "Read(//e/JoyDesc/Joydescription mv node_modules/electron node_modules/_electron_bak ELECTRON_RUN_AS_NODE=0 node_modules/.bin/electron . 2 1 head -5 mv node_modules/_electron_bak node_modules/**)",
+      "Bash(powershell -Command \"Select-String -Path ''E:\\\\JoyDesc\\\\Joydescription\\\\node_modules\\\\electron-builder\\\\*'' -Pattern ''winCodeSign'' -Recurse | Select-Object Filename, LineNumber, Line | Where-Object { $_.Line -match ''path|dir|cache|version'' } | Select-Object -First 20\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''E:\\\\JoyDesc\\\\Joydescription\\\\node_modules\\\\app-builder-lib\\\\'' -Filter ''*.js'' -Recurse | Select-String -Pattern ''winCodeSign'' | Select-Object Filename, LineNumber, Line | Select-Object -First 20\")",
+      "Bash(powershell -Command \"Get-Content ''E:\\\\JoyDesc\\\\Joydescription\\\\node_modules\\\\app-builder-lib\\\\out\\\\binDownload.js'' | Select-String -Pattern ''getBin|winCodeSign|cache'' | Select-Object -First 20\")",
+      "Bash(powershell -Command \"Get-Content ''E:\\\\JoyDesc\\\\Joydescription\\\\node_modules\\\\app-builder-lib\\\\out\\\\binDownload.js'' | Select-String -Pattern ''extractDir|getBinFromUrl|getBin\\\\b'' -Context 2,5 | Select-Object -First 30\")",
+      "Bash(powershell -Command \"Get-Content ''E:\\\\JoyDesc\\\\Joydescription\\\\node_modules\\\\app-builder-lib\\\\out\\\\targets\\\\windowsSignToolManager.js'' | Select-Object -Skip 340 -First 40\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''E:\\\\JoyDesc\\\\Joydescription\\\\node_modules\\\\app-builder-lib\\\\'' -Filter ''windowsSign*'' -Recurse | Select-Object FullName\")",
+      "Bash(powershell -Command \"Get-Content ''E:\\\\JoyDesc\\\\Joydescription\\\\node_modules\\\\app-builder-lib\\\\out\\\\codeSign\\\\windowsSignToolManager.js'' | Select-Object -Skip 195 -First 60\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''E:\\\\JoyDesc\\\\Joydescription\\\\node_modules\\\\app-builder-lib\\\\'' -Filter ''*.js'' -Recurse | ForEach-Object { Select-String -Path $_.FullName -Pattern ''default Electron icon'' } | Select-Object Filename, LineNumber, Line\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''E:\\\\JoyDesc\\\\Joydescription\\\\node_modules\\\\electron-builder\\\\'' -Filter ''*.js'' -Recurse | ForEach-Object { Select-String -Path $_.FullName -Pattern ''default Electron icon'' } | Select-Object Filename, LineNumber, Line\")"
+    ]
+  }
+}
