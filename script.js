@@ -2878,67 +2878,10 @@ function menuAcao(acao) {
   const setBar   = pct => { barEl.style.width = pct + "%"; if (pctEl) pctEl.textContent = pct + "%" }
   const delay    = ms => new Promise(r => setTimeout(r, ms))
 
-  // ── Efeito glitch: letra por letra — sincronizado com barra ──
-  await new Promise(resolve => {
-    const target       = "JoyDesc"
-    const chars        = "!@#$%&?§±×÷ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    const glitchFrames = 9
-    const snapFrame    = 7
-    const ms           = 42
-    const isJoy        = i => i < 3
-
-    let letterIdx     = 0
-    let frameInLetter = 0
-
-    const rand = () => chars[Math.floor(Math.random() * chars.length)]
-
-    const render = (lockedCount, activeChar) => {
-      let html = ""
-      for (let i = 0; i < target.length; i++) {
-        const cls = isJoy(i) ? "sp-wm-joy" : "sp-wm-desc"
-        if (i < lockedCount) {
-          html += `<span class="${cls}">${target[i]}</span>`
-        } else if (i === lockedCount) {
-          html += `<span class="sp-letter-active">${activeChar}</span>`
-        } else {
-          html += `<span class="sp-letter-pending">${target[i]}</span>`
-        }
-      }
-      return html
-    }
-
-    wordmark.classList.add("glitching")
-    wordmark.innerHTML = render(0, rand())
-    // barra começa junto com as letras
-    setBar(0)
-
-    const tick = setInterval(() => {
-      frameInLetter++
-
-      const snapping  = frameInLetter >= snapFrame
-      const activeChar = snapping ? target[letterIdx] : rand()
-
-      if (frameInLetter >= glitchFrames) {
-        letterIdx++
-        frameInLetter = 0
-
-        // avança a barra a cada letra que trava (0 → 48%)
-        setBar(Math.round(letterIdx / target.length * 48))
-
-        if (letterIdx >= target.length - 2) wordmark.classList.add("glitch-low")
-
-        if (letterIdx >= target.length) {
-          clearInterval(tick)
-          wordmark.classList.remove("glitching", "glitch-low")
-          wordmark.innerHTML = '<span class="sp-wm-joy">Joy</span><span class="sp-wm-desc">Desc</span>'
-          resolve()
-          return
-        }
-      }
-
-      wordmark.innerHTML = render(letterIdx, activeChar)
-    }, ms)
-  })
+  // ── Fade-in simples do logo ──
+  setBar(0)
+  await delay(400)
+  setBar(48)
 
   // ── Verifica auth em paralelo com as mensagens ───────────────
   const authPromise = fetch("/auth/me")
@@ -2950,11 +2893,11 @@ function menuAcao(acao) {
     { text: "Conectando ao Groq...",                pct: 56,  wait: 100 },
     { text: "Indexando IA jurídica...",              pct: 64,  wait: 440 },
     { text: "Carregando base CBO 2002...",           pct: 73,  wait: 420 },
-    { text: "11.097 ocupações indexadas ✓",          pct: 82,  wait: 380 },
+    { text: "11.097 ocupações indexadas",             pct: 82,  wait: 380 },
     { text: "Verificando conformidade CLT...",       pct: 89,  wait: 400 },
     { text: "Carregando base de conhecimento...",    pct: 95,  wait: 380 },
     { text: "Calibrando análise de cargos...",       pct: 99,  wait: 340 },
-    { text: "Sistema pronto ✓",                      pct: 100, wait: 320 },
+    { text: "Sistema pronto",                         pct: 100, wait: 320 },
   ]
 
   for (const { text, pct, wait } of msgs) {

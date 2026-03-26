@@ -1,13 +1,13 @@
-# JoyDescription — Documentação do Projeto
+# JoyDescription — Documentacao do Projeto
 
-> Gerador de descrições de cargo com IA para o RH da Goiasa.
+> Gerador de descricoes de cargo com IA para o setor sucroenergetico.
 > Desenvolvido por Joyce / Jeverson Borges.
 
 ---
 
-## O que é
+## O que e
 
-Sistema web multi-tenant para o departamento de RH criar e gerenciar descrições de cargos usando IA (Groq/LLaMA). Cada empresa tem seus próprios dados isolados por `empresa_id`.
+Sistema web multi-tenant para o departamento de RH criar e gerenciar descricoes de cargos usando IA (Groq/LLaMA). Cada empresa tem seus proprios dados isolados por `empresa_id`. Inclui pesquisa salarial com dados ancorados no CAGED/MTE, dashboard comparativo, exportacao PDF, e base de conhecimento.
 
 ---
 
@@ -15,215 +15,270 @@ Sistema web multi-tenant para o departamento de RH criar e gerenciar descriçõe
 
 | Camada | Tecnologia |
 |--------|-----------|
-| Backend | Node.js + Express (ESM) |
+| Backend | Node.js + Express (ESM) — `server.mjs` |
 | Banco | SQLite via `better-sqlite3` |
-| IA | Groq API (llama-3.3-70b-versatile) |
-| Frontend | HTML + CSS + JS vanilla (sem framework) |
-| Deploy | Railway (com volume persistente) |
-| Autenticação | Cookie `joy_session` + scrypt |
+| IA | Groq API (llama-3.3-70b-versatile) + Together AI (failover) |
+| Frontend | HTML + CSS + JS vanilla (sem framework) — SPA unica |
+| Deploy | Railway (com volume persistente `/data`) |
+| Autenticacao | Cookie `joy_session` + scrypt |
+| Icones | Unicons (CDN) |
+
+---
+
+## Repositorio e Deploy
+
+| Item | Valor |
+|------|-------|
+| GitHub | `github.com/jeversonborges/Joydescription` |
+| Branch principal | `main` |
+| Hospedagem | Railway (rebuild automatico via GitHub) |
+| Railway Project ID | `caa7b613-78fa-4647-bbf5-c97439f2a281` |
+| Deploy manual | `railway up` (CLI) |
+| URL producao | Configurada no Railway (dominio gerado automatico) |
+
+### Deploy via CLI
+```bash
+railway login --browserless
+railway up              # sobe o codigo atual
+```
+
+### Deploy via Git (automatico)
+```bash
+git add . && git commit -m "descricao" && git push
+# Railway detecta o push e faz rebuild automatico
+# Requer: Settings > Source > Connect Repository no dashboard Railway
+```
 
 ---
 
 ## Estrutura de arquivos
 
 ```
-server.mjs       — servidor Express, todas as rotas de API
-index.html       — SPA única (login + app)
-script.js        — toda a lógica do front-end
-style.css        — estilos (tema escuro, CSS vars)
-joydescription.db — banco SQLite local (não vai ao Railway; o volume é usado lá)
-.gitignore       — exclui node_modules, joydescription.db, .env, WAL files
-railway.json     — config de deploy
+server.mjs                    — servidor Express, todas as rotas de API (~2900 linhas)
+index.html                    — SPA unica (login + app, todas as abas)
+script.js                     — toda a logica do front-end (~2400 linhas)
+style.css                     — estilos (tema escuro, CSS vars, ~3200 linhas)
+salarios-referencia.json      — tabela de salarios reais por area/cargo/nivel (CAGED/MTE)
+defasagem-salarial-goias.txt  — conhecimento de defasagem regional Sul Goiano vs SP
+joydescription.db             — banco SQLite local (nao vai pro Git)
+railway.json                  — config de deploy Railway
+Dockerfile                    — build para Railway
+.env                          — chaves de API (nao vai pro Git)
+.gitignore                    — exclui node_modules, .db, .env, WAL files
+PROJETO.md                    — este arquivo
 ```
 
 ---
 
-## Variáveis de ambiente (Railway)
+## Variaveis de ambiente
 
-| Var | Valor | Descrição |
-|-----|-------|-----------|
-| `GROQ_API_KEY` | `gsk_...` | Chave da API Groq |
-| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Modelo usado |
-| `JOY_DB_PATH` | `/data/joydescription.db` | Caminho do banco no volume persistente |
-| `JOY_FORCE_SEED` | `0` (ou `1` para forçar) | `1` sobrescreve o banco do volume com o seed local — usar só para migração |
-| `NODE_ENV` | `production` | Ativa Secure cookie e CORS restrito |
-| `PORT` | automático | Railway injeta |
+| Var | Descricao |
+|-----|-----------|
+| `GROQ_API_KEY` | Chave da API Groq (obrigatoria) |
+| `GROQ_MODEL` | Modelo Groq (default: `llama-3.3-70b-versatile`) |
+| `TOGETHER_API_KEY` | Chave Together AI (opcional, failover) |
+| `TOGETHER_MODEL` | Modelo Together (default: `meta-llama/Llama-3.3-70B-Instruct-Turbo`) |
+| `JOY_DB_PATH` | Caminho do banco no volume Railway (`/data/joydescription.db`) |
+| `JOY_FORCE_SEED` | `1` para forcar seed do banco (so migracao) |
+| `NODE_ENV` | `production` em Railway (Secure cookie, CORS restrito) |
+| `PORT` | Railway injeta automaticamente |
 
 ---
 
-## Banco de dados — tabelas principais
+## Banco de dados — tabelas
 
 ```sql
-empresas        — id, nome, criado_em
-usuarios        — id, empresa_id, nome, email, senha_hash (scrypt), papel (admin|membro), ativo
-sessoes         — token, usuario_id, empresa_id, expira_em (30 dias)
-cargos          — id, empresa_id, cargo, area, nivel, texto, criadoEm, editadoEm
-versoes         — id, cargo_id, empresa_id, cargo, area, nivel, texto, hash, hash_prev, criado_em
-areas           — empresa_id, key, label, universo
-conhecimento    — id, empresa_id, titulo, categoria, conteudo, ativo, criadoEm
-niveis          — empresa_id, label, ordem, eh_lideranca, descricao, descricao_curta
-backups_log     — id, usuario_nome, usuario_email, empresa_id, tamanho_bytes, criado_em
-backup_config   — empresa_id PK, ativo, intervalo_horas, proximo_em
-audit_log       — id, empresa_id, usuario_id, usuario_nome, acao, alvo, ip, criado_em
+empresas              — id, nome, criado_em
+usuarios              — id, empresa_id, nome, email, senha_hash (scrypt), papel (admin|membro), ativo
+sessoes               — token, usuario_id, empresa_id, expira_em (30 dias)
+cargos                — id, empresa_id, cargo, area, nivel, texto, criadoEm, editadoEm
+versoes               — id, cargo_id, empresa_id, cargo, area, nivel, texto, hash, hash_prev, criado_em
+areas                 — empresa_id, key, label, universo
+conhecimento          — id, empresa_id, titulo, categoria, conteudo, ativo, criadoEm
+niveis                — empresa_id, label, ordem, eh_lideranca, descricao, descricao_curta
+pesquisas_salariais   — id, cargo, area, nivel, empresa_id, setor, regiao, sal_min/med/max, rem_total_min/med/max, observacoes, criado_em, atualizado_em
+salarios_cargo        — id, cargo_id, empresa_id, cargo, area, nivel, sal_min/med/max, rem_total_min/med/max, fonte, data_ref
+backups_log           — id, usuario_nome, usuario_email, empresa_id, tamanho_bytes, criado_em
+backup_config         — empresa_id PK, ativo, intervalo_horas, proximo_em
+audit_log             — id, empresa_id, usuario_id, usuario_nome, acao, alvo, ip, criado_em
 ```
 
-**Regra de ouro:** toda query filtra por `WHERE empresa_id = ?`. Nenhuma empresa vê dados de outra.
+**Regra de ouro:** toda query filtra por `WHERE empresa_id = ?`. Nenhuma empresa ve dados de outra.
 
 ---
 
-## Rotas de API principais
+## Abas do sistema (frontend)
 
-### Autenticação
+1. **Descricao de Cargo** (`descricao`) — Gerador principal com IA via SSE streaming
+2. **Cargos** (`cargos`) — Lista de cargos gerados, historico de versoes, exportar PDF
+3. **Pesquisa Salarial** (`salarios`) — Pesquisa salarial com IA, dashboard donut chart, exportar PDF individual
+4. **Conhecimento** (`conhecimento`) — Base de conhecimento injetada nos prompts de IA
+5. **Gerenciar Areas** (`areas`) — CRUD de areas com geracao de descricao por IA
+6. **Gerenciar Niveis** (`niveis`) — Hierarquia de niveis com descricoes legais detalhadas
+7. **Usuarios** (`usuarios`) — Gestao de usuarios (admin only)
+
+Modais: Calendario, Backup, Seguranca, Auditoria (admin only no menu superior)
+
+---
+
+## Rotas de API
+
+### Autenticacao
 ```
 POST /auth/registrar    — cria empresa + admin (rate limited)
-POST /auth/login        — login (rate limited: 10 tentativas / 15 min)
+POST /auth/login        — login (rate limited: 10/15min)
 POST /auth/logout
-GET  /auth/me           — retorna usuário e empresa da sessão atual
+GET  /auth/me           — retorna usuario e empresa da sessao
 ```
 
 ### Cargos
 ```
-GET    /cargos
-POST   /cargos           — cria cargo + salva versão
-PUT    /cargos/:id       — edita + salva versão
-DELETE /cargos/:id
-GET    /versoes/:cargo_id                    — histórico de versões
-GET    /versoes/:cargo_id/:versao_id/texto   — texto de uma versão
-GET    /changelog                            — últimas 200 versões
+GET/POST/PUT/DELETE /cargos/:id
+GET  /versoes/:cargo_id              — historico de versoes
+GET  /versoes/:cargo_id/:id/texto    — texto de uma versao
+GET  /changelog                      — ultimas 200 versoes
 ```
 
-### Áreas / Conhecimento / Níveis
+### Areas / Conhecimento / Niveis
 ```
 GET/POST/PUT/DELETE /areas/:key
 GET/POST/PUT/DELETE /conhecimento/:id
 GET/POST/PUT/DELETE /niveis/:label
 ```
 
-### Usuários (admin only)
+### Pesquisa Salarial
 ```
-GET    /usuarios
-POST   /usuarios
-PUT    /usuarios/:id
-DELETE /usuarios/:id          — desativa (ativo=0)
-DELETE /usuarios/:id/excluir  — exclusão permanente
-```
-
-### Backup (admin only)
-```
-GET  /backup/status     — tamanho do banco, contagem de registros, último backup
-GET  /backup/historico  — últimos 20 backups
-GET  /backup/download   — baixa o .db (WAL checkpoint antes)
-POST /backup/restaurar  — faz upload de um .db, valida magic bytes SQLite, sobrescreve e reinicia
-GET  /backup/config     — configuração de backup automático
-POST /backup/config     — salva configuração (ativo, intervalo_horas)
+GET    /pesquisas-salariais          — lista todas (por empresa)
+POST   /pesquisas-salariais          — cria nova pesquisa
+PUT    /pesquisas-salariais/:id      — edita pesquisa
+DELETE /pesquisas-salariais/:id      — deleta pesquisa
+POST   /gerar-pesquisa-salarial      — gera estimativa salarial com IA
 ```
 
-### Auditoria (admin only)
+### IA / Geracao
 ```
-GET /auditoria?acao=&usuario=&limit=100&offset=0
+POST /gerar              — gera descricao de cargo (SSE streaming)
+POST /analisar           — analise juridica do texto
+POST /corrigir           — reescrita/correcao
+POST /gerar-descricao-area — gera descricao de area com IA
+GET  /sugestoes          — sugestoes de cargos similares
 ```
 
-### IA
+### Exportacao
 ```
-POST /gerar    — gera descrição de cargo (Groq)
-POST /analisar — análise jurídica do texto (Groq)
-POST /corrigir — reescrita/correção (Groq)
-GET  /sugestoes — sugestões de cargos similares
-GET  /exportar  — exporta versões assinadas (JSON + hash manifesto)
-GET  /exportar/pdf — exporta PDF
+GET /exportar            — exporta versoes assinadas (JSON + hash)
+GET /exportar/pdf        — PDF de descricao de cargo (auditoria)
+GET /exportar/salarios-pdf       — relatorio geral de salarios (landscape A4)
+GET /exportar/salario-pdf/:id    — PDF individual de pesquisa salarial
+```
+
+### Usuarios / Backup / Auditoria (admin)
+```
+GET/POST/PUT/DELETE /usuarios/:id
+GET  /backup/status | /backup/historico | /backup/download
+POST /backup/restaurar | POST /backup/config
+GET  /auditoria?acao=&usuario=&limit=100&offset=0
+```
+
+### Utilidades
+```
+GET /cbo?q=texto         — busca CBO (11097 ocupacoes indexadas)
+GET /health              — healthcheck
 ```
 
 ---
 
-## Segurança implementada
+## Sistema de Salarios — como funciona
 
-- **Senhas**: scrypt + salt random + timingSafeEqual (sem timing attacks)
-- **Rate limit**: 10 tentativas de login por IP a cada 15 min (in-memory Map)
-- **Cookies**: HttpOnly, SameSite=Lax, Secure em produção
+### Fluxo de estimativa salarial
+1. Usuario informa cargo + area + nivel
+2. Sistema busca na **tabela de referencia** (`salarios-referencia.json`) — dados reais do CAGED/MTE via salario.com.br
+3. Se encontrar: retorna direto da tabela (sem IA)
+4. Se NAO encontrar: chama IA com prompt ancorado em referencias reais do Sul Goiano
+5. IA retorna salario base de nivel **PLENO** (sempre)
+6. Servidor aplica **fator multiplicador fixo** por nivel:
+   - Estagio: x0.35 | Trainee: x0.50 | Junior: x0.72
+   - Pleno: x1.00 | Senior: x1.30 | Especialista: x1.45
+   - Coordenador: x1.60 | Gestor: x1.90 | Gerente: x2.40 | Diretor: x3.50
+7. Remuneracao total = salario base x 1.15 (VT + VR + convenio)
+
+### Fontes de dados
+- **CAGED/MTE via salario.com.br** (peso 60%) — dados oficiais CLT
+- **Dissidio.com.br** (peso 25%) — pisos sindicais
+- **Glassdoor Brasil** (peso 15%) — informado por profissionais
+
+### Arquivo `salarios-referencia.json`
+Tabela com ~80 cargos organizados por area (producao, manutencao, qualidade, agricola, rh, administrativo, engenharia, ti, logistica, meio_ambiente), cada um com faixas min/med/max por nivel. Dados calibrados para usinas de cana do Sul Goiano.
+
+### Arquivo `defasagem-salarial-goias.txt`
+Relatorio de defasagem regional Sul Goiano vs Interior SP. Carregado na inicializacao do servidor na variavel `defasagemSalarial`. Contem fatores de ajuste por tipo de cargo.
+
+### Dashboard (frontend)
+- Grafico donut (CSS conic-gradient) com 4 fontes: Glassdoor, Dissidio, CAGED, Portal Salario
+- Range bar min-mediana-max com marcadores visuais
+- Input "Valor da usina" para comparar posicionamento (abaixo/na media/acima)
+- Texto explicativo gerado dinamicamente
+- Secao de metodologia com cards por fonte
+
+---
+
+## Seguranca implementada
+
+- **Senhas**: scrypt + salt random + timingSafeEqual
+- **Rate limit**: 10 tentativas de login por IP a cada 15 min
+- **Cookies**: HttpOnly, SameSite=Lax, Secure em producao
 - **Headers**: X-Frame-Options DENY, CSP, X-Content-Type-Options, Referrer-Policy
 - **Multi-tenant**: isolamento por empresa_id em TODAS as queries
-- **CORS**: desativado em produção (origem única)
-- **Backup**: validação de magic bytes SQLite antes de restaurar
+- **Backup**: validacao de magic bytes SQLite antes de restaurar
 
 ---
 
-## Sistema de backup
+## Deploy Railway — checklist
 
-- **Manual**: download do `.db` via menu Backup → "Baixar Backup"
-- **Restaurar**: upload de um `.db` → valida → sobrescreve → reinicia servidor
-- **Automático**: configurável por empresa (toggle + intervalo em horas), job roda a cada 1h
-- **Histórico**: tabela `backups_log` registra cada download
-- **Volume Railway**: banco fica em `/data/joydescription.db` — persiste entre deploys
-
----
-
-## Log de Auditoria
-
-Registra automaticamente:
-
-| Ação | O que loga |
-|------|-----------|
-| `auth.login` | Login com sucesso |
-| `auth.login_falhou` | Senha errada |
-| `auth.logout` | Saída |
-| `cargo.criar/editar/deletar` | Nome do cargo |
-| `area.criar/editar/deletar` | Nome da área |
-| `conhecimento.criar/editar/deletar` | Título do artigo |
-| `nivel.criar/editar/deletar` | Label do nível |
-| `usuario.criar/editar/desativar/excluir` | Nome do usuário |
-| `backup.download/restaurar` | Tamanho em KB |
-
-Interface: modal "Auditoria" no menu superior (admin only) — filtros por usuário e tipo de ação, paginação de 50.
-
----
-
-## Frontend — como funciona
-
-- SPA single-page: tela de login e app inteiro em `index.html`
-- Estado global em `script.js`: `usuarioLogado`, `empresaAtual`, `cargosData`, etc.
-- Abas principais: `descricao`, `cargos`, `areas`, `conhecimento`, `niveis`, `usuarios`
-- Modais (abre sobre o app): Calendário, Backup, Segurança, Auditoria
-- Todos os modais admin ficam no menu superior e são visíveis só para `papel === "admin"`
-- Splash de carregamento com barra de progresso e percentual animado
-
----
-
-## Deploy Railway — passo a passo
-
-```bash
-railway login --browserless
-railway init           # seleciona o projeto existente
-railway up --detach    # sobe o código
-```
-
-### Variáveis obrigatórias no Railway
-```
-GROQ_API_KEY=gsk_...
-JOY_DB_PATH=/data/joydescription.db
-NODE_ENV=production
-```
+1. Garantir que `railway.json` e `Dockerfile` estao no root
+2. Variaveis de ambiente configuradas no dashboard Railway
+3. Volume `/data` criado e montado
+4. Source conectado ao repo GitHub (`jeversonborges/Joydescription`, branch `main`)
+5. Deploy: `git push` (automatico) ou `railway up` (CLI manual)
 
 ### Volume
-- Criado no dashboard Railway → projeto → "+ New" → Volume
 - Mount path: `/data`
-- Para migrar dados locais para o volume pela primeira vez: setar `JOY_FORCE_SEED=1`, fazer `railway up`, depois setar `JOY_FORCE_SEED=0` e fazer `railway up` novamente
+- Banco fica em `/data/joydescription.db`
+- Para migrar dados locais: `JOY_FORCE_SEED=1` → deploy → `JOY_FORCE_SEED=0` → deploy
 
 ---
 
-## Empresa Goiasa (dados de produção)
+## Empresa Goiasa (dados de producao)
 
 - **Nome**: Goiasa
 - **Admin**: joyce@joydesc.com
 - **empresa_id**: gerado em timestamp no registro
-- Dados: ~67 cargos, 14 conhecimentos, 27 áreas, 10 níveis
-- Padrão de nome de área: `"ETA — Estação de Tratamento de Água"` (sigla + travessão + nome completo)
+- Dados: ~67 cargos, 14 conhecimentos, 27 areas, 10 niveis
+- Padrao de nome de area: `"ETA — Estacao de Tratamento de Agua"` (sigla + travessao + nome completo)
+- Regiao: Sul Goiano (Quirinopolis, Jatai, Rio Verde)
+- Setor: Sucroenergetico (usinas de cana-de-acucar)
+
+---
+
+## Pontos importantes para desenvolvimento
+
+1. **server.mjs** e o unico arquivo backend (~2900 linhas). Tudo esta nele: rotas, middlewares, prompts de IA, seeds, migracoes.
+2. **Prompts de IA** ficam inline no server.mjs (nao em arquivos separados). Busque por `const prompt` ou `const SYS` para encontra-los.
+3. **SSE streaming** e usado na geracao de cargos (`POST /gerar`) — o frontend recebe chunks via EventSource.
+4. **CBO** — 11097 ocupacoes carregadas na inicializacao. Arquivo base: `cbo_2002.json` (ou similar). Endpoint: `GET /cbo?q=texto`.
+5. **Failover IA**: se Groq falhar, tenta Together AI (se configurado). Logica em `criarStream()`.
+6. **Frontend e SPA pura**: tudo em `index.html` + `script.js` + `style.css`. Sem build, sem bundler, sem framework.
+7. **Tema escuro** por padrao com CSS variables (`--bg`, `--text`, `--accent`, etc).
+8. **Niveis** tem descricoes juridicas detalhadas que sao injetadas nos prompts de geracao de cargo para garantir conformidade legal (CLT art. 62, Lei 11.788, etc).
 
 ---
 
 ## O que ainda pode melhorar
 
-- [ ] Recuperação de senha por email
-- [ ] Export para PDF/Word das descrições
-- [ ] Upload do backup automático para S3/R2 (hoje só loga localmente)
+- [ ] Integrar API real do salario.com.br ou basedosdados.org (CAGED tratado) para salarios em tempo real
+- [ ] Recuperacao de senha por email
+- [ ] Export para Word das descricoes
+- [ ] Upload do backup automatico para S3/R2
 - [ ] Testes automatizados
-- [ ] Tela de analytics (cargos mais gerados, usuários mais ativos)
+- [ ] Tela de analytics (cargos mais gerados, usuarios mais ativos)
+- [ ] PWA / modo offline

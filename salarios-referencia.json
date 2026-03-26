@@ -1,100 +1,429 @@
 {
   "fontes": {
-    "glassdoor": {
-      "descricao": "Glassdoor Brasil - Salários reais de profissionais",
-      "peso": 0.50,
-      "url": "https://www.glassdoor.com.br"
+    "caged": {
+      "descricao": "CAGED/MTE via salario.com.br — dados oficiais de admissões e demissões CLT",
+      "peso": 0.60,
+      "url": "https://salario.com.br"
     },
     "dissidio": {
-      "descricao": "Dissídio.com.br - Salários oficiais e dissídios coletivos Centro-Oeste",
-      "peso": 0.50,
+      "descricao": "Dissídio.com.br — pisos sindicais e acordos coletivos do setor",
+      "peso": 0.25,
       "url": "https://dissidio.com.br/salario/"
+    },
+    "glassdoor": {
+      "descricao": "Glassdoor Brasil — salários informados por profissionais",
+      "peso": 0.15,
+      "url": "https://www.glassdoor.com.br"
     }
   },
-  "metodologia": "Média simples entre Glassdoor (50%) e Dissídio.com.br (50%)",
-  "salarios_por_cargo": {
-    "analista": {
-      "TI": {
-        "junior": { "min": 2400, "med": 2800, "max": 3400 },
-        "pleno": { "min": 2800, "med": 3400, "max": 4200 },
-        "senior": { "min": 3600, "med": 4400, "max": 5600 }
-      },
-      "RH": {
-        "junior": { "min": 2000, "med": 2400, "max": 3000 },
-        "pleno": { "min": 2400, "med": 3000, "max": 3800 },
-        "senior": { "min": 3400, "med": 4200, "max": 5400 }
-      },
-      "REMUNERAÇÃO": {
-        "junior": { "min": 1800, "med": 2200, "max": 2800 },
-        "pleno": { "min": 2200, "med": 2800, "max": 3600 },
-        "senior": { "min": 3200, "med": 3800, "max": 4800 }
-      },
-      "SAFRA": {
-        "junior": { "min": 2200, "med": 2600, "max": 3200 },
-        "pleno": { "min": 2600, "med": 3200, "max": 4000 },
-        "senior": { "min": 3600, "med": 4400, "max": 5600 }
-      },
-      "PRODUÇÃO": {
-        "junior": { "min": 2200, "med": 2600, "max": 3200 },
-        "pleno": { "min": 2600, "med": 3200, "max": 4000 },
-        "senior": { "min": 3600, "med": 4400, "max": 5600 }
+  "metodologia": "Base CAGED (60%) + Dissídio sindical (25%) + Glassdoor (15%). Região: Sul Goiano (Quirinópolis, Jataí, Rio Verde). Setor: Usinas de cana-de-açúcar (CNAE 1071-6, 1072-4, 3511-5).",
+  "regiao": "Sul Goiano - GO",
+  "atualizacao": "2025-03",
+  "remuneracao_total_fator": 1.15,
+  "notas": "Valores em R$ de salário base mensal. Remuneração total = base × 1.15 (VT, VR, convênio básico). Fontes: salario.com.br (CAGED tratado), dissidio.com.br, glassdoor.com.br. Faixas calibradas para usinas de cana do interior de Goiás.",
+
+  "salarios": {
+    "producao": {
+      "label": "Produção / Operação Industrial",
+      "cargos": {
+        "operador de producao": {
+          "cbo": "8111-05",
+          "estagio": { "min": 700, "med": 850, "max": 1000 },
+          "trainee": { "min": 1100, "med": 1300, "max": 1500 },
+          "junior":  { "min": 1600, "med": 1900, "max": 2200 },
+          "pleno":   { "min": 2000, "med": 2400, "max": 2800 },
+          "senior":  { "min": 2600, "med": 3100, "max": 3600 }
+        },
+        "operador casa de forca": {
+          "cbo": "8621-10",
+          "junior":  { "min": 2000, "med": 2400, "max": 2800 },
+          "pleno":   { "min": 2500, "med": 2900, "max": 3400 },
+          "senior":  { "min": 3200, "med": 3700, "max": 4300 }
+        },
+        "operador caldeira": {
+          "cbo": "8621-05",
+          "junior":  { "min": 1800, "med": 2200, "max": 2600 },
+          "pleno":   { "min": 2300, "med": 2700, "max": 3200 },
+          "senior":  { "min": 2900, "med": 3400, "max": 4000 }
+        },
+        "lider de turno": {
+          "pleno":   { "min": 2800, "med": 3300, "max": 3900 },
+          "senior":  { "min": 3400, "med": 4000, "max": 4700 }
+        },
+        "supervisor producao": {
+          "pleno":       { "min": 3500, "med": 4200, "max": 5000 },
+          "senior":      { "min": 4200, "med": 5000, "max": 6000 },
+          "coordenador": { "min": 5000, "med": 6000, "max": 7200 }
+        },
+        "gerente industrial": {
+          "gerente":  { "min": 9000, "med": 12000, "max": 16000 },
+          "diretor":  { "min": 18000, "med": 24000, "max": 33000 }
+        },
+        "auxiliar producao": {
+          "junior":  { "min": 1400, "med": 1600, "max": 1900 },
+          "pleno":   { "min": 1600, "med": 1900, "max": 2200 }
+        },
+        "encarregado producao": {
+          "pleno":   { "min": 3000, "med": 3500, "max": 4200 },
+          "senior":  { "min": 3800, "med": 4500, "max": 5300 }
+        }
       }
     },
-    "coordenador": {
-      "TI": { "med": 4200 },
-      "RH": { "med": 3800 },
-      "SAFRA": { "med": 4400 },
-      "PRODUÇÃO": { "med": 4200 }
+
+    "manutencao": {
+      "label": "Manutenção Industrial",
+      "cargos": {
+        "mecanico industrial": {
+          "cbo": "9113-05",
+          "junior":  { "min": 2000, "med": 2400, "max": 2900 },
+          "pleno":   { "min": 2500, "med": 3000, "max": 3600 },
+          "senior":  { "min": 3200, "med": 3800, "max": 4500 }
+        },
+        "mecanico": {
+          "cbo": "9113-05",
+          "junior":  { "min": 2000, "med": 2400, "max": 2900 },
+          "pleno":   { "min": 2500, "med": 3000, "max": 3600 },
+          "senior":  { "min": 3200, "med": 3800, "max": 4500 }
+        },
+        "eletricista industrial": {
+          "cbo": "7321-25",
+          "junior":  { "min": 2100, "med": 2500, "max": 3000 },
+          "pleno":   { "min": 2600, "med": 3100, "max": 3700 },
+          "senior":  { "min": 3300, "med": 3900, "max": 4600 }
+        },
+        "eletricista": {
+          "cbo": "7321-25",
+          "junior":  { "min": 2100, "med": 2500, "max": 3000 },
+          "pleno":   { "min": 2600, "med": 3100, "max": 3700 },
+          "senior":  { "min": 3300, "med": 3900, "max": 4600 }
+        },
+        "instrumentista": {
+          "cbo": "7321-30",
+          "junior":  { "min": 2300, "med": 2700, "max": 3200 },
+          "pleno":   { "min": 2800, "med": 3300, "max": 3900 },
+          "senior":  { "min": 3500, "med": 4100, "max": 4800 }
+        },
+        "soldador": {
+          "cbo": "7243-15",
+          "junior":  { "min": 1800, "med": 2200, "max": 2600 },
+          "pleno":   { "min": 2200, "med": 2700, "max": 3200 },
+          "senior":  { "min": 2800, "med": 3300, "max": 3900 }
+        },
+        "torneiro mecanico": {
+          "cbo": "7211-10",
+          "junior":  { "min": 1900, "med": 2300, "max": 2700 },
+          "pleno":   { "min": 2300, "med": 2800, "max": 3300 },
+          "senior":  { "min": 2900, "med": 3500, "max": 4100 }
+        },
+        "tecnico manutencao": {
+          "cbo": "9113-05",
+          "junior":  { "min": 2200, "med": 2600, "max": 3100 },
+          "pleno":   { "min": 2700, "med": 3200, "max": 3800 },
+          "senior":  { "min": 3400, "med": 4000, "max": 4700 }
+        },
+        "supervisor manutencao": {
+          "pleno":       { "min": 3800, "med": 4500, "max": 5400 },
+          "senior":      { "min": 4500, "med": 5300, "max": 6300 },
+          "coordenador": { "min": 5500, "med": 6500, "max": 7800 }
+        },
+        "gerente manutencao": {
+          "gerente":  { "min": 9000, "med": 12000, "max": 16000 }
+        },
+        "planejador manutencao": {
+          "junior":  { "min": 2000, "med": 2400, "max": 2900 },
+          "pleno":   { "min": 2500, "med": 3000, "max": 3600 },
+          "senior":  { "min": 3200, "med": 3800, "max": 4500 }
+        },
+        "lubrificador": {
+          "junior":  { "min": 1500, "med": 1800, "max": 2100 },
+          "pleno":   { "min": 1800, "med": 2200, "max": 2600 }
+        }
+      }
     },
-    "gerente": {
-      "TI": { "med": 5600 },
-      "RH": { "med": 5000 },
-      "SAFRA": { "med": 6000 },
-      "PRODUÇÃO": { "med": 5800 }
+
+    "qualidade": {
+      "label": "Qualidade / Laboratório",
+      "cargos": {
+        "laboratorista": {
+          "cbo": "3111-05",
+          "junior":  { "min": 1700, "med": 2100, "max": 2500 },
+          "pleno":   { "min": 2100, "med": 2500, "max": 3000 },
+          "senior":  { "min": 2700, "med": 3200, "max": 3800 }
+        },
+        "analista qualidade": {
+          "cbo": "2012-05",
+          "junior":  { "min": 2000, "med": 2400, "max": 2900 },
+          "pleno":   { "min": 2500, "med": 3000, "max": 3600 },
+          "senior":  { "min": 3200, "med": 3800, "max": 4500 }
+        },
+        "tecnico quimico": {
+          "cbo": "3111-10",
+          "junior":  { "min": 1900, "med": 2300, "max": 2700 },
+          "pleno":   { "min": 2300, "med": 2800, "max": 3300 },
+          "senior":  { "min": 2900, "med": 3500, "max": 4100 }
+        },
+        "supervisor qualidade": {
+          "pleno":       { "min": 3500, "med": 4200, "max": 5000 },
+          "coordenador": { "min": 4800, "med": 5800, "max": 7000 }
+        },
+        "coordenador qualidade": {
+          "coordenador": { "min": 4800, "med": 5800, "max": 7000 }
+        }
+      }
     },
-    "especialista": {
-      "TI": { "med": 4600 },
-      "RH": { "med": 4000 },
-      "SAFRA": { "med": 4800 },
-      "PRODUÇÃO": { "med": 4600 }
+
+    "agricola": {
+      "label": "Agrícola / Campo",
+      "cargos": {
+        "tecnico agricola": {
+          "cbo": "3211-05",
+          "junior":  { "min": 1800, "med": 2200, "max": 2600 },
+          "pleno":   { "min": 2200, "med": 2700, "max": 3200 },
+          "senior":  { "min": 2800, "med": 3400, "max": 4000 }
+        },
+        "engenheiro agronomo": {
+          "cbo": "2221-10",
+          "junior":  { "min": 4000, "med": 5000, "max": 6000 },
+          "pleno":   { "min": 5500, "med": 6800, "max": 8200 },
+          "senior":  { "min": 7000, "med": 8500, "max": 10000 }
+        },
+        "operador maquina agricola": {
+          "cbo": "6410-10",
+          "junior":  { "min": 1500, "med": 1800, "max": 2200 },
+          "pleno":   { "min": 1900, "med": 2300, "max": 2700 },
+          "senior":  { "min": 2400, "med": 2800, "max": 3300 }
+        },
+        "fiscal de campo": {
+          "junior":  { "min": 1600, "med": 2000, "max": 2400 },
+          "pleno":   { "min": 2000, "med": 2500, "max": 3000 },
+          "senior":  { "min": 2600, "med": 3200, "max": 3800 }
+        },
+        "supervisor agricola": {
+          "pleno":       { "min": 3500, "med": 4200, "max": 5000 },
+          "coordenador": { "min": 5000, "med": 6000, "max": 7200 }
+        },
+        "gerente agricola": {
+          "gerente":  { "min": 10000, "med": 13000, "max": 17000 }
+        },
+        "tratorista": {
+          "junior":  { "min": 1500, "med": 1800, "max": 2100 },
+          "pleno":   { "min": 1800, "med": 2200, "max": 2600 }
+        },
+        "motorista": {
+          "junior":  { "min": 1700, "med": 2000, "max": 2400 },
+          "pleno":   { "min": 2100, "med": 2500, "max": 3000 },
+          "senior":  { "min": 2600, "med": 3100, "max": 3600 }
+        }
+      }
     },
-    "assistente": {
-      "TI": { "med": 1600 },
-      "RH": { "med": 1400 },
-      "SAFRA": { "med": 1700 },
-      "PRODUÇÃO": { "med": 1800 }
+
+    "rh": {
+      "label": "Recursos Humanos / Gestão de Pessoas",
+      "cargos": {
+        "assistente rh": {
+          "cbo": "4110-10",
+          "junior":  { "min": 1400, "med": 1700, "max": 2000 },
+          "pleno":   { "min": 1700, "med": 2100, "max": 2500 }
+        },
+        "analista rh": {
+          "cbo": "2524-05",
+          "junior":  { "min": 2000, "med": 2400, "max": 2900 },
+          "pleno":   { "min": 2500, "med": 3000, "max": 3600 },
+          "senior":  { "min": 3200, "med": 3800, "max": 4500 }
+        },
+        "tecnico seguranca trabalho": {
+          "cbo": "3516-05",
+          "junior":  { "min": 2000, "med": 2400, "max": 2800 },
+          "pleno":   { "min": 2400, "med": 2900, "max": 3400 },
+          "senior":  { "min": 3000, "med": 3600, "max": 4200 }
+        },
+        "engenheiro seguranca": {
+          "cbo": "2149-15",
+          "pleno":   { "min": 5500, "med": 7000, "max": 8500 },
+          "senior":  { "min": 7000, "med": 8500, "max": 10500 }
+        },
+        "coordenador rh": {
+          "coordenador": { "min": 4500, "med": 5500, "max": 6600 }
+        },
+        "gerente rh": {
+          "gerente":  { "min": 8000, "med": 10500, "max": 14000 }
+        },
+        "analista dp": {
+          "junior":  { "min": 1800, "med": 2200, "max": 2600 },
+          "pleno":   { "min": 2200, "med": 2700, "max": 3200 },
+          "senior":  { "min": 2800, "med": 3400, "max": 4000 }
+        },
+        "medico trabalho": {
+          "pleno":   { "min": 8000, "med": 10000, "max": 13000 }
+        },
+        "enfermeiro trabalho": {
+          "pleno":   { "min": 3000, "med": 3600, "max": 4300 },
+          "senior":  { "min": 3800, "med": 4500, "max": 5300 }
+        },
+        "tecnico enfermagem": {
+          "junior":  { "min": 1600, "med": 1900, "max": 2300 },
+          "pleno":   { "min": 2000, "med": 2400, "max": 2800 }
+        }
+      }
     },
-    "chefe": {
-      "REMUNERAÇÃO": { "med": 4000 },
-      "RH": { "med": 4400 },
-      "SAFRA": { "med": 4800 }
+
+    "administrativo": {
+      "label": "Administrativo / Financeiro",
+      "cargos": {
+        "assistente administrativo": {
+          "cbo": "4110-10",
+          "junior":  { "min": 1400, "med": 1600, "max": 1900 },
+          "pleno":   { "min": 1600, "med": 2000, "max": 2400 }
+        },
+        "analista financeiro": {
+          "cbo": "2522-10",
+          "junior":  { "min": 2000, "med": 2400, "max": 2900 },
+          "pleno":   { "min": 2500, "med": 3000, "max": 3600 },
+          "senior":  { "min": 3200, "med": 3800, "max": 4500 }
+        },
+        "analista contabil": {
+          "cbo": "2522-05",
+          "junior":  { "min": 2000, "med": 2400, "max": 2900 },
+          "pleno":   { "min": 2500, "med": 3000, "max": 3600 },
+          "senior":  { "min": 3200, "med": 3800, "max": 4500 }
+        },
+        "contador": {
+          "pleno":   { "min": 3500, "med": 4200, "max": 5000 },
+          "senior":  { "min": 4500, "med": 5500, "max": 6500 }
+        },
+        "analista compras": {
+          "junior":  { "min": 1800, "med": 2200, "max": 2600 },
+          "pleno":   { "min": 2200, "med": 2700, "max": 3200 },
+          "senior":  { "min": 2800, "med": 3400, "max": 4000 }
+        },
+        "almoxarife": {
+          "junior":  { "min": 1400, "med": 1700, "max": 2000 },
+          "pleno":   { "min": 1700, "med": 2100, "max": 2500 }
+        },
+        "comprador": {
+          "pleno":   { "min": 2500, "med": 3000, "max": 3600 },
+          "senior":  { "min": 3200, "med": 3800, "max": 4500 }
+        },
+        "gerente administrativo": {
+          "gerente":  { "min": 8000, "med": 10500, "max": 14000 }
+        },
+        "coordenador financeiro": {
+          "coordenador": { "min": 4500, "med": 5500, "max": 6600 }
+        },
+        "recepcionista": {
+          "junior":  { "min": 1300, "med": 1500, "max": 1800 },
+          "pleno":   { "min": 1500, "med": 1800, "max": 2100 }
+        }
+      }
     },
-    "supervisor": {
-      "PRODUÇÃO": { "med": 3200 },
-      "SAFRA": { "med": 3400 },
-      "TI": { "med": 3200 }
+
+    "engenharia": {
+      "label": "Engenharia / Projetos",
+      "cargos": {
+        "engenheiro quimico": {
+          "cbo": "2145-05",
+          "junior":  { "min": 5000, "med": 6200, "max": 7500 },
+          "pleno":   { "min": 6500, "med": 8000, "max": 9500 },
+          "senior":  { "min": 8000, "med": 10000, "max": 12500 }
+        },
+        "engenheiro mecanico": {
+          "cbo": "2144-05",
+          "junior":  { "min": 4500, "med": 5500, "max": 6800 },
+          "pleno":   { "min": 6000, "med": 7500, "max": 9000 },
+          "senior":  { "min": 7500, "med": 9500, "max": 11500 }
+        },
+        "engenheiro eletrico": {
+          "cbo": "2143-05",
+          "junior":  { "min": 4500, "med": 5500, "max": 6800 },
+          "pleno":   { "min": 6000, "med": 7500, "max": 9000 },
+          "senior":  { "min": 7500, "med": 9500, "max": 11500 }
+        },
+        "engenheiro producao": {
+          "cbo": "2149-05",
+          "junior":  { "min": 4200, "med": 5200, "max": 6400 },
+          "pleno":   { "min": 5500, "med": 7000, "max": 8500 },
+          "senior":  { "min": 7000, "med": 8800, "max": 10500 }
+        },
+        "engenheiro ambiental": {
+          "cbo": "2140-05",
+          "junior":  { "min": 4000, "med": 5000, "max": 6200 },
+          "pleno":   { "min": 5500, "med": 6800, "max": 8200 },
+          "senior":  { "min": 7000, "med": 8500, "max": 10200 }
+        },
+        "projetista": {
+          "junior":  { "min": 2200, "med": 2700, "max": 3200 },
+          "pleno":   { "min": 2800, "med": 3400, "max": 4000 },
+          "senior":  { "min": 3500, "med": 4200, "max": 5000 }
+        },
+        "desenhista": {
+          "junior":  { "min": 1700, "med": 2100, "max": 2500 },
+          "pleno":   { "min": 2100, "med": 2600, "max": 3100 }
+        }
+      }
     },
-    "mecanico": {
-      "PRODUÇÃO": {
-        "junior": { "min": 2000, "med": 2400, "max": 2900 },
-        "pleno": { "min": 2400, "med": 2800, "max": 3400 },
-        "senior": { "min": 3000, "med": 3600, "max": 4400 }
-      },
-      "MANUTENÇÃO": {
-        "junior": { "min": 2000, "med": 2400, "max": 2900 },
-        "pleno": { "min": 2400, "med": 2800, "max": 3400 },
-        "senior": { "min": 3000, "med": 3600, "max": 4400 }
-      },
-      "SAFRA": {
-        "junior": { "min": 2200, "med": 2600, "max": 3200 },
-        "pleno": { "min": 2600, "med": 3000, "max": 3600 },
-        "senior": { "min": 3200, "med": 3800, "max": 4600 }
+
+    "ti": {
+      "label": "Tecnologia da Informação",
+      "cargos": {
+        "analista ti": {
+          "cbo": "2124-05",
+          "junior":  { "min": 2200, "med": 2700, "max": 3200 },
+          "pleno":   { "min": 2800, "med": 3400, "max": 4000 },
+          "senior":  { "min": 3500, "med": 4300, "max": 5200 }
+        },
+        "tecnico ti": {
+          "junior":  { "min": 1600, "med": 2000, "max": 2400 },
+          "pleno":   { "min": 2000, "med": 2500, "max": 3000 }
+        },
+        "coordenador ti": {
+          "coordenador": { "min": 4500, "med": 5500, "max": 6600 }
+        },
+        "gerente ti": {
+          "gerente":  { "min": 7500, "med": 9500, "max": 12500 }
+        }
+      }
+    },
+
+    "logistica": {
+      "label": "Logística / Suprimentos",
+      "cargos": {
+        "analista logistica": {
+          "junior":  { "min": 1800, "med": 2200, "max": 2600 },
+          "pleno":   { "min": 2200, "med": 2700, "max": 3200 },
+          "senior":  { "min": 2800, "med": 3400, "max": 4000 }
+        },
+        "supervisor logistica": {
+          "pleno":       { "min": 3200, "med": 3800, "max": 4500 },
+          "coordenador": { "min": 4500, "med": 5500, "max": 6600 }
+        },
+        "motorista carreta": {
+          "junior":  { "min": 2000, "med": 2400, "max": 2800 },
+          "pleno":   { "min": 2500, "med": 3000, "max": 3500 },
+          "senior":  { "min": 3000, "med": 3500, "max": 4100 }
+        },
+        "operador balanca": {
+          "junior":  { "min": 1400, "med": 1700, "max": 2000 },
+          "pleno":   { "min": 1700, "med": 2000, "max": 2400 }
+        }
+      }
+    },
+
+    "meio_ambiente": {
+      "label": "Meio Ambiente / Sustentabilidade",
+      "cargos": {
+        "analista ambiental": {
+          "junior":  { "min": 2000, "med": 2400, "max": 2900 },
+          "pleno":   { "min": 2500, "med": 3100, "max": 3700 },
+          "senior":  { "min": 3200, "med": 3900, "max": 4600 }
+        },
+        "tecnico ambiental": {
+          "junior":  { "min": 1700, "med": 2100, "max": 2500 },
+          "pleno":   { "min": 2100, "med": 2600, "max": 3100 }
+        },
+        "coordenador ambiental": {
+          "coordenador": { "min": 4800, "med": 5800, "max": 7000 }
+        }
       }
     }
-  },
-  "remuneracao_total_fator": {
-    "fator": 1.15,
-    "descricao": "Multiplica salário base por 1.15 (VT + VR mínimos)"
-  },
-  "notas": "VALORES REALISTAS: média entre Glassdoor e Salário.com.br. Remuneração total conservadora (×1.15)."
+  }
 }

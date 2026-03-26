@@ -1617,33 +1617,11 @@ body.dark .cargos-count {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background:
-    radial-gradient(ellipse at 22% 42%, rgba(59,130,246,0.10) 0%, transparent 55%),
-    radial-gradient(ellipse at 78% 62%, rgba(139,92,246,0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 55% 15%, rgba(236,72,153,0.05) 0%, transparent 45%),
-    #111827;
+  background: var(--bg-app);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-}
-#splash::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,0.045) 1px, transparent 1px);
-  background-size: 30px 30px;
-  pointer-events: none;
-}
-#splash::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
-  background-size: 90px 90px;
-  pointer-events: none;
 }
 
 #sp-content {
@@ -1655,75 +1633,41 @@ body.dark .cargos-count {
 }
 
 @keyframes sp-in {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 .sp-wordmark {
   font-family: 'Dancing Script', cursive;
-  font-size: 108px;
+  font-size: 96px;
   font-weight: 700;
   line-height: 1;
-  letter-spacing: -3px;
+  letter-spacing: -2px;
   position: relative;
-  color: #e2e8f0;
   user-select: none;
-  transition: filter 0.4s ease;
 }
 
-/* ── Glitch: aberração cromática via filter ──────────────────── */
-.sp-wordmark.glitching {
-  animation: sp-shake 0.08s infinite;
-  filter:
-    drop-shadow(-4px 0 rgba(248, 113, 113, 0.7))
-    drop-shadow( 4px 0 rgba(96,  165, 250, 0.7));
-}
-.sp-wordmark.glitch-low {
-  animation-duration: 0.16s;
-  filter:
-    drop-shadow(-2px 0 rgba(248, 113, 113, 0.3))
-    drop-shadow( 2px 0 rgba(96,  165, 250, 0.3));
-}
-
-@keyframes sp-shake {
-  0%,100% { transform: translate(0,0) skewX(0deg); }
-  15%     { transform: translate(-3px,  1px) skewX( 0.7deg); }
-  30%     { transform: translate( 3px, -1px); }
-  50%     { transform: translate(-2px,  2px) skewX(-0.4deg); }
-  70%     { transform: translate( 2px, -1px); }
-  85%     { transform: translate(-1px,  1px) skewX( 0.2deg); }
-}
-
-/* letra ativa (glitchando) e letras ainda não reveladas */
-.sp-letter-active {
-  color: #f1f5f9;
-  text-shadow:
-    0 0  6px rgba(255,255,255,0.6),
-    0 0 18px rgba(148,163,184,0.35);
-}
-.sp-letter-pending { opacity: 0; }
-
-.sp-wm-joy  { color: #f1f5f9; }
-.sp-wm-desc { color: rgba(148,163,184,0.4); }
+.sp-wm-joy  { color: var(--text); }
+.sp-wm-desc { color: var(--text-muted); }
 
 .sp-tagline {
   font-size: 10px;
   letter-spacing: 3.5px;
   text-transform: uppercase;
-  color: rgba(148,163,184,0.38);
+  color: var(--text-sub);
   font-weight: 500;
 }
 
 .sp-sep {
   width: 32px;
   height: 1px;
-  background: rgba(148,163,184,0.15);
+  background: var(--border);
   margin: 2px 0;
 }
 
 .sp-loading-msg {
   font-size: 11.5px;
-  color: rgba(148,163,184,0.5);
+  color: var(--text-sub);
   height: 16px;
   letter-spacing: 0.3px;
   transition: opacity 0.2s ease;
@@ -1741,53 +1685,25 @@ body.dark .cargos-count {
 }
 
 .sp-bar-track {
-  width: 420px;
-  height: 8px;
-  background: rgba(255,255,255,0.06);
+  width: 280px;
+  height: 3px;
+  background: var(--border);
   border-radius: 99px;
   overflow: hidden;
   position: relative;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
 }
 
 .sp-bar {
   height: 100%;
   width: 0%;
   border-radius: 99px;
-  background: linear-gradient(90deg, #4f46e5, #7c3aed, #06b6d4);
-  background-size: 200% 100%;
+  background: var(--accent);
   transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  position: relative;
-  overflow: hidden;
-  animation: sp-bar-shimmer 2s linear infinite;
-}
-
-@keyframes sp-bar-shimmer {
-  0%   { background-position: 100% 0; }
-  100% { background-position:   0% 0; }
-}
-
-.sp-bar::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 99px;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    rgba(255,255,255,0.28) 50%,
-    transparent 100%
-  );
-  animation: sp-gloss 2s ease-in-out infinite;
-}
-
-@keyframes sp-gloss {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(400%); }
 }
 
 .sp-bar-pct {
   font-size: 11px;
-  color: rgba(148,163,184,0.45);
+  color: var(--text-sub);
   letter-spacing: 1px;
   font-variant-numeric: tabular-nums;
   min-width: 36px;
