@@ -663,21 +663,21 @@ const TIPO_CURTO = {
 
 // ── Função reutilizável: semeia níveis padrão para uma empresa ─
 function seedNiveis(empresaId) {
-  const ins = db.prepare("INSERT OR IGNORE INTO niveis (empresa_id,label,ordem,eh_lideranca,descricao,descricao_curta) VALUES (?,?,?,?,?,?)")
+  const ins = db.prepare("INSERT OR IGNORE INTO niveis (empresa_id,label,ordem,eh_lideranca,descricao,descricao_curta,fator_salarial) VALUES (?,?,?,?,?,?,?)")
   const seed = [
-    ["Trainee",     1, 0, NIVEL_DEF["Trainee"],     NIVEL_CURTO["Trainee"]],
-    ["Junior",      2, 0, NIVEL_DEF["Junior"],      NIVEL_CURTO["Junior"]],
-    ["Pleno",       3, 0, NIVEL_DEF["Pleno"],       NIVEL_CURTO["Pleno"]],
-    ["Senior",      4, 0, NIVEL_DEF["Senior"],      NIVEL_CURTO["Senior"]],
-    ["Especialista",5, 0, NIVEL_DEF["Especialista"],NIVEL_CURTO["Especialista"]],
-    ["Coordenador", 6, 1, NIVEL_DEF["Coordenador"], NIVEL_CURTO["Coordenador"]],
-    ["Gerente",     7, 1, NIVEL_DEF["Gerente"],     NIVEL_CURTO["Gerente"]],
-    ["Gestor",      8, 1, NIVEL_DEF["Gestor"],      NIVEL_CURTO["Gestor"]],
-    ["Superintendente", 9, 1, "Superintendente — liderança estratégica operacional, acima de gestor, abaixo de diretor", "Superintendente"],
-    ["Diretor",     10,1, NIVEL_DEF["Diretor"],     NIVEL_CURTO["Diretor"]],
+    ["Trainee",          1, 0, NIVEL_DEF["Trainee"],      NIVEL_CURTO["Trainee"],      0.60],
+    ["Junior",           2, 0, NIVEL_DEF["Junior"],       NIVEL_CURTO["Junior"],       0.80],
+    ["Pleno",            3, 0, NIVEL_DEF["Pleno"],        NIVEL_CURTO["Pleno"],        1.00],
+    ["Senior",           4, 0, NIVEL_DEF["Senior"],       NIVEL_CURTO["Senior"],       1.25],
+    ["Especialista",     5, 0, NIVEL_DEF["Especialista"], NIVEL_CURTO["Especialista"], 1.40],
+    ["Coordenador",      6, 1, NIVEL_DEF["Coordenador"],  NIVEL_CURTO["Coordenador"],  1.55],
+    ["Gestor",           7, 1, NIVEL_DEF["Gestor"],       NIVEL_CURTO["Gestor"],       1.70],
+    ["Gerente",          8, 1, NIVEL_DEF["Gerente"],      NIVEL_CURTO["Gerente"],      2.10],
+    ["Superintendente",  9, 1, "Superintendente — liderança estratégica operacional, acima de Gestor, abaixo de Diretor", "Superintendente", 2.70],
+    ["Diretor",         10, 1, NIVEL_DEF["Diretor"],      NIVEL_CURTO["Diretor"],      3.50],
   ]
-  db.transaction(() => seed.forEach(([label, ordem, lider, desc, curta]) =>
-    ins.run(empresaId, label, ordem, lider, desc, curta)
+  db.transaction(() => seed.forEach(([label, ordem, lider, desc, curta, fator]) =>
+    ins.run(empresaId, label, ordem, lider, desc, curta, fator)
   ))()
 }
 
@@ -688,30 +688,50 @@ function seedNiveis(empresaId) {
   console.log("✅ Níveis padrão inseridos para empresa default")
 })()
 
-// ── Migração: remove Estágio, adiciona Superintendente ──────────
-;(function migrateHierarchy() {
-  // Remove Estágio se existir
-  const temEstágio = db.prepare("SELECT COUNT(*) as n FROM niveis WHERE label='Estágio' AND empresa_id='default'").get().n > 0
-  if (temEstágio) {
-    db.prepare("DELETE FROM niveis WHERE label='Estágio' AND empresa_id='default'").run()
-    console.log("✅ Nível Estágio removido")
+// ── Migração: adiciona coluna fator_salarial + corrige hierarquia (TODAS as empresas) ──
+;(function migrateHierarchyAndFator() {
+  // 1. Adiciona coluna fator_salarial se não existir
+  const cols = db.prepare("PRAGMA table_info(niveis)").all().map(c => c.name)
+  if (!cols.includes("fator_salarial")) {
+    db.exec("ALTER TABLE niveis ADD COLUMN fator_salarial REAL NOT NULL DEFAULT 1.0")
+    console.log("✅ Migração: coluna fator_salarial adicionada a niveis")
+    // Popula fatores padrão para todos os registros existentes
+    const FATORES_DEFAULT = {
+      "Trainee": 0.60, "Junior": 0.80, "Pleno": 1.00, "Senior": 1.25,
+      "Especialista": 1.40, "Coordenador": 1.55, "Gestor": 1.70,
+      "Gerente": 2.10, "Superintendente": 2.70, "Diretor": 3.50
+    }
+    const upd = db.prepare("UPDATE niveis SET fator_salarial = ? WHERE label = ?")
+    db.transaction(() => {
+      for (const [label, fator] of Object.entries(FATORES_DEFAULT)) {
+        upd.run(fator, label)
+      }
+    })()
+    console.log("✅ Fatores salariais padrão populados")
   }
 
-  // Adiciona Superintendente se não existir
-  const temSuperintendente = db.prepare("SELECT COUNT(*) as n FROM niveis WHERE label='Superintendente' AND empresa_id='default'").get().n > 0
-  if (!temSuperintendente) {
-    db.prepare("INSERT INTO niveis (empresa_id,label,ordem,eh_lideranca,descricao,descricao_curta) VALUES (?,?,?,?,?,?)")
-      .run("default", "Superintendente", 9, 1, "Superintendente — liderança estratégica operacional, acima de Gestor, abaixo de Diretor", "Superintendente")
-    db.prepare("UPDATE niveis SET ordem = 10 WHERE label = 'Diretor' AND empresa_id = 'default'").run()
-    console.log("✅ Nível Superintendente adicionado")
-  }
+  // 2. Corrige hierarquia em TODAS as empresas
+  const empresas = db.prepare("SELECT DISTINCT empresa_id FROM niveis").all()
+  for (const { empresa_id } of empresas) {
+    // Remove Estágio se existir
+    const removido = db.prepare("DELETE FROM niveis WHERE label='Estágio' AND empresa_id=?").run(empresa_id)
+    if (removido.changes > 0) console.log(`✅ Estágio removido (empresa ${empresa_id})`)
 
-  // Garante ordem correta Goiasa: Gestor=7, Gerente=8, Superintendente=9, Diretor=10
-  db.prepare("UPDATE niveis SET ordem = 7 WHERE label = 'Gestor' AND empresa_id = 'default'").run()
-  db.prepare("UPDATE niveis SET ordem = 8 WHERE label = 'Gerente' AND empresa_id = 'default'").run()
-  db.prepare("UPDATE niveis SET ordem = 9 WHERE label = 'Superintendente' AND empresa_id = 'default'").run()
-  db.prepare("UPDATE niveis SET ordem = 10 WHERE label = 'Diretor' AND empresa_id = 'default'").run()
-  console.log("✅ Hierarquia reordenada: Gestor < Gerente < Superintendente < Diretor")
+    // Adiciona Superintendente se não existir
+    const temSup = db.prepare("SELECT COUNT(*) as n FROM niveis WHERE label='Superintendente' AND empresa_id=?").get(empresa_id).n > 0
+    if (!temSup) {
+      db.prepare("INSERT INTO niveis (empresa_id,label,ordem,eh_lideranca,descricao,descricao_curta,fator_salarial) VALUES (?,?,?,?,?,?,?)")
+        .run(empresa_id, "Superintendente", 9, 1, "Superintendente — liderança estratégica operacional, acima de Gestor, abaixo de Diretor", "Superintendente", 2.70)
+      console.log(`✅ Superintendente adicionado (empresa ${empresa_id})`)
+    }
+
+    // Garante ordem correta: Gestor=7, Gerente=8, Superintendente=9, Diretor=10
+    db.prepare("UPDATE niveis SET ordem = 7 WHERE label = 'Gestor' AND empresa_id = ?").run(empresa_id)
+    db.prepare("UPDATE niveis SET ordem = 8 WHERE label = 'Gerente' AND empresa_id = ?").run(empresa_id)
+    db.prepare("UPDATE niveis SET ordem = 9 WHERE label = 'Superintendente' AND empresa_id = ?").run(empresa_id)
+    db.prepare("UPDATE niveis SET ordem = 10 WHERE label = 'Diretor' AND empresa_id = ?").run(empresa_id)
+  }
+  if (empresas.length > 0) console.log(`✅ Hierarquia corrigida para ${empresas.length} empresa(s)`)
 })()
 
 // Prompt ultra-enxuto para Ollama — modelos pequenos perdem o fio em prompts longos
@@ -1994,7 +2014,7 @@ app.get("/exportar/salarios-pdf", (req, res) => {
     Dissídio.com.br (25% — pisos sindicais), Glassdoor Brasil (15% — autodeclarado).<br><br>
     <strong>Fórmulas de cálculo:</strong><br>
     • Salário base PLENO = CAGED×0.60 + Dissídio×0.25 + Glassdoor×0.15<br>
-    • Salário por nível = Base PLENO × fator (Trainee 0.60, Junior 0.80, Senior 1.25, Gerente 1.80, Gestor 2.10, Superintendente 2.70, Diretor 3.50)<br>
+    • Salário por nível = Base PLENO × fator (${db.prepare("SELECT label, fator_salarial FROM niveis WHERE empresa_id = ? AND label != 'Pleno' ORDER BY ordem").all(req.empresaId).map(n => `${n.label} ${n.fator_salarial.toFixed(2)}`).join(", ")})<br>
     • Faixas mínima/máxima = ±18% da mediana (quando não fornecido)<br>
     • Remuneração total = Salário base × 1.15 (VT, VR, convênio)<br><br>
     <strong>Ajuste regional:</strong> Defasagem de 12–25% aplicada para Sul Goiano (Quirinópolis, Jataí, Rio Verde) vs Interior de São Paulo,
@@ -2043,7 +2063,7 @@ app.get("/exportar/salarios-pdf", (req, res) => {
       3. Fator regional Sul Goiano = ×0.88 (defasagem 12%) = R$ 1.900<br>
       4. Faixas: Min = 1900×0.82 = R$ 1.558 | Max = 1900×1.18 = R$ 2.242<br>
       5. Remun. Total = 1900×1.15 = R$ 2.185 (VT, VR, convênio)<br><br>
-      Para outros níveis: Trainee ×0.60, Junior ×0.80, Senior ×1.25, Gerente ×1.80, Gestor ×2.10, Superintendente ×2.70, Diretor ×3.50
+      Para outros níveis: ${db.prepare("SELECT label, fator_salarial FROM niveis WHERE empresa_id = ? AND label != 'Pleno' ORDER BY ordem").all(req.empresaId).map(n => `${n.label} ×${n.fator_salarial.toFixed(2)}`).join(", ")}
     </div>
   </div>
 </div>
@@ -2418,20 +2438,9 @@ app.post("/gerar-pesquisa-salarial", async (req, res) => {
 
     const nivelFinal = nivel || "Pleno"
 
-    // Fator multiplicador por nível — base = Pleno (1.0)
-    const FATORES_NIVEL = {
-      "Trainee":         0.60,
-      "Junior":          0.80,
-      "Pleno":           1.00,
-      "Senior":          1.25,
-      "Especialista":    1.40,
-      "Coordenador":     1.55,
-      "Gestor":          1.70,
-      "Gerente":         2.10,
-      "Superintendente": 2.70,
-      "Diretor":         3.50
-    }
-    const fatorNivel = FATORES_NIVEL[nivelFinal] || 1.0
+    // Fator multiplicador por nível — lido do banco (dinâmico, editável pela interface)
+    const nivelRow = db.prepare("SELECT fator_salarial FROM niveis WHERE label = ? AND empresa_id = ?").get(nivelFinal, req.empresaId)
+    const fatorNivel = nivelRow?.fator_salarial || 1.0
 
     // Pedir salário PLENO à IA, depois aplicar fator de nível
     const prompt = `Pesquisa salarial: USINAS DE CANA-DE-AÇÚCAR no SUL GOIANO (Quirinópolis, Jataí, Rio Verde).
@@ -2628,12 +2637,12 @@ app.get("/niveis", (req, res) => {
 })
 
 app.post("/niveis", (req, res) => {
-  const { label, ordem = 0, eh_lideranca = 0, descricao = "", descricao_curta = "" } = req.body
+  const { label, ordem = 0, eh_lideranca = 0, descricao = "", descricao_curta = "", fator_salarial = 1.0 } = req.body
   if (!label?.trim()) return res.status(400).json({ erro: "label obrigatório" })
   const maxOrdem = db.prepare("SELECT MAX(ordem) as m FROM niveis WHERE empresa_id = ?").get(req.empresaId).m ?? 0
   try {
-    db.prepare("INSERT INTO niveis (empresa_id,label,ordem,eh_lideranca,descricao,descricao_curta) VALUES (?,?,?,?,?,?)")
-      .run(req.empresaId, label.trim(), ordem || maxOrdem + 1, eh_lideranca ? 1 : 0, descricao, descricao_curta)
+    db.prepare("INSERT INTO niveis (empresa_id,label,ordem,eh_lideranca,descricao,descricao_curta,fator_salarial) VALUES (?,?,?,?,?,?,?)")
+      .run(req.empresaId, label.trim(), ordem || maxOrdem + 1, eh_lideranca ? 1 : 0, descricao, descricao_curta, parseFloat(fator_salarial) || 1.0)
     auditReq(req, "nivel.criar", label.trim())
     res.json({ ok: true })
   } catch (e) {
@@ -2644,12 +2653,12 @@ app.post("/niveis", (req, res) => {
 
 app.put("/niveis/:label", (req, res) => {
   const labelAtual = decodeURIComponent(req.params.label)
-  const { label, ordem, eh_lideranca, descricao, descricao_curta } = req.body
+  const { label, ordem, eh_lideranca, descricao, descricao_curta, fator_salarial } = req.body
   if (!label?.trim()) return res.status(400).json({ erro: "label obrigatório" })
   try {
     const info = db.prepare(
-      "UPDATE niveis SET label=?, ordem=?, eh_lideranca=?, descricao=?, descricao_curta=? WHERE label=? AND empresa_id=?"
-    ).run(label.trim(), ordem ?? 0, eh_lideranca ? 1 : 0, descricao ?? "", descricao_curta ?? "", labelAtual, req.empresaId)
+      "UPDATE niveis SET label=?, ordem=?, eh_lideranca=?, descricao=?, descricao_curta=?, fator_salarial=? WHERE label=? AND empresa_id=?"
+    ).run(label.trim(), ordem ?? 0, eh_lideranca ? 1 : 0, descricao ?? "", descricao_curta ?? "", parseFloat(fator_salarial) || 1.0, labelAtual, req.empresaId)
     if (info.changes === 0) return res.status(404).json({ erro: "Nível não encontrado." })
     auditReq(req, "nivel.editar", label.trim())
     res.json({ ok: true })
@@ -2994,13 +3003,9 @@ app.post("/gerar", async (req, res) => {
       if (!salarioRef) {
         pensar(`Gerando estimativa com base em tendências de mercado...`)
 
-        // Fator multiplicador por nível — base = Pleno (1.0)
-        const FATORES_NIVEL_GER = {
-          "Trainee": 0.60, "Junior": 0.80, "Pleno": 1.00,
-          "Senior": 1.25, "Especialista": 1.40, "Coordenador": 1.55,
-          "Gestor": 1.70, "Gerente": 2.10, "Superintendente": 2.70, "Diretor": 3.50
-        }
-        const fatorNivelGer = FATORES_NIVEL_GER[nivel] || 1.0
+        // Fator multiplicador por nível — lido do banco (dinâmico)
+        const nivelRowGer = db.prepare("SELECT fator_salarial FROM niveis WHERE label = ? AND empresa_id = ?").get(nivel, req.empresaId)
+        const fatorNivelGer = nivelRowGer?.fator_salarial || 1.0
 
         const promptSalarios = `Pesquisa salarial: USINAS DE CANA-DE-AÇÚCAR no SUL GOIANO (Quirinópolis, Jataí, Rio Verde).
 Área: ${area} | Nível: PLENO (referência base)

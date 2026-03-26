@@ -222,8 +222,8 @@ function renderizarListaNiveis() {
     li.className = "areas-list-item" + (nivelEditando?.label === n.label ? " active" : "")
     li.onclick = () => selecionarNivel(n)
     li.innerHTML = `
-      <span class="ali-label">${n.label}</span>
-      <span class="ali-sub">${n.eh_lideranca ? "Liderança" : "Técnico/Operacional"}</span>`
+      <span class="ali-label"><span style="color:var(--text-muted);font-size:10px;min-width:18px;display:inline-block">${n.ordem}.</span> ${n.label}</span>
+      <span class="ali-sub">${n.eh_lideranca ? "Liderança" : "Técnico/Op."} · x${(n.fator_salarial ?? 1).toFixed(2)}</span>`
     lista.appendChild(li)
   })
 }
@@ -235,6 +235,7 @@ function selecionarNivel(n) {
   document.getElementById("niveis-btn-deletar").style.display = ""
   document.getElementById("nivel-label").value      = n.label
   document.getElementById("nivel-ordem").value      = n.ordem
+  document.getElementById("nivel-fator").value      = n.fator_salarial ?? 1.0
   document.getElementById("nivel-lideranca").checked = n.eh_lideranca === 1
   document.getElementById("nivel-curto").value      = n.descricao_curta
   document.getElementById("nivel-descricao").value  = n.descricao
@@ -248,6 +249,7 @@ function novoNivel() {
   document.getElementById("niveis-btn-deletar").style.display = "none"
   document.getElementById("nivel-label").value      = ""
   document.getElementById("nivel-ordem").value      = (niveisData.length + 1)
+  document.getElementById("nivel-fator").value      = "1.00"
   document.getElementById("nivel-lideranca").checked = false
   document.getElementById("nivel-curto").value      = ""
   document.getElementById("nivel-descricao").value  = ""
@@ -258,13 +260,14 @@ function novoNivel() {
 async function salvarNivel() {
   const label         = document.getElementById("nivel-label").value.trim()
   const ordem         = parseInt(document.getElementById("nivel-ordem").value) || 0
+  const fator_salarial = parseFloat(document.getElementById("nivel-fator").value) || 1.0
   const eh_lideranca  = document.getElementById("nivel-lideranca").checked ? 1 : 0
   const descricao     = document.getElementById("nivel-descricao").value.trim()
   const descricao_curta = document.getElementById("nivel-curto").value.trim()
 
   if (!label) return showToast("Informe o nome do nível.", "error")
 
-  const body    = { label, ordem, eh_lideranca, descricao, descricao_curta }
+  const body    = { label, ordem, eh_lideranca, descricao, descricao_curta, fator_salarial }
   const isNovo  = !nivelEditando
   const url     = isNovo ? "/niveis" : `/niveis/${encodeURIComponent(nivelEditando.label)}`
   const method  = isNovo ? "POST" : "PUT"
