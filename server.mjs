@@ -287,6 +287,25 @@ db.exec(`
     `)
     console.log("✅ Migração: niveis recriada com empresa_id")
   }
+
+  // Adiciona colunas de auditoria em pesquisas_salariais
+  const colsPesquisas = db.prepare("PRAGMA table_info(pesquisas_salariais)").all().map(c => c.name)
+  if (!colsPesquisas.includes("fonte_tipo")) {
+    db.exec("ALTER TABLE pesquisas_salariais ADD COLUMN fonte_tipo TEXT CHECK(fonte_tipo IN ('manual', 'ia_groq', 'ia_together')) DEFAULT 'manual'")
+    console.log("✅ Migração: fonte_tipo adicionado a pesquisas_salariais")
+  }
+  if (!colsPesquisas.includes("ia_prompt")) {
+    db.exec("ALTER TABLE pesquisas_salariais ADD COLUMN ia_prompt TEXT")
+    console.log("✅ Migração: ia_prompt adicionado a pesquisas_salariais")
+  }
+  if (!colsPesquisas.includes("ia_resposta")) {
+    db.exec("ALTER TABLE pesquisas_salariais ADD COLUMN ia_resposta TEXT")
+    console.log("✅ Migração: ia_resposta adicionado a pesquisas_salariais")
+  }
+  if (!colsPesquisas.includes("versao_ref")) {
+    db.exec("ALTER TABLE pesquisas_salariais ADD COLUMN versao_ref TEXT DEFAULT '1.0'")
+    console.log("✅ Migração: versao_ref adicionado a pesquisas_salariais")
+  }
 })()
 
 // ── Limpeza periódica de sessões expiradas (1h) ────────────────────────────
