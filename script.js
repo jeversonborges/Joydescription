@@ -2317,8 +2317,11 @@ function atualizarDashboardSalarial() {
 
   const expEl = document.getElementById("pesq-explicacao")
   expEl.style.display = "block"
-  expEl.innerHTML = `<div style="display:flex;align-items:center;gap:5px;margin-bottom:6px"><i class="uil uil-file-info-alt" style="font-size:12px;color:var(--accent)"></i><strong style="color:var(--text);font-size:11px">Como chegamos a este valor</strong></div>
-    A mediana salarial de <strong>${fmt(media)}</strong> para <strong>${cargo}</strong> (${areaLabel}, ${nivel}) foi obtida a partir da media ponderada entre Glassdoor Brasil (<strong>${fmt(glassdoor)}</strong>, peso 50%) e Dissidio.com.br (<strong>${fmt(dissidio)}</strong>, peso 50%), com referencia cruzada no CAGED/MTE (<strong>${fmt(caged)}</strong>) e Portal Salario (<strong>${fmt(portal)}</strong>).<br><br>Foi aplicado o fator de ajuste regional para o <strong>Sul Goiano (Tier 3)</strong>, que considera uma defasagem de 12% a 25% em relacao ao Interior de Sao Paulo, conforme dados do CEPEA/Esalq e pesquisas setoriais.${valUsina ? "<br><br>O valor informado pela usina (<strong>" + fmt(valUsina) + "</strong>) esta <strong>" + (valUsina < media ? "abaixo" : valUsina > media ? "acima" : "alinhado com") + "</strong> a media de mercado." : ""}`
+  expEl.innerHTML = `<div style="display:flex;align-items:center;gap:5px;margin-bottom:6px"><i class="uil uil-file-info-alt" style="font-size:12px;color:var(--accent)"></i><strong style="color:var(--text);font-size:11px">METODOLOGIA DE CÁLCULO</strong></div>
+    <strong style="color:var(--text-muted);font-size:10px">Fontes e pesos:</strong>
+    CAGED/MTE (60% — <strong>${fmt(caged)}</strong>) + Dissídio.com.br (25% — <strong>${fmt(dissidio)}</strong>) + Glassdoor Brasil (15% — <strong>${fmt(glassdoor)}</strong>) = Mediana de <strong>${fmt(media)}</strong> para <strong>${cargo}</strong> (${areaLabel}, ${nivel}).<br><br>
+    <strong style="color:var(--text-muted);font-size:10px">Ajuste regional:</strong> Fator de defasagem de 12–25% para Sul Goiano vs. interior de SP (CEPEA/Esalq).<br><br>
+    <strong style="color:var(--error);font-size:10px">⚠️ AVISO:</strong> Dados contêm estimativas via IA e <strong>NÃO são adequados para processos judiciais sem verificação independente</strong>. Vide AUDITORIA.md.${valUsina ? "<br><br>Valor da usina (<strong>" + fmt(valUsina) + "</strong>) está <strong>" + (valUsina < media ? "abaixo" : valUsina > media ? "acima" : "alinhado com") + "</strong> a mediana de mercado." : ""}`
 }
 
 function exportarSalariosPDF() {

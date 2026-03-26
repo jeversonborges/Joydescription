@@ -215,7 +215,11 @@ db.exec(`
     rem_total_max  REAL,
     observacoes    TEXT DEFAULT '',
     criado_em      TEXT NOT NULL,
-    atualizado_em  TEXT NOT NULL
+    atualizado_em  TEXT NOT NULL,
+    fonte_tipo     TEXT CHECK(fonte_tipo IN ('manual', 'ia_groq', 'ia_together')) DEFAULT 'manual',
+    ia_prompt      TEXT,
+    ia_resposta    TEXT,
+    versao_ref     TEXT DEFAULT '1.0'
   );
 `)
 
@@ -2190,18 +2194,19 @@ app.get("/pesquisas-salariais", (req, res) => {
 })
 
 app.post("/pesquisas-salariais", (req, res) => {
-  const { cargo, area, nivel, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, observacoes } = req.body
+  const { cargo, area, nivel, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, observacoes, fonte_tipo, ia_prompt, ia_resposta } = req.body
   if (!cargo?.trim() || !area?.trim()) return res.status(400).json({ erro: "Cargo e área são obrigatórios." })
 
   const id = randomBytes(16).toString("hex")
   const agora = new Date().toISOString()
+  const fonteTipo = fonte_tipo || "manual"
 
   try {
     db.prepare(`
-      INSERT INTO pesquisas_salariais (id, cargo, area, nivel, empresa_id, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, observacoes, criado_em, atualizado_em)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, cargo.trim(), area.trim(), nivel || "Pleno", req.empresaId, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, observacoes || "", agora, agora)
-    auditReq(req, "pesquisa_salarial.criar", `${cargo} (${area}/${nivel})`)
+      INSERT INTO pesquisas_salariais (id, cargo, area, nivel, empresa_id, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, observacoes, fonte_tipo, ia_prompt, ia_resposta, criado_em, atualizado_em)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, cargo.trim(), area.trim(), nivel || "Pleno", req.empresaId, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, observacoes || "", fonteTipo, ia_prompt || null, ia_resposta || null, agora, agora)
+    auditReq(req, "pesquisa_salarial.criar", `${cargo} (${area}/${nivel}) [${fonteTipo}]`)
     res.json({ ok: true, id })
   } catch (e) {
     res.status(500).json({ erro: e.message })
@@ -2209,13 +2214,13 @@ app.post("/pesquisas-salariais", (req, res) => {
 })
 
 app.put("/pesquisas-salariais/:id", (req, res) => {
-  const { cargo, area, nivel, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, observacoes } = req.body
+  const { cargo, area, nivel, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, observacoes, fonte_tipo, ia_prompt, ia_resposta } = req.body
   const agora = new Date().toISOString()
 
   const info = db.prepare(`
-    UPDATE pesquisas_salariais SET cargo=?, area=?, nivel=?, sal_min=?, sal_med=?, sal_max=?, rem_total_min=?, rem_total_med=?, rem_total_max=?, observacoes=?, atualizado_em=?
+    UPDATE pesquisas_salariais SET cargo=?, area=?, nivel=?, sal_min=?, sal_med=?, sal_max=?, rem_total_min=?, rem_total_med=?, rem_total_max=?, observacoes=?, fonte_tipo=?, ia_prompt=?, ia_resposta=?, atualizado_em=?
     WHERE id = ? AND empresa_id = ?
-  `).run(cargo, area, nivel, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, observacoes || "", agora, req.params.id, req.empresaId)
+  `).run(cargo, area, nivel, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, observacoes || "", fonte_tipo || "manual", ia_prompt || null, ia_resposta || null, agora, req.params.id, req.empresaId)
 
   if (info.changes === 0) return res.status(404).json({ erro: "Pesquisa não encontrada." })
   auditReq(req, "pesquisa_salarial.editar", `${cargo} (${area}/${nivel})`)
@@ -2227,6 +2232,38 @@ app.delete("/pesquisas-salariais/:id", (req, res) => {
   if (info.changes === 0) return res.status(404).json({ erro: "Pesquisa não encontrada." })
   auditReq(req, "pesquisa_salarial.deletar", req.params.id)
   res.json({ ok: true })
+})
+
+// ── Endpoint de auditoria — retorna dados brutos com prompt e resposta IA ──
+app.get("/pesquisas-salariais/:id/auditoria", (req, res) => {
+  const pesquisa = db.prepare("SELECT * FROM pesquisas_salariais WHERE id = ? AND empresa_id = ?").get(req.params.id, req.empresaId)
+  if (!pesquisa) return res.status(404).json({ erro: "Pesquisa não encontrada." })
+
+  // Retorna tudo, inclusive ia_prompt e ia_resposta brutos
+  res.json({
+    id: pesquisa.id,
+    cargo: pesquisa.cargo,
+    area: pesquisa.area,
+    nivel: pesquisa.nivel,
+    fonte_tipo: pesquisa.fonte_tipo,
+    versao_ref: pesquisa.versao_ref,
+    criado_em: pesquisa.criado_em,
+    atualizado_em: pesquisa.atualizado_em,
+    salarios: {
+      sal_min: pesquisa.sal_min,
+      sal_med: pesquisa.sal_med,
+      sal_max: pesquisa.sal_max,
+      rem_total_min: pesquisa.rem_total_min,
+      rem_total_med: pesquisa.rem_total_med,
+      rem_total_max: pesquisa.rem_total_max
+    },
+    ia_rastreabilidade: {
+      fonte: pesquisa.fonte_tipo,
+      prompt: pesquisa.ia_prompt,
+      resposta_bruta: pesquisa.ia_resposta
+    },
+    observacoes: pesquisa.observacoes
+  })
 })
 
 app.post("/gerar-pesquisa-salarial", async (req, res) => {
@@ -2283,30 +2320,41 @@ Responda SOMENTE o JSON: {"sal_min":0,"sal_med":0,"sal_max":0}`
     console.log(`🔍 IA retornou (pesquisa salarial): "${text}" | Nível: ${nivelFinal} | Fator: x${fatorNivel}`)
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     let dados = null
+    let iaValida = false
+
+    // Limites de plausibilidade — previne alucinações
+    const MIN_SAL_PLENO = 1200   // Piso mínimo legal
+    const MAX_SAL_PLENO = 50000  // Teto setor sucroenergético
 
     if (jsonMatch) {
       try {
         const parsed = JSON.parse(jsonMatch[0])
         if (parsed.sal_med) {
-          const FATOR_BENEF = 1.15
-          // Aplicar fator do nível sobre o salário base Pleno
-          const salMin = Math.round((parsed.sal_min || parsed.sal_med * 0.82) * fatorNivel)
-          const salMed = Math.round(parsed.sal_med * fatorNivel)
-          const salMax = Math.round((parsed.sal_max || parsed.sal_med * 1.18) * fatorNivel)
-          dados = {
-            sal_min: salMin,
-            sal_med: salMed,
-            sal_max: salMax,
-            rem_total_min: Math.round(salMin * FATOR_BENEF),
-            rem_total_med: Math.round(salMed * FATOR_BENEF),
-            rem_total_max: Math.round(salMax * FATOR_BENEF)
+          // Validar se valor está dentro dos limites aceitáveis
+          if (parsed.sal_med >= MIN_SAL_PLENO && parsed.sal_med <= MAX_SAL_PLENO) {
+            const FATOR_BENEF = 1.15
+            // Aplicar fator do nível sobre o salário base Pleno
+            const salMin = Math.round((parsed.sal_min || parsed.sal_med * 0.82) * fatorNivel)
+            const salMed = Math.round(parsed.sal_med * fatorNivel)
+            const salMax = Math.round((parsed.sal_max || parsed.sal_med * 1.18) * fatorNivel)
+            dados = {
+              sal_min: salMin,
+              sal_med: salMed,
+              sal_max: salMax,
+              rem_total_min: Math.round(salMin * FATOR_BENEF),
+              rem_total_med: Math.round(salMed * FATOR_BENEF),
+              rem_total_max: Math.round(salMax * FATOR_BENEF)
+            }
+            iaValida = true
+          } else {
+            console.warn(`⚠️  IA retornou valor implausível: R$ ${parsed.sal_med} (fora dos limites R$ ${MIN_SAL_PLENO}–${MAX_SAL_PLENO})`)
           }
         }
       } catch { /* parse error */ }
     }
 
-    console.log(`✅ Pesquisa salarial: ${cargo} (${area}/${nivel}) → ${dados ? "R$ " + dados.sal_med : "sem dados"}`)
-    return res.json({ dados })
+    console.log(`✅ Pesquisa salarial: ${cargo} (${area}/${nivel}) → ${dados ? "R$ " + dados.sal_med : "sem dados"} | IA válida: ${iaValida}`)
+    return res.json({ dados, ia_valida: iaValida })
 
   } catch (err) {
     console.error("❌ Erro pesquisa salarial:", err.message)
