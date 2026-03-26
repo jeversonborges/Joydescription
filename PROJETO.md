@@ -36,32 +36,64 @@ Sistema web multi-tenant para o departamento de RH criar e gerenciar descricoes 
 | Deploy manual | `railway up` (CLI) |
 | URL producao | Configurada no Railway (dominio gerado automatico) |
 
-### Deploy via CLI (RECOMENDADO - FORÇA REBUILD)
+### Método CORRETO de Deploy (use sempre esse)
 ```bash
-railway login --browserless
-railway down            # para a aplicacao antiga
-sleep 3
-railway up              # sobe codigo novo com rebuild forçado
+git add .
+git commit -m "descricao da mudança"
+git push
+railway up
 ```
 
-**⚠️ IMPORTANTE:** Se código antigo continuar rodando após `railway up`:
-1. Acessa dashboard Railway: https://railway.com/dashboard
-2. Seleciona o serviço JoyDescription
-3. Clica em "Redeploy" no painel
-4. Aguarda 3-5 minutos para novo build
-
-### Deploy via Git (automático, mas pode ter delay)
+Aguarda 3-5 minutos. Confirma nos logs:
 ```bash
-git add . && git commit -m "descricao" && git push
-# Railway detecta o push E PODE LEVAR 5-10min para rebuild
-# Se código não atualizar, usar CLI + railway down + railway up
+railway logs
 ```
 
-**Fluxo de debug quando mudanças não aparecem:**
-1. `git status` — confirma mudanças commitadas
-2. `railway logs` — verifica se novo código tá rodando
-3. Se logs antigos → `railway down && sleep 3 && railway up`
-4. Se continuar antigo → painel Railway > Redeploy manual
+### Confirmar que o deploy subiu
+Nos logs deve aparecer a linha do servidor iniciando **com data/hora recente**.
+Se aparece log antigo ou sem timestamp novo → deploy não subiu, use:
+```bash
+railway redeploy --yes
+```
+
+---
+
+## Bugs de Deploy Conhecidos — NÃO repita esses erros
+
+### Bug 1: `railway down` trava esperando confirmação
+- **O que acontece:** `railway down` pede "y/N" interativo e trava o terminal
+- **Solução:** Use `railway redeploy --yes` em vez de down+up
+- **Nunca use:** `railway down` sem `echo y |` na frente
+
+### Bug 2: Mudanças no código não aparecem no site
+- **Causa real encontrada:** Arquivos frontend (index.html, style.css, script.js) eram hardcoded com dados desatualizados, enquanto o banco já tinha os dados novos
+- **Exemplo:** Dropdown de nível na Pesquisa Salarial estava fixo no HTML com lista antiga — não buscava do banco
+- **Regra:** Sempre que adicionar/remover opções de um `<select>`, verificar se ele é hardcoded no HTML ou dinâmico via JS. Se for hardcoded, atualizar o HTML também.
+- **Como verificar:** `grep -n "option value" index.html`
+
+### Bug 3: Railway servindo versão antiga mesmo após deploy
+- **Causa:** Railway tem cache de container. `railway up` envia o código mas pode não reiniciar o container imediatamente
+- **Sintoma:** `railway logs` mostra servidor rodando mas sem as novas mensagens de migração
+- **Solução definitiva:** `railway redeploy --yes` → força rebuild completo
+- **Verificação:** Após deploy, checar `railway logs` e confirmar timestamp recente
+
+### Bug 4: Migração de banco não roda
+- **Causa:** Migrações com `INSERT OR IGNORE` ou verificação `if count > 0` não rodam se o dado já existe
+- **Sintoma:** Banco tá certo mas site não mostra mudança (confunde com bug de deploy)
+- **Solução:** Sempre criar migração separada que verifica coluna/dado específico, não a tabela inteira
+- **Exemplo correto:**
+```js
+const temSuperintendente = db.prepare("SELECT COUNT(*) as n FROM niveis WHERE label='Superintendente'").get().n > 0
+if (!temSuperintendente) { /* insere */ }
+```
+
+### Checklist antes de dizer "não subiu"
+1. `git log --oneline -3` — commit foi feito?
+2. `git push` — foi para o GitHub?
+3. `railway logs` — timestamp do servidor é recente?
+4. O elemento mudado é **hardcoded no HTML** ou **dinâmico do banco**?
+5. Se dinâmico: a migração rodou? (verificar nos logs)
+6. Se hardcoded: o arquivo HTML/CSS/JS foi atualizado e commitado?
 
 ---
 
