@@ -28,9 +28,18 @@ let salarioBase = {}
 try {
   const salariosPath = path.join(__dirname, "salarios-referencia.json")
   salarioBase = JSON.parse(fs.readFileSync(salariosPath, "utf8"))
-  console.log("✅ Base de salários de referência carregada (RAIS, CAGED, UNICA, SINDICAR)")
+  console.log("✅ Base de salários de referência carregada")
 } catch (e) {
   console.warn("⚠️  Arquivo salarios-referencia.json não encontrado:", e.message)
+}
+
+// ── Carregar conhecimento de defasagem salarial regional ────────
+let defasagemSalarial = ""
+try {
+  defasagemSalarial = fs.readFileSync(path.join(__dirname, "defasagem-salarial-goias.txt"), "utf8")
+  console.log("✅ Conhecimento de defasagem salarial regional carregado")
+} catch (e) {
+  console.warn("⚠️  Arquivo defasagem-salarial-goias.txt não encontrado")
 }
 
 // ── Express ────────────────────────────────────────────────────
@@ -1853,21 +1862,22 @@ app.post("/gerar-pesquisa-salarial", async (req, res) => {
     const client = GROQ_KEY ? groqClient : togetherClient
     const model  = GROQ_KEY ? GROQ_MODEL : TOGETHER_MODEL
 
-    const prompt = `CONTEXTO: Pesquisa salarial para o setor SUCROENERGÉTICO (usinas de cana) em Goiás/Centro-Oeste.
+    const prompt = `CONTEXTO: Pesquisa salarial para USINAS DE CANA-DE-AÇÚCAR no SUL GOIANO (Quirinópolis, Jataí, Rio Verde).
 
 Cargo: ${cargo.trim()} | Área: ${area.trim()} | Nível: ${nivel || "Pleno"}
 
-Busque em Glassdoor Brasil + Dissídio.com.br os valores reais para esse cargo em usinas de cana no Centro-Oeste.
-Faça a MÉDIA dos valores encontrados em ambas as fontes (50% Glassdoor + 50% Dissídio).
+${defasagemSalarial ? "CONHECIMENTO DE DEFASAGEM REGIONAL:\n" + defasagemSalarial + "\n" : ""}
+INSTRUÇÃO CRÍTICA: Se os dados disponíveis forem de São Paulo ou centros urbanos, aplique OBRIGATORIAMENTE o FATOR DE AJUSTE do relatório acima para estimar o valor correto no Sul Goiano. O Sul Goiano paga MENOS que SP interior.
+Busque em Glassdoor Brasil + Dissídio.com.br e aplique o ajuste regional.
 NÃO considere hierarquia de cargo — salário é definido por ÁREA + NÍVEL.
-Retorne MÍNIMO, MEDIANA e MÁXIMO (média das duas fontes).
+Retorne MÍNIMO, MEDIANA e MÁXIMO já ajustados para o Sul Goiano.
 JSON:
 {"sal_min":0,"sal_med":0,"sal_max":0}`
 
     const resultado = await client.chat.completions.create({
       model, stream: false, temperature: 0.1, max_tokens: 100,
       messages: [
-        { role: "system", content: "Responda APENAS com JSON válido numérico." },
+        { role: "system", content: "Responda APENAS com JSON válido numérico. Aplique o ajuste regional Sul Goiano conforme o relatório de defasagem." },
         { role: "user", content: prompt }
       ]
     })
@@ -2393,14 +2403,15 @@ app.post("/gerar", async (req, res) => {
       if (!salarioRef) {
         pensar(`Gerando estimativa com base em tendências de mercado...`)
 
-        const promptSalarios = `CONTEXTO: Salário em USINAS DE CANA-DE-AÇÚCAR em Goiás/Centro-Oeste.
+        const promptSalarios = `CONTEXTO: Salário em USINAS DE CANA-DE-AÇÚCAR no SUL GOIANO (Quirinópolis, Jataí, Rio Verde).
 
 Área: ${area} | Nível: ${nivel}
 
-Busque em AMBAS as fontes (Glassdoor Brasil + Dissídio.com.br) o salário para profissionais com esse nível nessa área.
-Faça a MÉDIA dos valores encontrados em ambas as fontes (50% Glassdoor + 50% Dissídio).
+${defasagemSalarial ? "CONHECIMENTO DE DEFASAGEM REGIONAL:\n" + defasagemSalarial + "\n" : ""}
+INSTRUÇÃO: Se os dados disponíveis forem de SP ou centros urbanos, aplique o FATOR DE AJUSTE do relatório acima para estimar o valor no Sul Goiano.
+Busque em Glassdoor Brasil + Dissídio.com.br e aplique o ajuste regional.
 NÃO considere hierarquia de cargo — salário é definido por ÁREA + NÍVEL.
-Retorne MÍNIMO, MEDIANA e MÁXIMO (média das duas fontes).
+Retorne MÍNIMO, MEDIANA e MÁXIMO já ajustados para o Sul Goiano.
 JSON:
 {"sal_min":0,"sal_med":0,"sal_max":0}`
 
@@ -2409,7 +2420,7 @@ JSON:
           temperature: 0.1,
           max_tokens: 100,
           messages: [
-            { role: "system", content: "Responda APENAS com JSON válido numérico." },
+            { role: "system", content: "Responda APENAS com JSON válido numérico. Aplique o ajuste regional Sul Goiano." },
             { role: "user", content: promptSalarios }
           ]
         })

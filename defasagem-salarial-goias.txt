@@ -1,0 +1,33 @@
+RELATÓRIO: DEFASAGEM SALARIAL — USINAS DO SUL GOIANO vs. USINAS DO INTERIOR DE SÃO PAULO
+Fontes: CAGED/MTE, Portal Salário, Glassdoor, Dissídio.com.br, CEPEA/Esalq (2024-2025)
+
+DEFASAGEM POR CARGO:
+- Operador de Produção: SP R$2.200-3.000 | GO R$1.900-2.500 (-10% a -15%)
+- Operador Casa de Força/Cogeração: SP R$2.800-3.800 | GO R$2.400-3.200 (-12% a -18%)
+- Laboratorista/Analista Qualidade: SP R$2.500-3.500 | GO R$2.100-3.000 (-10% a -15%)
+- Técnico Manutenção (mecânico/eletricista): SP R$3.000-4.500 | GO R$2.500-3.800 (-12% a -18%)
+- Tecnólogo Produção Sucroalcooleira: SP R$5.800-8.000 | GO R$4.800-6.500 (-15% a -20%)
+- Engenheiro Agrônomo: SP R$7.600-11.400 | GO R$6.000-9.000 (-15% a -22%)
+- Engenheiro Químico: SP R$10.300-18.100 | GO R$7.500-13.000 (-20% a -28%)
+- Supervisor Produção/Turno: SP R$5.000-7.500 | GO R$4.000-6.000 (-15% a -22%)
+- Gerente Industrial/Operações: SP R$12.000-22.000 | GO R$9.000-16.000 (-20% a -28%)
+- Diretor Industrial: SP R$25.000-45.000 | GO R$18.000-33.000 (-25% a -35%)
+
+FATOR DE AJUSTE (dado SP → estimar GO):
+- Operacional: x0.85 a x0.90
+- Técnico/Tecnólogo: x0.80 a x0.88
+- Engenheiro/Especialista: x0.75 a x0.83
+- Gestor/Supervisor: x0.78 a x0.85
+- Gerente/Diretor: x0.68 a x0.78
+
+HIERARQUIA SALARIAL POR REGIÃO:
+- TIER 1 (maior): Interior SP (Ribeirão Preto, Sertãozinho, Piracicaba)
+- TIER 2: Triângulo Mineiro, MS (-5% a -12% vs SP)
+- TIER 3 (foco): Sul Goiano (Quirinópolis, Rio Verde, Jataí) (-12% a -25% vs SP)
+- TIER 4: Nordeste (-25% a -40% vs SP)
+
+NUANCES:
+- Grandes grupos (BP Bunge, Raízen, Atvos) em GO pagam próximo ao padrão SP (-5% a -10%)
+- Cargos especializados/escassos têm menor defasagem
+- Benefícios em GO (moradia, alimentação) atenuam diferença real para -5% a -10%
+- Goiás ≈ MS x0.95-1.00 | Goiás ≈ MG triângulo x0.90-0.97 | Goiás ≈ SP interior x0.80-0.88
