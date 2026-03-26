@@ -2215,9 +2215,10 @@ app.post("/gerar", async (req, res) => {
 
 Área: ${area} | Nível: ${nivel}
 
-Busque em Glassdoor + Salário.com.br o salário REAL para profissionais com esse nível nessa área, em usinas de cana.
-NÃO considere hierarquia de cargo — salário é definido por ÁREA + NÍVEL, não por título.
-Retorne MÍNIMO, MEDIANA e MÁXIMO diretos das fontes.
+Consulte APENAS dissidio.com.br para obter o salário médio para profissionais com esse nível nessa área.
+Use os valores oficiais do Dissídio para a região Centro-Oeste/Goiás.
+NÃO considere hierarquia de cargo — salário é definido por ÁREA + NÍVEL.
+Retorne MÍNIMO, MEDIANA e MÁXIMO conforme dissidio.com.br.
 JSON:
 {"sal_min":0,"sal_med":0,"sal_max":0}`
 
