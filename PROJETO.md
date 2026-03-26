@@ -86,6 +86,24 @@ const temSuperintendente = db.prepare("SELECT COUNT(*) as n FROM niveis WHERE la
 if (!temSuperintendente) { /* insere */ }
 ```
 
+### Bug 5: Migração hardcoded com `empresa_id='default'` (CRÍTICO — 2025-03)
+- **Causa raiz:** Ao registrar uma empresa, o `empresa_id` é `Date.now().toString()` (ex: `"1711234567890"`). Mas TODAS as migrações de hierarquia usavam `empresa_id='default'` — uma empresa que nenhum usuário real usa.
+- **Sintoma:** Migração logava "✅ Hierarquia reordenada" mas nada mudava no site. Estágio continuava aparecendo, Superintendente não aparecia. O v1.0 na splash confirmava deploy, mas dados da empresa real não eram afetados.
+- **Tempo perdido:** ~10 deploys antes de descobrir.
+- **Solução definitiva:**
+```js
+// ERRADO — só afeta empresa fantasma
+db.prepare("DELETE FROM niveis WHERE label='Estágio' AND empresa_id='default'").run()
+
+// CORRETO — afeta TODAS as empresas reais
+const empresas = db.prepare("SELECT DISTINCT empresa_id FROM niveis").all()
+for (const { empresa_id } of empresas) {
+  db.prepare("DELETE FROM niveis WHERE label='Estágio' AND empresa_id=?").run(empresa_id)
+}
+```
+- **Regra:** NUNCA usar `empresa_id='default'` em migrações. Sempre iterar todas as empresas com `SELECT DISTINCT empresa_id`.
+- **Correção adicional:** Fatores salariais movidos de objetos JS hardcoded para coluna `fator_salarial` no banco — agora editáveis pela interface de Hierarquia.
+
 ### Checklist antes de dizer "não subiu"
 1. `git log --oneline -3` — commit foi feito?
 2. `git push` — foi para o GitHub?
@@ -124,18 +142,22 @@ Remuneração total = salário_base × 1.15 (VT + VR + convênio)
 ```
 
 ### Hierarquia de Níveis (Goiás — Usinas Sucroenergéticas)
-| Nível | Fator | Observação |
-|-------|-------|-----------|
-| Trainee | 0.60 | |
-| Junior | 0.80 | |
-| Pleno | 1.00 | **base de cálculo** |
-| Senior | 1.25 | |
-| Especialista | 1.40 | |
-| Coordenador | 1.55 | |
-| Gerente | 1.80 | Responsável por área com múltiplos operacionais |
-| Gestor | 2.10 | Responsável exclusivo em áreas sem gerente |
-| Superintendente | 2.70 | Cargo mais alto na usina, acima de Gestor |
-| Diretor | 3.50 | Raramente presente na usina local |
+
+> Fatores agora são editáveis pela interface (aba Hierarquia → campo "Fator salarial").
+> Coluna `fator_salarial` na tabela `niveis`. Valores abaixo são os padrões iniciais.
+
+| Ordem | Nível | Fator | Observação |
+|-------|-------|-------|-----------|
+| 1 | Trainee | 0.60 | |
+| 2 | Junior | 0.80 | |
+| 3 | Pleno | 1.00 | **base de cálculo** |
+| 4 | Senior | 1.25 | |
+| 5 | Especialista | 1.40 | |
+| 6 | Coordenador | 1.55 | |
+| 7 | Gestor | 1.70 | Abaixo do Gerente — responsável exclusivo quando não há Gerente |
+| 8 | Gerente | 2.10 | Responsável por área com múltiplos operacionais |
+| 9 | Superintendente | 2.70 | Acima de Gerente, cargo mais alto da usina |
+| 10 | Diretor | 3.50 | Raramente presente na usina local |
 
 > **Estágio não existe nas usinas goianas** — removido do sistema.
 
