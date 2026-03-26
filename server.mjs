@@ -1869,6 +1869,21 @@ app.get("/exportar/salarios-pdf", (req, res) => {
   .obs { font-size: 8.5px; color: #64748b; max-width: 120px; }
   .nivel-pill { font-size: 8px; padding: 2px 6px; border-radius: 99px; background: #e0f2fe; color: #0369a1; font-weight: 600; }
 
+  .aviso-critico {
+    background: #fee2e2; border: 2px solid #dc2626; border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 24px; page-break-inside: avoid;
+  }
+  .aviso-critico-titulo { font-size: 11px; font-weight: 800; color: #7f1d1d; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .aviso-critico-texto { font-size: 9px; color: #991b1b; line-height: 1.7; }
+  .aviso-critico-texto strong { color: #7f1d1d; }
+
+  .explicacao-calculo {
+    background: #ecfdf5; border: 1px solid #10b981; border-radius: 6px;
+    padding: 12px 14px; margin: 16px 0; page-break-inside: avoid;
+  }
+  .explicacao-titulo { font-size: 10px; font-weight: 700; color: #047857; margin-bottom: 6px; }
+  .explicacao-texto { font-size: 8.5px; color: #059669; line-height: 1.6; }
+
   .rodape { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e2e8f0;
             display: flex; justify-content: space-between; font-size: 8.5px; color: #94a3b8; }
 
@@ -1887,6 +1902,23 @@ app.get("/exportar/salarios-pdf", (req, res) => {
   <div class="cover-sub">Pesquisa Salarial</div>
   <div class="cover-title">Levantamento Salarial — Setor Sucroenergetico</div>
   <div class="cover-info">Regiao: Sul Goiano (Centro-Oeste) | Gerado em: ${formatDate(new Date().toISOString())} | ${pesquisas.length} cargo${pesquisas.length !== 1 ? "s" : ""} pesquisado${pesquisas.length !== 1 ? "s" : ""}</div>
+</div>
+
+<div class="aviso-critico">
+  <div class="aviso-critico-titulo">⚠️ AVISOS IMPORTANTES — LEIA ANTES DE USAR</div>
+  <div class="aviso-critico-texto">
+    <strong>1. Adequação para uso:</strong> Este relatório contém estimativas via inteligência artificial e dados interpolados.
+    <strong>NÃO é adequado para decisões judiciais, processos trabalhistas ou conformidade legal sem verificação técnica independente.</strong><br><br>
+
+    <strong>2. Origem dos dados:</strong> Média ponderada de CAGED/MTE (60%), Dissídio.com.br (25%) e Glassdoor (15%).
+    Glassdoor é autodeclarado e pode conter vieses. CAGED é dado oficial mas com defasagem de 2–3 meses.<br><br>
+
+    <strong>3. Interpolações:</strong> Valores gerados por IA (Groq LLaMA 70B) são validados dentro de limites de plausibilidade (R$ 1.200–50.000 para PLENO).
+    Consulte AUDITORIA.md e endpoint /pesquisas-salariais/:id/auditoria para rastreabilidade completa.<br><br>
+
+    <strong>4. Responsabilidade:</strong> Cabe ao usuário validar qualquer dado antes de utilizá-lo em decisões de folha de pagamento ou RH.
+    Este sistema é ferramenta de orientação, não de certificação.
+  </div>
 </div>
 
 <div class="metodologia-box">
@@ -1936,9 +1968,17 @@ app.get("/exportar/salarios-pdf", (req, res) => {
     </div>
   </div>
 
-  <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:6px;padding:10px;margin-top:12px;font-size:8.5px;color:#78350f;line-height:1.5">
-    <strong>⚠️ AVISO IMPORTANTE:</strong> Dados contêm estimativas via IA e <strong>NÃO são adequados para decisões legais/judiciais sem verificação independente</strong>.
-    Destina-se à orientação interna de RH e comparativo preliminar. Consulte AUDITORIA.md para conformidade formal e assinatura técnica.
+  <div class="explicacao-calculo">
+    <div class="explicacao-titulo">📐 COMO CALCULAMOS OS VALORES</div>
+    <div class="explicacao-texto">
+      <strong>Exemplo: Operador de Produção, Nível Pleno</strong><br>
+      1. CAGED (60%) = R$ 2.200 | Dissídio (25%) = R$ 2.000 | Glassdoor (15%) = R$ 2.300<br>
+      2. Base PONDERADA = (2200×0.60) + (2000×0.25) + (2300×0.15) = R$ 2.160<br>
+      3. Fator regional Sul Goiano = ×0.88 (defasagem 12%) = R$ 1.900<br>
+      4. Faixas: Min = 1900×0.82 = R$ 1.558 | Max = 1900×1.18 = R$ 2.242<br>
+      5. Remun. Total = 1900×1.15 = R$ 2.185 (VT, VR, convênio)<br><br>
+      Para outros níveis: Estágio ×0.35, Junior ×0.72, Senior ×1.30, Gerente ×2.40, Diretor ×3.50
+    </div>
   </div>
 </div>
 
