@@ -41,17 +41,19 @@ Sistema web multi-tenant para o departamento de RH criar e gerenciar descricoes 
 git add .
 git commit -m "descricao da mudança"
 git push
-railway up
 ```
 
-Aguarda 3-5 minutos. Confirma nos logs:
+**Só isso.** O Railway está conectado ao GitHub (branch main) e faz deploy automático a cada push.
+Aguarda 3-5 minutos e confirma abrindo o site — a splash screen mostra a versão atual (ex: v1.0).
+
+### Confirmar que o deploy subiu
+**Visual:** Abre o site — se a splash mostrar a versão correta, subiu.
+**Via CLI:**
 ```bash
 railway logs
 ```
-
-### Confirmar que o deploy subiu
-Nos logs deve aparecer a linha do servidor iniciando **com data/hora recente**.
-Se aparece log antigo ou sem timestamp novo → deploy não subiu, use:
+Nos logs deve aparecer a linha do servidor iniciando com data/hora recente.
+Se não subiu, força com:
 ```bash
 railway redeploy --yes
 ```
