@@ -2211,11 +2211,14 @@ app.post("/gerar", async (req, res) => {
       if (!salarioRef) {
         pensar(`Gerando estimativa com base em tendências de mercado...`)
 
-        const promptSalarios = `Estime o salário REALISTA do cargo no Centro-Oeste baseado em Glassdoor + Salário.com.br.
+        const promptSalarios = `CONTEXTO: Salário em USINAS DE CANA-DE-AÇÚCAR em Goiás/Centro-Oeste (NOT São Paulo, NOT governo, NOT indústria geral).
+Usinas pagam MENOS que média nacional de indústria.
 
 Cargo: ${cargo} | Área: ${area} | Nível: ${nivel}
 
-Retorne EXATAMENTE o mínimo, mediana e máximo encontrados nessas fontes — SEM adicionar percentuais. Valores puros das pesquisas. JSON:
+Busque especificamente em Glassdoor + Salário.com.br o intervalo MÍNIMO (piso real das usinas), MEDIANA e MÁXIMO para esse cargo em usinas de cana no Centro-Oeste.
+Use valores 10-15% ABAIXO da média geral se necessário para refletir a realidade das usinas interiores.
+SEM inflação. JSON:
 {"sal_min":0,"sal_med":0,"sal_max":0}`
 
         const streamSalarios = await criarStream({
@@ -2251,9 +2254,9 @@ Retorne EXATAMENTE o mínimo, mediana e máximo encontrados nessas fontes — SE
         sal_min: salarioRef.sal_min,
         sal_med: salarioRef.sal_med,
         sal_max: salarioRef.sal_max,
-        rem_total_min: Math.round(salarioRef.sal_min * FATOR_BENEFICIOS),
-        rem_total_med: Math.round(salarioRef.sal_med * FATOR_BENEFICIOS),
-        rem_total_max: Math.round(salarioRef.sal_max * FATOR_BENEFICIOS),
+        rem_total_min: salarioRef.sal_min ? Math.round(salarioRef.sal_min * FATOR_BENEFICIOS) : null,
+        rem_total_med: salarioRef.sal_min ? Math.round(salarioRef.sal_min * FATOR_BENEFICIOS) : null,
+        rem_total_max: salarioRef.sal_min ? Math.round(salarioRef.sal_min * FATOR_BENEFICIOS * 1.2) : null,
         fonte: salarioRef.fonte
       } : null
 
