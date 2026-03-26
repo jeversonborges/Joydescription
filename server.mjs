@@ -2239,22 +2239,48 @@ app.post("/gerar-pesquisa-salarial", async (req, res) => {
     const model  = GROQ_KEY ? GROQ_MODEL : TOGETHER_MODEL
 
     const nivelFinal = nivel || "Pleno"
-    const prompt = `Pesquisa salarial: USINAS DE CANA no SUL GOIANO.
-Cargo: ${cargo.trim()} | Área: ${area.trim()} | Nível: ${nivelFinal}
-Sul Goiano paga 12-25% MENOS que Interior SP. Fatores: Operacional x0.85-0.90, Técnico x0.80-0.88, Engenheiro x0.75-0.83, Gestor x0.78-0.85, Gerente/Diretor x0.68-0.78.
-Fontes: Glassdoor + Dissídio.com.br (média). Salário definido por ÁREA + NÍVEL (não por hierarquia de cargo).
+
+    // Fator multiplicador por nível — base = Pleno (1.0)
+    const FATORES_NIVEL = {
+      "Estágio":       0.35,
+      "Trainee":       0.50,
+      "Junior":        0.72,
+      "Pleno":         1.00,
+      "Senior":        1.30,
+      "Especialista":  1.45,
+      "Coordenador":   1.60,
+      "Gestor":        1.90,
+      "Gerente":       2.40,
+      "Diretor":       3.50
+    }
+    const fatorNivel = FATORES_NIVEL[nivelFinal] || 1.0
+
+    // Pedir salário PLENO à IA, depois aplicar fator de nível
+    const prompt = `Pesquisa salarial: USINAS DE CANA-DE-AÇÚCAR no SUL GOIANO (Quirinópolis, Jataí, Rio Verde).
+Área: ${area.trim()} | Nível: PLENO (referência base)
+
+REFERÊNCIAS REAIS de salário base mensal PLENO em usinas do Sul Goiano (2024-2025):
+- Operador de Produção: R$ 1.900 a R$ 2.500 (mediana R$ 2.200)
+- Laboratorista/Analista Qualidade: R$ 2.100 a R$ 3.000 (mediana R$ 2.500)
+- Técnico Manutenção: R$ 2.500 a R$ 3.800 (mediana R$ 3.100)
+- Analista Administrativo/RH: R$ 2.500 a R$ 3.500 (mediana R$ 3.000)
+- Tecnólogo Produção: R$ 4.800 a R$ 6.500 (mediana R$ 5.500)
+- Engenheiro: R$ 6.000 a R$ 9.000 (mediana R$ 7.500)
+- Supervisor: R$ 4.000 a R$ 6.000 (mediana R$ 5.000)
+
+Use essas referências como âncora. A área "${area.trim()}" deve ter salário PLENO coerente com essas faixas.
 Responda SOMENTE o JSON: {"sal_min":0,"sal_med":0,"sal_max":0}`
 
     const resultado = await client.chat.completions.create({
       model, stream: false, temperature: 0.1, max_tokens: 200,
       messages: [
-        { role: "system", content: "Responda APENAS com JSON válido numérico. Aplique o ajuste regional Sul Goiano conforme o relatório de defasagem." },
+        { role: "system", content: "Responda APENAS com JSON válido numérico. Valores em reais (R$) para salário base mensal de nível PLENO em usinas de cana do Sul Goiano. USE as referências fornecidas como âncora — NÃO retorne valores de SP ou capitais." },
         { role: "user", content: prompt }
       ]
     })
 
     const text = resultado.choices?.[0]?.message?.content || "{}"
-    console.log(`🔍 IA retornou (pesquisa salarial): "${text}"`)
+    console.log(`🔍 IA retornou (pesquisa salarial): "${text}" | Nível: ${nivelFinal} | Fator: x${fatorNivel}`)
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     let dados = null
 
@@ -2262,14 +2288,18 @@ Responda SOMENTE o JSON: {"sal_min":0,"sal_med":0,"sal_max":0}`
       try {
         const parsed = JSON.parse(jsonMatch[0])
         if (parsed.sal_med) {
-          const FATOR = 1.15
+          const FATOR_BENEF = 1.15
+          // Aplicar fator do nível sobre o salário base Pleno
+          const salMin = Math.round((parsed.sal_min || parsed.sal_med * 0.82) * fatorNivel)
+          const salMed = Math.round(parsed.sal_med * fatorNivel)
+          const salMax = Math.round((parsed.sal_max || parsed.sal_med * 1.18) * fatorNivel)
           dados = {
-            sal_min: parsed.sal_min ? Math.round(parsed.sal_min) : null,
-            sal_med: Math.round(parsed.sal_med),
-            sal_max: parsed.sal_max ? Math.round(parsed.sal_max) : null,
-            rem_total_min: parsed.sal_min ? Math.round(parsed.sal_min * FATOR) : null,
-            rem_total_med: Math.round(parsed.sal_med * FATOR),
-            rem_total_max: parsed.sal_max ? Math.round(parsed.sal_max * FATOR) : null
+            sal_min: salMin,
+            sal_med: salMed,
+            sal_max: salMax,
+            rem_total_min: Math.round(salMin * FATOR_BENEF),
+            rem_total_med: Math.round(salMed * FATOR_BENEF),
+            rem_total_max: Math.round(salMax * FATOR_BENEF)
           }
         }
       } catch { /* parse error */ }
@@ -2775,10 +2805,27 @@ app.post("/gerar", async (req, res) => {
       if (!salarioRef) {
         pensar(`Gerando estimativa com base em tendências de mercado...`)
 
-        const promptSalarios = `Pesquisa salarial: USINAS DE CANA no SUL GOIANO.
-Área: ${area} | Nível: ${nivel}
-Sul Goiano paga 12-25% MENOS que Interior SP. Fatores: Operacional x0.85-0.90, Técnico x0.80-0.88, Engenheiro x0.75-0.83, Gestor x0.78-0.85, Gerente/Diretor x0.68-0.78.
-Fontes: Glassdoor + Dissídio.com.br (média). Salário definido por ÁREA + NÍVEL.
+        // Fator multiplicador por nível — base = Pleno (1.0)
+        const FATORES_NIVEL_GER = {
+          "Estágio": 0.35, "Trainee": 0.50, "Junior": 0.72, "Pleno": 1.00,
+          "Senior": 1.30, "Especialista": 1.45, "Coordenador": 1.60,
+          "Gestor": 1.90, "Gerente": 2.40, "Diretor": 3.50
+        }
+        const fatorNivelGer = FATORES_NIVEL_GER[nivel] || 1.0
+
+        const promptSalarios = `Pesquisa salarial: USINAS DE CANA-DE-AÇÚCAR no SUL GOIANO (Quirinópolis, Jataí, Rio Verde).
+Área: ${area} | Nível: PLENO (referência base)
+
+REFERÊNCIAS REAIS de salário base mensal PLENO em usinas do Sul Goiano (2024-2025):
+- Operador de Produção: R$ 1.900 a R$ 2.500 (mediana R$ 2.200)
+- Laboratorista/Analista Qualidade: R$ 2.100 a R$ 3.000 (mediana R$ 2.500)
+- Técnico Manutenção: R$ 2.500 a R$ 3.800 (mediana R$ 3.100)
+- Analista Administrativo/RH: R$ 2.500 a R$ 3.500 (mediana R$ 3.000)
+- Tecnólogo Produção: R$ 4.800 a R$ 6.500 (mediana R$ 5.500)
+- Engenheiro: R$ 6.000 a R$ 9.000 (mediana R$ 7.500)
+- Supervisor: R$ 4.000 a R$ 6.000 (mediana R$ 5.000)
+
+Use essas referências como âncora. A área "${area}" deve ter salário PLENO coerente com essas faixas.
 Responda SOMENTE o JSON: {"sal_min":0,"sal_med":0,"sal_max":0}`
 
         const streamSalarios = await criarStream({
@@ -2786,30 +2833,29 @@ Responda SOMENTE o JSON: {"sal_min":0,"sal_med":0,"sal_max":0}`
           temperature: 0.1,
           max_tokens: 200,
           messages: [
-            { role: "system", content: "Responda APENAS com JSON válido numérico. Aplique o ajuste regional Sul Goiano." },
+            { role: "system", content: "Responda APENAS com JSON válido numérico. Valores em reais (R$) para salário base mensal de nível PLENO em usinas de cana do Sul Goiano. USE as referências fornecidas como âncora — NÃO retorne valores de SP ou capitais." },
             { role: "user", content: promptSalarios }
           ]
         })
 
         const textSalarios = streamSalarios.choices[0]?.message?.content ?? "{}"
+        console.log(`🔍 IA salário (gerar): "${textSalarios}" | Nível: ${nivel} | Fator: x${fatorNivelGer}`)
         try {
           let dadosIA = {}
-          // Tenta extrair JSON de forma mais robusta
           const jsonMatch = textSalarios.match(/\{[\s\S]*\}/)
           if (jsonMatch) {
             try {
               dadosIA = JSON.parse(jsonMatch[0])
             } catch {
-              // Se falhar, tenta parsear a resposta inteira
               dadosIA = JSON.parse(textSalarios)
             }
           }
 
           if (dadosIA.sal_med) {
             salarioRef = {
-              sal_min: dadosIA.sal_min ? Math.round(dadosIA.sal_min) : null,
-              sal_med: Math.round(dadosIA.sal_med),
-              sal_max: dadosIA.sal_max ? Math.round(dadosIA.sal_max) : null,
+              sal_min: Math.round((dadosIA.sal_min || dadosIA.sal_med * 0.82) * fatorNivelGer),
+              sal_med: Math.round(dadosIA.sal_med * fatorNivelGer),
+              sal_max: Math.round((dadosIA.sal_max || dadosIA.sal_med * 1.18) * fatorNivelGer),
               fonte: "Estimativa IA"
             }
           }
