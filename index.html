@@ -710,83 +710,82 @@
                 <!-- ── PAINEL ANALÍTICO ── -->
                 <div id="pesq-dashboard" class="pesq-analitico">
 
-                  <!-- Comparativo por Fonte -->
+                  <!-- Comparativo por Fonte — Donut + Legenda -->
                   <div class="pesq-section">
                     <div class="pesq-section-header">
                       <div class="pesq-section-title">
-                        <i class="uil uil-chart-bar"></i>
-                        <span>Comparativo por Fonte</span>
+                        <i class="uil uil-chart-pie"></i>
+                        <span>Distribuicao por Fonte</span>
                       </div>
                       <span class="pesq-section-badge">Salario Base</span>
                     </div>
 
-                    <div class="pesq-chart-area" id="pesq-chart">
-                      <!-- Glassdoor -->
-                      <div class="pesq-chart-item">
-                        <div class="pesq-chart-meta">
-                          <div class="pesq-chart-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6">G</div>
-                          <div class="pesq-chart-info">
-                            <span class="pesq-chart-name">Glassdoor Brasil</span>
-                            <span class="pesq-chart-desc">Informado por profissionais</span>
+                    <div class="pesq-pie-wrap">
+                      <!-- Donut Chart -->
+                      <div class="pesq-donut-container">
+                        <div class="pesq-donut" id="pesq-donut">
+                          <div class="pesq-donut-center">
+                            <span class="pesq-donut-label">Mediana</span>
+                            <span class="pesq-donut-value" id="chart-media-val">--</span>
                           </div>
-                          <span class="pesq-chart-val" id="chart-glassdoor-val">--</span>
                         </div>
-                        <div class="pesq-bar-track"><div class="pesq-bar" id="chart-glassdoor-bar" style="width:0%;background:linear-gradient(90deg,#3b82f6,#60a5fa)"></div></div>
                       </div>
 
-                      <!-- Dissidio -->
-                      <div class="pesq-chart-item">
-                        <div class="pesq-chart-meta">
-                          <div class="pesq-chart-icon" style="background:rgba(139,92,246,0.1);color:#8b5cf6">D</div>
-                          <div class="pesq-chart-info">
-                            <span class="pesq-chart-name">Dissidio.com.br</span>
-                            <span class="pesq-chart-desc">Acordos sindicais e coletivos</span>
+                      <!-- Legenda -->
+                      <div class="pesq-pie-legend" id="pesq-chart">
+                        <div class="pesq-legend-item">
+                          <div class="pesq-legend-dot" style="background:#3b82f6"></div>
+                          <div class="pesq-legend-info">
+                            <span class="pesq-legend-name">Glassdoor Brasil</span>
+                            <span class="pesq-legend-desc">Informado por profissionais</span>
                           </div>
-                          <span class="pesq-chart-val" id="chart-dissidio-val">--</span>
+                          <span class="pesq-legend-val" id="chart-glassdoor-val">--</span>
+                          <span class="pesq-legend-pct" id="chart-glassdoor-pct">50%</span>
                         </div>
-                        <div class="pesq-bar-track"><div class="pesq-bar" id="chart-dissidio-bar" style="width:0%;background:linear-gradient(90deg,#8b5cf6,#a78bfa)"></div></div>
+
+                        <div class="pesq-legend-item">
+                          <div class="pesq-legend-dot" style="background:#8b5cf6"></div>
+                          <div class="pesq-legend-info">
+                            <span class="pesq-legend-name">Dissidio.com.br</span>
+                            <span class="pesq-legend-desc">Acordos sindicais</span>
+                          </div>
+                          <span class="pesq-legend-val" id="chart-dissidio-val">--</span>
+                          <span class="pesq-legend-pct" id="chart-dissidio-pct">50%</span>
+                        </div>
+
+                        <div class="pesq-legend-item pesq-legend-ref">
+                          <div class="pesq-legend-dot" style="background:#f59e0b"></div>
+                          <div class="pesq-legend-info">
+                            <span class="pesq-legend-name">CAGED / MTE</span>
+                            <span class="pesq-legend-desc">Referencia cruzada</span>
+                          </div>
+                          <span class="pesq-legend-val" id="chart-caged-val">--</span>
+                          <span class="pesq-legend-pct pesq-legend-tag">Ref.</span>
+                        </div>
+
+                        <div class="pesq-legend-item pesq-legend-ref">
+                          <div class="pesq-legend-dot" style="background:#ec4899"></div>
+                          <div class="pesq-legend-info">
+                            <span class="pesq-legend-name">Portal Salario</span>
+                            <span class="pesq-legend-desc">Pesquisa setorial</span>
+                          </div>
+                          <span class="pesq-legend-val" id="chart-portal-val">--</span>
+                          <span class="pesq-legend-pct pesq-legend-tag">Ref.</span>
+                        </div>
                       </div>
+                    </div>
 
-                      <!-- CAGED -->
-                      <div class="pesq-chart-item">
-                        <div class="pesq-chart-meta">
-                          <div class="pesq-chart-icon" style="background:rgba(245,158,11,0.1);color:#f59e0b">C</div>
-                          <div class="pesq-chart-info">
-                            <span class="pesq-chart-name">CAGED / MTE</span>
-                            <span class="pesq-chart-desc">Cadastro oficial de empregados</span>
-                          </div>
-                          <span class="pesq-chart-val" id="chart-caged-val">--</span>
-                        </div>
-                        <div class="pesq-bar-track"><div class="pesq-bar" id="chart-caged-bar" style="width:0%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"></div></div>
+                    <!-- Faixa min-max -->
+                    <div class="pesq-range-bar" id="pesq-range-bar" style="display:none">
+                      <div class="pesq-range-track">
+                        <div class="pesq-range-fill" id="pesq-range-fill"></div>
+                        <div class="pesq-range-marker" id="pesq-range-marker-med" title="Mediana"></div>
+                        <div class="pesq-range-marker pesq-range-marker-usina" id="pesq-range-marker-usina" style="display:none" title="Sua usina"></div>
                       </div>
-
-                      <!-- Portal Salário -->
-                      <div class="pesq-chart-item">
-                        <div class="pesq-chart-meta">
-                          <div class="pesq-chart-icon" style="background:rgba(236,72,153,0.1);color:#ec4899">P</div>
-                          <div class="pesq-chart-info">
-                            <span class="pesq-chart-name">Portal Salario</span>
-                            <span class="pesq-chart-desc">Pesquisa setorial aberta</span>
-                          </div>
-                          <span class="pesq-chart-val" id="chart-portal-val">--</span>
-                        </div>
-                        <div class="pesq-bar-track"><div class="pesq-bar" id="chart-portal-bar" style="width:0%;background:linear-gradient(90deg,#ec4899,#f472b6)"></div></div>
-                      </div>
-
-                      <!-- Separador -->
-                      <div class="pesq-chart-divider"></div>
-
-                      <!-- Média Ponderada -->
-                      <div class="pesq-chart-item pesq-chart-destaque">
-                        <div class="pesq-chart-meta">
-                          <div class="pesq-chart-icon" style="background:rgba(5,150,105,0.12);color:#059669"><i class="uil uil-balance-scale" style="font-size:11px"></i></div>
-                          <div class="pesq-chart-info">
-                            <span class="pesq-chart-name" style="font-weight:700">Media ponderada</span>
-                            <span class="pesq-chart-desc">Glassdoor 50% + Dissidio 50%</span>
-                          </div>
-                          <span class="pesq-chart-val" id="chart-media-val" style="font-weight:700;color:var(--accent)">--</span>
-                        </div>
-                        <div class="pesq-bar-track"><div class="pesq-bar" id="chart-media-bar" style="width:0%;background:linear-gradient(90deg,#059669,#34d399)"></div></div>
+                      <div class="pesq-range-labels">
+                        <span id="pesq-range-min">--</span>
+                        <span style="font-weight:700;color:var(--accent)" id="pesq-range-med">Mediana</span>
+                        <span id="pesq-range-max">--</span>
                       </div>
                     </div>
                   </div>
@@ -796,27 +795,21 @@
                     <div class="pesq-section-header">
                       <div class="pesq-section-title">
                         <i class="uil uil-crosshair"></i>
-                        <span>Posicionamento</span>
+                        <span>Posicionamento da Usina</span>
                       </div>
                     </div>
 
-                    <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
-                      <div style="display:flex;align-items:center;gap:8px">
-                        <label style="font-size:10px;color:var(--text-muted);white-space:nowrap;min-width:90px">Valor da usina:</label>
-                        <input type="number" id="pesq-val-usina" class="field-input" placeholder="Informe o salario praticado (R$)" style="flex:1;padding:7px 10px;font-size:12px;font-weight:600" oninput="atualizarDashboardSalarial()">
+                    <div style="padding:14px;display:flex;flex-direction:column;gap:12px">
+                      <div class="pesq-usina-input">
+                        <div class="pesq-usina-icon"><i class="uil uil-building"></i></div>
+                        <div style="flex:1">
+                          <label class="pesq-usina-label">Valor praticado pela usina</label>
+                          <input type="number" id="pesq-val-usina" class="field-input pesq-usina-field" placeholder="Informe o salario (R$)" oninput="atualizarDashboardSalarial()">
+                        </div>
                       </div>
 
-                      <!-- Barra da usina -->
-                      <div class="pesq-chart-item" id="chart-usina-row" style="display:none">
-                        <div class="pesq-chart-meta">
-                          <div class="pesq-chart-icon" style="background:rgba(239,68,68,0.1);color:#ef4444"><i class="uil uil-building" style="font-size:11px"></i></div>
-                          <div class="pesq-chart-info">
-                            <span class="pesq-chart-name" style="font-weight:700">Sua usina</span>
-                            <span class="pesq-chart-desc">Valor informado</span>
-                          </div>
-                          <span class="pesq-chart-val" id="chart-usina-val" style="font-weight:700">--</span>
-                        </div>
-                        <div class="pesq-bar-track"><div class="pesq-bar" id="chart-usina-bar" style="width:0%;background:linear-gradient(90deg,#ef4444,#f87171)"></div></div>
+                      <div id="chart-usina-row" style="display:none">
+                        <span class="pesq-legend-val" id="chart-usina-val" style="display:none">--</span>
                       </div>
 
                       <!-- Indicador de posicionamento -->
