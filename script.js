@@ -2177,7 +2177,15 @@ async function gerarDescricaoAreaIA(btnElement) {
       body: JSON.stringify({ areaLabel: label })
     })
 
-    const data = await res.json()
+    const text = await res.text()
+    let data
+    try {
+      data = JSON.parse(text)
+    } catch (e) {
+      console.error("Resposta inválida do servidor:", text)
+      throw new Error("Resposta do servidor não é JSON válido: " + text.slice(0, 100))
+    }
+
     if (!res.ok) {
       showToast(data.erro || "Erro ao gerar descrição.", "error")
       btnElement.disabled = false

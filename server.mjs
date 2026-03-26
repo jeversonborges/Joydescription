@@ -1732,10 +1732,14 @@ app.post("/gerar-descricao-area", async (req, res) => {
 Incluir: o que faz, principais processos, tecnologias/sistemas, perfil dos profissionais, responsabilidades-chave.
 Formato: 2-3 parágrafos, linguagem clara e objetiva.`
 
-    const stream = await criarStream({
+    const client = GROQ_KEY ? groqClient : togetherClient
+    const model = GROQ_KEY ? GROQ_MODEL : TOGETHER_MODEL
+
+    const stream = await client.chat.completions.create({
       stream: false,
       temperature: 0.7,
       max_tokens: 300,
+      model: model,
       messages: [
         { role: "system", content: "Você é um especialista em descrição de áreas operacionais em usinas de cana-de-açúcar. Escreva de forma clara e profissional." },
         { role: "user", content: prompt }
@@ -1746,7 +1750,7 @@ Formato: 2-3 parágrafos, linguagem clara e objetiva.`
     res.json({ descricao: descricao.trim() })
 
   } catch (err) {
-    console.error("Erro ao gerar descrição:", err.message)
+    console.error("Erro ao gerar descrição da área:", err.message)
     res.status(500).json({ erro: "Erro ao gerar descrição: " + err.message })
   }
 })
