@@ -36,18 +36,96 @@ Sistema web multi-tenant para o departamento de RH criar e gerenciar descricoes 
 | Deploy manual | `railway up` (CLI) |
 | URL producao | Configurada no Railway (dominio gerado automatico) |
 
-### Deploy via CLI
+### Deploy via CLI (RECOMENDADO - FORÇA REBUILD)
 ```bash
 railway login --browserless
-railway up              # sobe o codigo atual
+railway down            # para a aplicacao antiga
+sleep 3
+railway up              # sobe codigo novo com rebuild forçado
 ```
 
-### Deploy via Git (automatico)
+**⚠️ IMPORTANTE:** Se código antigo continuar rodando após `railway up`:
+1. Acessa dashboard Railway: https://railway.com/dashboard
+2. Seleciona o serviço JoyDescription
+3. Clica em "Redeploy" no painel
+4. Aguarda 3-5 minutos para novo build
+
+### Deploy via Git (automático, mas pode ter delay)
 ```bash
 git add . && git commit -m "descricao" && git push
-# Railway detecta o push e faz rebuild automatico
-# Requer: Settings > Source > Connect Repository no dashboard Railway
+# Railway detecta o push E PODE LEVAR 5-10min para rebuild
+# Se código não atualizar, usar CLI + railway down + railway up
 ```
+
+**Fluxo de debug quando mudanças não aparecem:**
+1. `git status` — confirma mudanças commitadas
+2. `railway logs` — verifica se novo código tá rodando
+3. Se logs antigos → `railway down && sleep 3 && railway up`
+4. Se continuar antigo → painel Railway > Redeploy manual
+
+---
+
+## PDF de Pesquisa Salarial — Como Funciona e Como Editar
+
+### Rota
+`GET /exportar/salarios-pdf` — server.mjs, linha ~1784
+
+### Estrutura do PDF (ordem das seções)
+1. **Header/Cover** — logo JoyDesc, título, data, total de cargos
+2. **Avisos Importantes** — caixa VERMELHA com 4 itens: adequação, fontes, interpolações, responsabilidade
+3. **Rastreabilidade e Auditoria** — grid 2x3 com metadados (data, total, região, período, versão, endpoint)
+4. **Metodologia, Fontes e Cálculos** — box azul com fórmulas, grid de 6 cards de fontes, exemplo passo-a-passo
+5. **Resumo por Área** — cards com total e mediana de cada área
+6. **Tabela de Detalhamento** — colunas: Cargo, Área, Nível, Fonte (📋/🤖), Sal Min/Med/Max, Rem Total Min/Med/Max, Obs
+7. **Rodapé** — assinatura + data
+
+### Fontes e Pesos (NUNCA mudar sem atualizar AUDITORIA.md)
+- CAGED/MTE: **60%**
+- Dissídio.com.br: **25%**
+- Glassdoor Brasil: **15%**
+
+### Fórmulas
+```
+Salário PLENO = CAGED×0.60 + Dissídio×0.25 + Glassdoor×0.15
+Salário por nível = PLENO × fator_nivel
+Faixas = mediana ±18% (quando não fornecido pela IA)
+Remuneração total = salário_base × 1.15 (VT + VR + convênio)
+```
+
+### Hierarquia de Níveis (Goiás — Usinas Sucroenergéticas)
+| Nível | Fator | Observação |
+|-------|-------|-----------|
+| Trainee | 0.60 | |
+| Junior | 0.80 | |
+| Pleno | 1.00 | **base de cálculo** |
+| Senior | 1.25 | |
+| Especialista | 1.40 | |
+| Coordenador | 1.55 | |
+| Gerente | 1.80 | Responsável por área com múltiplos operacionais |
+| Gestor | 2.10 | Responsável exclusivo em áreas sem gerente |
+| Superintendente | 2.70 | Cargo mais alto na usina, acima de Gestor |
+| Diretor | 3.50 | Raramente presente na usina local |
+
+> **Estágio não existe nas usinas goianas** — removido do sistema.
+
+### Rastreabilidade de Auditoria
+Cada pesquisa salva guarda:
+- `fonte_tipo`: `manual` | `ia_groq` | `ia_together`
+- `ia_prompt`: prompt exato enviado à IA
+- `ia_resposta`: resposta bruta da IA
+- `versao_ref`: versão da metodologia usada
+
+Para auditar um valor: `GET /pesquisas-salariais/:id/auditoria`
+
+### Limites de Validação da IA
+Valores fora do range são rejeitados silenciosamente:
+- Mínimo para PLENO: R$ 1.200
+- Máximo para PLENO: R$ 50.000
+
+### Como editar o PDF
+Toda a lógica está em **server.mjs** na função `app.get("/exportar/salarios-pdf", ...)`.
+O HTML é gerado via template literal. CSS está inline dentro do `<style>`.
+Para alterar layout: editar o CSS. Para alterar dados: editar a query SQL ou o template.
 
 ---
 
