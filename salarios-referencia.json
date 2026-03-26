@@ -1,12 +1,17 @@
 {
   "fontes": {
+    "glassdoor": {
+      "descricao": "Glassdoor Brasil - Salários reais de profissionais",
+      "peso": 0.50,
+      "url": "https://www.glassdoor.com.br"
+    },
     "dissidio": {
       "descricao": "Dissídio.com.br - Salários oficiais e dissídios coletivos Centro-Oeste",
-      "peso": 1.0,
+      "peso": 0.50,
       "url": "https://dissidio.com.br/salario/"
     }
   },
-  "metodologia": "Dados diretos do Dissídio.com.br - fonte oficial de salários e dissídios",
+  "metodologia": "Média simples entre Glassdoor (50%) e Dissídio.com.br (50%)",
   "salarios_por_cargo": {
     "analista": {
       "TI": {

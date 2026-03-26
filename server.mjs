@@ -2215,10 +2215,10 @@ app.post("/gerar", async (req, res) => {
 
 Área: ${area} | Nível: ${nivel}
 
-Consulte APENAS dissidio.com.br para obter o salário médio para profissionais com esse nível nessa área.
-Use os valores oficiais do Dissídio para a região Centro-Oeste/Goiás.
+Busque em AMBAS as fontes (Glassdoor Brasil + Dissídio.com.br) o salário para profissionais com esse nível nessa área.
+Faça a MÉDIA dos valores encontrados em ambas as fontes (50% Glassdoor + 50% Dissídio).
 NÃO considere hierarquia de cargo — salário é definido por ÁREA + NÍVEL.
-Retorne MÍNIMO, MEDIANA e MÁXIMO conforme dissidio.com.br.
+Retorne MÍNIMO, MEDIANA e MÁXIMO (média das duas fontes).
 JSON:
 {"sal_min":0,"sal_med":0,"sal_max":0}`
 
