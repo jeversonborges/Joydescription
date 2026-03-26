@@ -2157,7 +2157,7 @@ async function salvarArea() {
   }
 }
 
-async function gerarDescricaoAreaIA() {
+async function gerarDescricaoAreaIA(btnElement) {
   const label = document.getElementById("area-label").value.trim()
   const universoTextarea = document.getElementById("area-universo")
 
@@ -2166,10 +2166,9 @@ async function gerarDescricaoAreaIA() {
     return
   }
 
-  const btnGerar = event.target.closest("button")
-  const textOriginal = btnGerar.innerHTML
-  btnGerar.disabled = true
-  btnGerar.innerHTML = "<span style=\"font-size:14px\">⏳</span> Gerando..."
+  const textOriginal = btnElement.innerHTML
+  btnElement.disabled = true
+  btnElement.innerHTML = "<span style=\"font-size:14px\">⏳</span> Gerando..."
 
   try {
     const res = await fetch("/gerar-descricao-area", {
@@ -2181,18 +2180,21 @@ async function gerarDescricaoAreaIA() {
     const data = await res.json()
     if (!res.ok) {
       showToast(data.erro || "Erro ao gerar descrição.", "error")
+      btnElement.disabled = false
+      btnElement.innerHTML = textOriginal
       return
     }
 
     universoTextarea.value = data.descricao || ""
     showToast("Descrição gerada com sucesso!", "success")
+    btnElement.disabled = false
+    btnElement.innerHTML = textOriginal
 
   } catch (err) {
     console.error("Erro ao gerar descrição:", err)
-    showToast("Erro ao gerar descrição.", "error")
-  } finally {
-    btnGerar.disabled = false
-    btnGerar.innerHTML = textOriginal
+    showToast("Erro ao gerar descrição: " + err.message, "error")
+    btnElement.disabled = false
+    btnElement.innerHTML = textOriginal
   }
 }
 
