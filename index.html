@@ -607,14 +607,9 @@
           <div class="areas-list-col">
             <div class="areas-list-header">
               <span>Pesquisas salariais</span>
-              <div style="display:flex;gap:4px">
-                <button class="btn-nova-area" onclick="exportarSalariosPDF()" title="Exportar relatorio PDF" style="background:transparent;border:1px solid var(--border);color:var(--text-muted)">
-                  <i class="uil uil-file-alt"></i>
-                </button>
-                <button class="btn-nova-area" onclick="novaPesquisaSalarial()">
-                  <i class="uil uil-plus"></i> Nova
-                </button>
-              </div>
+              <button class="btn-nova-area" onclick="novaPesquisaSalarial()">
+                <i class="uil uil-plus"></i> Nova
+              </button>
             </div>
             <ul id="salarios-list" class="areas-list salarios-pesquisa-list"></ul>
           </div>
@@ -712,6 +707,68 @@
                   <span style="font-size:9px;color:var(--text-muted);margin-top:6px;display:block">*Inclui VT, VR, convenio, PLR</span>
                 </div>
 
+                <!-- Dashboard Comparativo -->
+                <div id="pesq-dashboard" style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+                  <div style="padding:10px 12px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+                    <div style="display:flex;align-items:center;gap:6px">
+                      <i class="uil uil-chart-bar" style="font-size:14px;color:var(--accent)"></i>
+                      <strong style="font-size:11px;color:var(--text)">Comparativo Salarial</strong>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px">
+                      <label style="font-size:9px;color:var(--text-muted);white-space:nowrap">Valor da usina:</label>
+                      <input type="number" id="pesq-val-usina" class="field-input" placeholder="R$" style="width:100px;padding:4px 8px;font-size:11px;font-weight:700" oninput="atualizarDashboardSalarial()">
+                    </div>
+                  </div>
+
+                  <!-- Grafico de barras -->
+                  <div style="padding:14px 12px">
+                    <div id="pesq-chart" style="display:flex;flex-direction:column;gap:10px">
+                      <div class="chart-row">
+                        <div class="chart-label">
+                          <span class="chart-source">Glassdoor</span>
+                          <span class="chart-value" id="chart-glassdoor-val">—</span>
+                        </div>
+                        <div class="chart-bar-wrap"><div class="chart-bar" id="chart-glassdoor-bar" style="width:0%;background:linear-gradient(90deg,#3b82f6,#60a5fa)"></div></div>
+                      </div>
+                      <div class="chart-row">
+                        <div class="chart-label">
+                          <span class="chart-source">Dissidio</span>
+                          <span class="chart-value" id="chart-dissidio-val">—</span>
+                        </div>
+                        <div class="chart-bar-wrap"><div class="chart-bar" id="chart-dissidio-bar" style="width:0%;background:linear-gradient(90deg,#8b5cf6,#a78bfa)"></div></div>
+                      </div>
+                      <div class="chart-row">
+                        <div class="chart-label">
+                          <span class="chart-source">CAGED/MTE</span>
+                          <span class="chart-value" id="chart-caged-val">—</span>
+                        </div>
+                        <div class="chart-bar-wrap"><div class="chart-bar" id="chart-caged-bar" style="width:0%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"></div></div>
+                      </div>
+                      <div class="chart-row">
+                        <div class="chart-label">
+                          <span class="chart-source" style="font-weight:700">Media pesquisa</span>
+                          <span class="chart-value" id="chart-media-val" style="font-weight:700;color:var(--accent)">—</span>
+                        </div>
+                        <div class="chart-bar-wrap"><div class="chart-bar" id="chart-media-bar" style="width:0%;background:linear-gradient(90deg,#059669,#34d399)"></div></div>
+                      </div>
+                      <div class="chart-row" id="chart-usina-row" style="display:none">
+                        <div class="chart-label">
+                          <span class="chart-source" style="font-weight:700">Sua usina</span>
+                          <span class="chart-value" id="chart-usina-val" style="font-weight:700">—</span>
+                        </div>
+                        <div class="chart-bar-wrap"><div class="chart-bar" id="chart-usina-bar" style="width:0%;background:linear-gradient(90deg,#ef4444,#f87171)"></div></div>
+                      </div>
+                    </div>
+
+                    <!-- Indicador de posicionamento -->
+                    <div id="pesq-posicionamento" style="display:none;margin-top:12px;padding:8px 10px;border-radius:6px;font-size:10px;line-height:1.5"></div>
+                  </div>
+
+                  <!-- Texto explicativo -->
+                  <div id="pesq-explicacao" style="display:none;padding:10px 12px;border-top:1px solid var(--border);background:var(--bg);font-size:10px;color:var(--text-muted);line-height:1.6">
+                  </div>
+                </div>
+
                 <!-- Observações -->
                 <div class="field">
                   <label>Observacoes</label>
@@ -748,6 +805,9 @@
               <div class="areas-form-actions">
                 <button class="btn-salvar-area" onclick="salvarPesquisaSalarial()">
                   <i class="uil uil-check"></i> Salvar pesquisa
+                </button>
+                <button class="btn-cancelar-area" onclick="exportarPesquisaPDF()" id="btn-export-pesq" style="display:none;border:1px solid var(--accent);color:var(--accent);background:transparent">
+                  <i class="uil uil-file-alt"></i> Exportar PDF
                 </button>
                 <button class="btn-cancelar-area" onclick="cancelarPesquisaSalarial()">Cancelar</button>
               </div>

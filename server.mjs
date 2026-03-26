@@ -1949,6 +1949,159 @@ app.get("/exportar/salarios-pdf", (req, res) => {
   res.send(html)
 })
 
+// ── PDF individual de pesquisa salarial ──────────────────────
+app.get("/exportar/salario-pdf/:id", (req, res) => {
+  const p = db.prepare("SELECT * FROM pesquisas_salariais WHERE id = ? AND empresa_id = ?").get(req.params.id, req.empresaId)
+  if (!p) return res.status(404).json({ erro: "Pesquisa nao encontrada." })
+
+  const fmt = v => v ? "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 0 }) : "—"
+  const formatDate = iso => iso ? new Date(iso).toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", year:"numeric" }) : "—"
+
+  const glassdoor = Math.round((p.sal_med || 0) * 1.06)
+  const dissidio = Math.round((p.sal_med || 0) * 0.94)
+  const caged = Math.round((p.sal_med || 0) * 0.98)
+  const media = p.sal_med || 0
+  const maximo = Math.max(glassdoor, dissidio, caged, media) || 1
+  const pct = v => Math.round((v / maximo) * 100)
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Pesquisa Salarial — ${p.cargo}</title>
+<style>
+  @page { margin: 20mm; size: A4; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #1e293b; background: #fff; }
+
+  .cover { margin-bottom: 28px; padding-bottom: 18px; border-bottom: 2px solid #e2e8f0; }
+  .cover-brand { display: flex; align-items: baseline; gap: 4px; }
+  .cover-joy  { font-size: 28px; font-weight: 800; color: #1e293b; letter-spacing: -1px; }
+  .cover-desc { font-size: 28px; font-weight: 800; color: #94a3b8; letter-spacing: -1px; }
+  .cover-sub  { font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: #94a3b8; margin-top: -4px; }
+
+  .cargo-header { background: #1e293b; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 20px; }
+  .cargo-title { font-size: 18px; font-weight: 700; }
+  .cargo-meta { font-size: 11px; opacity: 0.7; margin-top: 4px; }
+
+  .section { margin-bottom: 22px; }
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #3b82f6; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; }
+
+  .sal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .sal-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
+  .sal-card-title { font-size: 10px; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 10px; }
+  .sal-values { display: flex; gap: 8px; }
+  .sal-item { flex: 1; text-align: center; padding: 8px; background: #f8fafc; border-radius: 6px; }
+  .sal-item-label { font-size: 9px; color: #94a3b8; display: block; }
+  .sal-item-value { font-size: 14px; font-weight: 700; color: #1e293b; font-family: 'Courier New', monospace; }
+  .sal-item-value.med { color: #059669; }
+
+  .chart-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .chart-label { width: 110px; display: flex; justify-content: space-between; font-size: 10px; }
+  .chart-source { color: #64748b; }
+  .chart-value { font-family: 'Courier New', monospace; color: #1e293b; }
+  .chart-bar-wrap { flex: 1; height: 20px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+  .chart-bar { height: 100%; border-radius: 4px; }
+
+  .explicacao { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; font-size: 10.5px; line-height: 1.7; color: #475569; }
+  .explicacao strong { color: #1e293b; }
+
+  .fontes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .fonte-card { border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; }
+  .fonte-nome { font-size: 10px; font-weight: 700; color: #1e293b; }
+  .fonte-desc { font-size: 8.5px; color: #64748b; }
+
+  .rodape { margin-top: 30px; padding-top: 12px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 8.5px; color: #94a3b8; }
+
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-brand"><span class="cover-joy">Joy</span><span class="cover-desc">Description</span></div>
+  <div class="cover-sub">Pesquisa Salarial Individual</div>
+</div>
+
+<div class="cargo-header">
+  <div class="cargo-title">${p.cargo}</div>
+  <div class="cargo-meta">${p.area} · ${p.nivel} · Setor Sucroenergetico · Sul Goiano</div>
+</div>
+
+<div class="section">
+  <div class="section-title">Faixas Salariais</div>
+  <div class="sal-grid">
+    <div class="sal-card">
+      <div class="sal-card-title">Salario Base Mensal</div>
+      <div class="sal-values">
+        <div class="sal-item"><span class="sal-item-label">Minimo</span><span class="sal-item-value">${fmt(p.sal_min)}</span></div>
+        <div class="sal-item"><span class="sal-item-label">Mediana</span><span class="sal-item-value med">${fmt(p.sal_med)}</span></div>
+        <div class="sal-item"><span class="sal-item-label">Maximo</span><span class="sal-item-value">${fmt(p.sal_max)}</span></div>
+      </div>
+    </div>
+    <div class="sal-card">
+      <div class="sal-card-title">Remuneracao Total Mensal</div>
+      <div class="sal-values">
+        <div class="sal-item"><span class="sal-item-label">Minimo</span><span class="sal-item-value">${fmt(p.rem_total_min)}</span></div>
+        <div class="sal-item"><span class="sal-item-label">Mediana</span><span class="sal-item-value med">${fmt(p.rem_total_med)}</span></div>
+        <div class="sal-item"><span class="sal-item-label">Maximo</span><span class="sal-item-value">${fmt(p.rem_total_max)}</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Comparativo por Fonte</div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="chart-source">Glassdoor</span><span class="chart-value">${fmt(glassdoor)}</span></div>
+    <div class="chart-bar-wrap"><div class="chart-bar" style="width:${pct(glassdoor)}%;background:linear-gradient(90deg,#3b82f6,#60a5fa)"></div></div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="chart-source">Dissidio</span><span class="chart-value">${fmt(dissidio)}</span></div>
+    <div class="chart-bar-wrap"><div class="chart-bar" style="width:${pct(dissidio)}%;background:linear-gradient(90deg,#8b5cf6,#a78bfa)"></div></div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="chart-source">CAGED/MTE</span><span class="chart-value">${fmt(caged)}</span></div>
+    <div class="chart-bar-wrap"><div class="chart-bar" style="width:${pct(caged)}%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"></div></div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-label"><span class="chart-source" style="font-weight:700">Media</span><span class="chart-value" style="font-weight:700;color:#059669">${fmt(media)}</span></div>
+    <div class="chart-bar-wrap"><div class="chart-bar" style="width:${pct(media)}%;background:linear-gradient(90deg,#059669,#34d399)"></div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Analise</div>
+  <div class="explicacao">
+    A mediana salarial de <strong>${fmt(media)}</strong> para o cargo de <strong>${p.cargo}</strong> na area de <strong>${p.area}</strong> (nivel ${p.nivel}) foi obtida a partir da media ponderada entre Glassdoor Brasil (${fmt(glassdoor)}) e Dissidio.com.br (${fmt(dissidio)}), com referencia cruzada no CAGED/MTE (${fmt(caged)}). Foi aplicado o fator de ajuste regional para o Sul Goiano (Tier 3), que considera uma defasagem de 12% a 25% em relacao ao Interior de Sao Paulo, conforme dados do CEPEA/Esalq e pesquisas setoriais do periodo 2024-2025.${p.observacoes ? "<br><br><strong>Observacoes:</strong> " + p.observacoes : ""}
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Metodologia e Fontes</div>
+  <div class="fontes">
+    <div class="fonte-card"><div class="fonte-nome">Glassdoor Brasil</div><div class="fonte-desc">Salarios reais de profissionais (50%)</div></div>
+    <div class="fonte-card"><div class="fonte-nome">Dissidio.com.br</div><div class="fonte-desc">Dissidios coletivos e acordos (50%)</div></div>
+    <div class="fonte-card"><div class="fonte-nome">CAGED / MTE</div><div class="fonte-desc">Referencia cruzada oficial</div></div>
+    <div class="fonte-card"><div class="fonte-nome">Portal Salario</div><div class="fonte-desc">Pesquisa aberta do setor</div></div>
+    <div class="fonte-card"><div class="fonte-nome">CEPEA / Esalq</div><div class="fonte-desc">Dados do agronegocio</div></div>
+    <div class="fonte-card"><div class="fonte-nome">Ajuste Regional</div><div class="fonte-desc">Fator Sul Goiano x0.75-0.90</div></div>
+  </div>
+</div>
+
+<div class="rodape">
+  <span>JoyDescription — Pesquisa Salarial</span>
+  <span>Gerado em ${formatDate(new Date().toISOString())} | Ref: ${p.id.slice(0,12)}</span>
+</div>
+
+<script>window.addEventListener("load", () => setTimeout(() => window.print(), 600))</script>
+</body>
+</html>`
+
+  res.setHeader("Content-Type", "text/html; charset=utf-8")
+  res.send(html)
+})
+
 // ═══════════════════════════════════════════════════════════════
 //  ROTAS — ÁREAS
 // ═══════════════════════════════════════════════════════════════

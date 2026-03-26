@@ -2978,3 +2978,42 @@ body.dark .login-tab.active {
   .sec-grid { grid-template-columns: 1fr; }
   .sec-score-card { flex-direction: column; text-align: center; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   DASHBOARD COMPARATIVO SALARIAL
+═══════════════════════════════════════════════════════════════ */
+.chart-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.chart-label {
+  width: 130px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.chart-source {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.chart-value {
+  font-size: 10px;
+  font-family: 'Courier New', monospace;
+  color: var(--text);
+}
+.chart-bar-wrap {
+  flex: 1;
+  height: 18px;
+  background: var(--bg-hover);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+.chart-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  min-width: 2px;
+}
