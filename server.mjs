@@ -2996,9 +2996,9 @@ app.post("/gerar", async (req, res) => {
 
         // Fator multiplicador por nível — base = Pleno (1.0)
         const FATORES_NIVEL_GER = {
-          "Estágio": 0.35, "Trainee": 0.50, "Junior": 0.72, "Pleno": 1.00,
-          "Senior": 1.30, "Especialista": 1.45, "Coordenador": 1.60,
-          "Gestor": 1.90, "Gerente": 2.40, "Diretor": 3.50
+          "Trainee": 0.60, "Junior": 0.80, "Pleno": 1.00,
+          "Senior": 1.25, "Especialista": 1.40, "Coordenador": 1.55,
+          "Gestor": 1.70, "Gerente": 2.10, "Superintendente": 2.70, "Diretor": 3.50
         }
         const fatorNivelGer = FATORES_NIVEL_GER[nivel] || 1.0
 
