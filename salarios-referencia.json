@@ -15,86 +15,86 @@
   "salarios_por_cargo": {
     "analista": {
       "TI": {
-        "junior": { "min": 3000, "med": 3800, "max": 4800 },
-        "pleno": { "min": 3800, "med": 4800, "max": 6000 },
-        "senior": { "min": 5000, "med": 6500, "max": 8500 }
+        "junior": { "min": 2400, "med": 2800, "max": 3400 },
+        "pleno": { "min": 2800, "med": 3400, "max": 4200 },
+        "senior": { "min": 3600, "med": 4400, "max": 5600 }
       },
       "RH": {
-        "junior": { "min": 2600, "med": 3200, "max": 4000 },
-        "pleno": { "min": 3400, "med": 4200, "max": 5200 },
-        "senior": { "min": 4800, "med": 6000, "max": 7500 }
+        "junior": { "min": 2000, "med": 2400, "max": 3000 },
+        "pleno": { "min": 2400, "med": 3000, "max": 3800 },
+        "senior": { "min": 3400, "med": 4200, "max": 5400 }
       },
       "REMUNERAÇÃO": {
-        "junior": { "min": 2400, "med": 3000, "max": 3800 },
-        "pleno": { "min": 3200, "med": 4000, "max": 5000 },
-        "senior": { "min": 4500, "med": 5500, "max": 7000 }
+        "junior": { "min": 1800, "med": 2200, "max": 2800 },
+        "pleno": { "min": 2200, "med": 2800, "max": 3600 },
+        "senior": { "min": 3200, "med": 3800, "max": 4800 }
       },
       "SAFRA": {
-        "junior": { "min": 2800, "med": 3500, "max": 4400 },
-        "pleno": { "min": 3600, "med": 4500, "max": 5600 },
-        "senior": { "min": 5000, "med": 6200, "max": 8000 }
+        "junior": { "min": 2200, "med": 2600, "max": 3200 },
+        "pleno": { "min": 2600, "med": 3200, "max": 4000 },
+        "senior": { "min": 3600, "med": 4400, "max": 5600 }
       },
       "PRODUÇÃO": {
-        "junior": { "min": 2800, "med": 3500, "max": 4400 },
-        "pleno": { "min": 3600, "med": 4500, "max": 5600 },
-        "senior": { "min": 5000, "med": 6200, "max": 8000 }
+        "junior": { "min": 2200, "med": 2600, "max": 3200 },
+        "pleno": { "min": 2600, "med": 3200, "max": 4000 },
+        "senior": { "min": 3600, "med": 4400, "max": 5600 }
       }
     },
     "coordenador": {
-      "TI": { "med": 6000 },
-      "RH": { "med": 5500 },
-      "SAFRA": { "med": 6500 },
-      "PRODUÇÃO": { "med": 6300 }
+      "TI": { "med": 4200 },
+      "RH": { "med": 3800 },
+      "SAFRA": { "med": 4400 },
+      "PRODUÇÃO": { "med": 4200 }
     },
     "gerente": {
-      "TI": { "med": 8000 },
-      "RH": { "med": 7200 },
-      "SAFRA": { "med": 8800 },
-      "PRODUÇÃO": { "med": 8500 }
+      "TI": { "med": 5600 },
+      "RH": { "med": 5000 },
+      "SAFRA": { "med": 6000 },
+      "PRODUÇÃO": { "med": 5800 }
     },
     "especialista": {
-      "TI": { "med": 6800 },
-      "RH": { "med": 5800 },
-      "SAFRA": { "med": 7000 },
-      "PRODUÇÃO": { "med": 6800 }
+      "TI": { "med": 4600 },
+      "RH": { "med": 4000 },
+      "SAFRA": { "med": 4800 },
+      "PRODUÇÃO": { "med": 4600 }
     },
     "assistente": {
-      "TI": { "med": 2200 },
-      "RH": { "med": 1900 },
-      "SAFRA": { "med": 2300 },
-      "PRODUÇÃO": { "med": 2500 }
+      "TI": { "med": 1600 },
+      "RH": { "med": 1400 },
+      "SAFRA": { "med": 1700 },
+      "PRODUÇÃO": { "med": 1800 }
     },
     "chefe": {
-      "REMUNERAÇÃO": { "med": 5800 },
-      "RH": { "med": 6500 },
-      "SAFRA": { "med": 7000 }
+      "REMUNERAÇÃO": { "med": 4000 },
+      "RH": { "med": 4400 },
+      "SAFRA": { "med": 4800 }
     },
     "supervisor": {
-      "PRODUÇÃO": { "med": 4500 },
-      "SAFRA": { "med": 4800 },
-      "TI": { "med": 4700 }
+      "PRODUÇÃO": { "med": 3200 },
+      "SAFRA": { "med": 3400 },
+      "TI": { "med": 3200 }
     },
     "mecanico": {
       "PRODUÇÃO": {
-        "junior": { "min": 2600, "med": 3100, "max": 3800 },
-        "pleno": { "min": 3000, "med": 3600, "max": 4400 },
-        "senior": { "min": 3800, "med": 4600, "max": 5800 }
+        "junior": { "min": 2000, "med": 2400, "max": 2900 },
+        "pleno": { "min": 2400, "med": 2800, "max": 3400 },
+        "senior": { "min": 3000, "med": 3600, "max": 4400 }
       },
       "MANUTENÇÃO": {
-        "junior": { "min": 2600, "med": 3100, "max": 3800 },
-        "pleno": { "min": 3000, "med": 3600, "max": 4400 },
-        "senior": { "min": 3800, "med": 4600, "max": 5800 }
+        "junior": { "min": 2000, "med": 2400, "max": 2900 },
+        "pleno": { "min": 2400, "med": 2800, "max": 3400 },
+        "senior": { "min": 3000, "med": 3600, "max": 4400 }
       },
       "SAFRA": {
-        "junior": { "min": 2800, "med": 3300, "max": 4000 },
-        "pleno": { "min": 3100, "med": 3800, "max": 4600 },
-        "senior": { "min": 4000, "med": 4800, "max": 6000 }
+        "junior": { "min": 2200, "med": 2600, "max": 3200 },
+        "pleno": { "min": 2600, "med": 3000, "max": 3600 },
+        "senior": { "min": 3200, "med": 3800, "max": 4600 }
       }
     }
   },
   "remuneracao_total_fator": {
-    "fator": 1.25,
-    "descricao": "Multiplica salário base por 1.25 (VT + VR + convênio + PLR)"
+    "fator": 1.15,
+    "descricao": "Multiplica salário base por 1.15 (VT + VR mínimos)"
   },
-  "notas": "Cálculo simples: média entre Glassdoor e Salário.com.br. Remuneração total inclui benefícios típicos do setor."
+  "notas": "VALORES REALISTAS: média entre Glassdoor e Salário.com.br. Remuneração total conservadora (×1.15)."
 }
