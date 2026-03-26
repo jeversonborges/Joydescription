@@ -1726,32 +1726,54 @@ app.post("/gerar-descricao-area", async (req, res) => {
     return res.status(400).json({ erro: "Nome da área é obrigatório" })
   }
 
+  if (!GROQ_KEY && !TOGETHER_KEY) {
+    return res.status(500).json({ erro: "Nenhuma API de IA configurada." })
+  }
+
+  const nomeArea = areaLabel.trim()
+
   try {
-    const prompt = `Escreva uma descrição profissional e concisa para a área "${areaLabel.trim()}" em uma usina de cana-de-açúcar.
-
-Incluir: o que faz, principais processos, tecnologias/sistemas, perfil dos profissionais, responsabilidades-chave.
-Formato: 2-3 parágrafos, linguagem clara e objetiva.`
-
     const client = GROQ_KEY ? groqClient : togetherClient
-    const model = GROQ_KEY ? GROQ_MODEL : TOGETHER_MODEL
+    const model  = GROQ_KEY ? GROQ_MODEL : TOGETHER_MODEL
 
-    const stream = await client.chat.completions.create({
+    const SYS = `Você é especialista sênior em RH de usinas sucroenergéticas no Centro-Oeste do Brasil.
+Sua tarefa é descrever áreas/setores de uma usina de cana-de-açúcar.
+Responda APENAS com o texto da descrição, sem títulos, sem marcadores, sem formatação markdown.
+Escreva em parágrafos corridos.`
+
+    const prompt = `Escreva a descrição operacional da área "${nomeArea}" em uma usina de cana-de-açúcar.
+
+A descrição deve conter:
+1. O que a área faz (propósito e escopo de atuação dentro da usina)
+2. Principais processos e atividades do dia a dia
+3. Sistemas, equipamentos ou tecnologias utilizados
+4. Perfil dos profissionais que atuam nessa área
+5. Como a área se relaciona com outras áreas da usina
+
+Formato: 2 a 3 parágrafos corridos, linguagem profissional e objetiva.
+Contexto: usina sucroenergética no interior de Goiás, produção de açúcar, etanol e bioenergia.
+NÃO use bullet points, NÃO use títulos, NÃO use markdown. Apenas texto corrido.`
+
+    console.log(`🤖 Gerando descrição da área "${nomeArea}" via ${GROQ_KEY ? "Groq" : "Together"}...`)
+
+    const resultado = await client.chat.completions.create({
+      model,
       stream: false,
-      temperature: 0.7,
-      max_tokens: 300,
-      model: model,
+      temperature: 0.6,
+      max_tokens: 400,
       messages: [
-        { role: "system", content: "Você é um especialista em descrição de áreas operacionais em usinas de cana-de-açúcar. Escreva de forma clara e profissional." },
-        { role: "user", content: prompt }
+        { role: "system", content: SYS },
+        { role: "user",   content: prompt }
       ]
     })
 
-    const descricao = stream.choices[0]?.message?.content || ""
-    res.json({ descricao: descricao.trim() })
+    const descricao = resultado.choices?.[0]?.message?.content || ""
+    console.log(`✅ Descrição da área "${nomeArea}" gerada (${descricao.length} chars)`)
+    return res.json({ descricao: descricao.trim() })
 
   } catch (err) {
-    console.error("Erro ao gerar descrição da área:", err.message)
-    res.status(500).json({ erro: "Erro ao gerar descrição: " + err.message })
+    console.error(`❌ Erro ao gerar descrição da área "${nomeArea}":`, err.message)
+    return res.status(500).json({ erro: "Erro ao gerar descrição: " + err.message })
   }
 })
 
