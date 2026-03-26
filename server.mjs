@@ -1987,14 +1987,18 @@ app.get("/exportar/salario-pdf/:id", (req, res) => {
   .section { margin-bottom: 22px; }
   .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #3b82f6; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; }
 
-  .sal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .sal-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
-  .sal-card-title { font-size: 10px; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 10px; }
-  .sal-values { display: flex; gap: 8px; }
-  .sal-item { flex: 1; text-align: center; padding: 8px; background: #f8fafc; border-radius: 6px; }
-  .sal-item-label { font-size: 9px; color: #94a3b8; display: block; }
-  .sal-item-value { font-size: 14px; font-weight: 700; color: #1e293b; font-family: 'Courier New', monospace; }
-  .sal-item-value.med { color: #059669; }
+  .sal-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 14px; }
+  .sal-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; }
+  .sal-card-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; }
+  .sal-card-icon.base { background: #eff6ff; color: #3b82f6; }
+  .sal-card-icon.total { background: #f0fdf4; color: #059669; }
+  .sal-card-title { font-size: 12px; font-weight: 700; color: #1e293b; }
+  .sal-card-subtitle { font-size: 9px; color: #94a3b8; }
+  .sal-values { display: flex; gap: 10px; }
+  .sal-item { flex: 1; text-align: center; padding: 12px 8px; background: #f8fafc; border-radius: 8px; border: 1px solid #f1f5f9; }
+  .sal-item-label { font-size: 9px; color: #94a3b8; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .sal-item-value { font-size: 16px; font-weight: 700; color: #1e293b; font-family: 'Courier New', monospace; }
+  .sal-item-value.med { color: #059669; font-size: 18px; }
 
   .chart-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .chart-label { width: 110px; display: flex; justify-content: space-between; font-size: 10px; }
@@ -2029,23 +2033,37 @@ app.get("/exportar/salario-pdf/:id", (req, res) => {
 </div>
 
 <div class="section">
-  <div class="section-title">Faixas Salariais</div>
-  <div class="sal-grid">
-    <div class="sal-card">
-      <div class="sal-card-title">Salario Base Mensal</div>
-      <div class="sal-values">
-        <div class="sal-item"><span class="sal-item-label">Minimo</span><span class="sal-item-value">${fmt(p.sal_min)}</span></div>
-        <div class="sal-item"><span class="sal-item-label">Mediana</span><span class="sal-item-value med">${fmt(p.sal_med)}</span></div>
-        <div class="sal-item"><span class="sal-item-label">Maximo</span><span class="sal-item-value">${fmt(p.sal_max)}</span></div>
+  <div class="section-title">Salario Base Mensal</div>
+  <div class="sal-card">
+    <div class="sal-card-header">
+      <div class="sal-card-icon base">S</div>
+      <div>
+        <div class="sal-card-title">Salario Base CLT</div>
+        <div class="sal-card-subtitle">Valor registrado em carteira, sem adicionais ou beneficios</div>
       </div>
     </div>
-    <div class="sal-card">
-      <div class="sal-card-title">Remuneracao Total Mensal</div>
-      <div class="sal-values">
-        <div class="sal-item"><span class="sal-item-label">Minimo</span><span class="sal-item-value">${fmt(p.rem_total_min)}</span></div>
-        <div class="sal-item"><span class="sal-item-label">Mediana</span><span class="sal-item-value med">${fmt(p.rem_total_med)}</span></div>
-        <div class="sal-item"><span class="sal-item-label">Maximo</span><span class="sal-item-value">${fmt(p.rem_total_max)}</span></div>
+    <div class="sal-values">
+      <div class="sal-item"><span class="sal-item-label">Minimo</span><span class="sal-item-value">${fmt(p.sal_min)}</span></div>
+      <div class="sal-item"><span class="sal-item-label">Mediana</span><span class="sal-item-value med">${fmt(p.sal_med)}</span></div>
+      <div class="sal-item"><span class="sal-item-label">Maximo</span><span class="sal-item-value">${fmt(p.sal_max)}</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Remuneracao Total Mensal</div>
+  <div class="sal-card">
+    <div class="sal-card-header">
+      <div class="sal-card-icon total">R</div>
+      <div>
+        <div class="sal-card-title">Remuneracao Total</div>
+        <div class="sal-card-subtitle">Salario base + VT, VR, convenio medico, PLR e demais beneficios</div>
       </div>
+    </div>
+    <div class="sal-values">
+      <div class="sal-item"><span class="sal-item-label">Minimo</span><span class="sal-item-value">${fmt(p.rem_total_min)}</span></div>
+      <div class="sal-item"><span class="sal-item-label">Mediana</span><span class="sal-item-value med">${fmt(p.rem_total_med)}</span></div>
+      <div class="sal-item"><span class="sal-item-label">Maximo</span><span class="sal-item-value">${fmt(p.rem_total_max)}</span></div>
     </div>
   </div>
 </div>
