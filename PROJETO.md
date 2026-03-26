@@ -41,22 +41,19 @@ Sistema web multi-tenant para o departamento de RH criar e gerenciar descricoes 
 git add .
 git commit -m "descricao da mudança"
 git push
+railway up
 ```
 
-**Só isso.** O Railway está conectado ao GitHub (branch main) e faz deploy automático a cada push.
-Aguarda 3-5 minutos e confirma abrindo o site — a splash screen mostra a versão atual (ex: v1.0).
+Aguarda 3-5 minutos. Confirma visual: a splash screen mostra `v1.0` (ou a versão atual).
 
-### Confirmar que o deploy subiu
-**Visual:** Abre o site — se a splash mostrar a versão correta, subiu.
-**Via CLI:**
-```bash
-railway logs
-```
-Nos logs deve aparecer a linha do servidor iniciando com data/hora recente.
-Se não subiu, força com:
-```bash
-railway redeploy --yes
-```
+### Diferença entre railway up e railway redeploy
+
+| Comando | O que faz | Quando usar |
+|---------|-----------|-------------|
+| `railway up` | **Faz build novo** com o código atual — pega todas as mudanças | Sempre que mudar código |
+| `railway redeploy --yes` | Reinicia o container já buildado — **NÃO pega código novo** | Só para reiniciar após crash |
+
+**Regra:** Mudou código → sempre `railway up`. Nunca depender só do push automático do GitHub.
 
 ---
 
