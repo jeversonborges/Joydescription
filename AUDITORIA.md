@@ -21,18 +21,18 @@
 - **Salário Máximo:** `base × 1.18` (se não fornecido pela IA)
 - **Remuneração Total:** `base × 1.15` (VT, VR, convênio básico)
 
-### Fator de Nível
+### Fator de Nível (Hierarquia Usinas Goiás)
 Aplicado multiplicativo sobre salário Pleno:
-- Estágio: 0.35
-- Trainee: 0.50
-- Junior: 0.72
+- Trainee: 0.60
+- Junior: 0.80
 - **Pleno: 1.00** (referência base)
-- Senior: 1.30
-- Especialista: 1.45
-- Coordenador: 1.60
-- Gestor: 1.90
-- Gerente: 2.40
-- Diretor: 3.50
+- Senior: 1.25
+- Especialista: 1.40
+- Coordenador: 1.55
+- Gerente: 1.80 (responsável por área com múltiplos operacionais)
+- Gestor: 2.10 (acima de gerente, responsável operacional exclusivo em áreas sem gerente)
+- Superintendente: 2.70 (acima de gestor, praticamente cargo mais alto na usina)
+- Diretor: 3.50 (topo — raramente presente em usinas locais)
 
 ---
 

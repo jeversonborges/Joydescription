@@ -665,15 +665,15 @@ const TIPO_CURTO = {
 function seedNiveis(empresaId) {
   const ins = db.prepare("INSERT OR IGNORE INTO niveis (empresa_id,label,ordem,eh_lideranca,descricao,descricao_curta) VALUES (?,?,?,?,?,?)")
   const seed = [
-    ["Estágio",     1, 0, NIVEL_DEF["Estágio"],     NIVEL_CURTO["Estágio"]],
-    ["Trainee",     2, 0, NIVEL_DEF["Trainee"],     NIVEL_CURTO["Trainee"]],
-    ["Junior",      3, 0, NIVEL_DEF["Junior"],      NIVEL_CURTO["Junior"]],
-    ["Pleno",       4, 0, NIVEL_DEF["Pleno"],       NIVEL_CURTO["Pleno"]],
-    ["Senior",      5, 0, NIVEL_DEF["Senior"],      NIVEL_CURTO["Senior"]],
-    ["Especialista",6, 0, NIVEL_DEF["Especialista"],NIVEL_CURTO["Especialista"]],
-    ["Coordenador", 7, 1, NIVEL_DEF["Coordenador"], NIVEL_CURTO["Coordenador"]],
+    ["Trainee",     1, 0, NIVEL_DEF["Trainee"],     NIVEL_CURTO["Trainee"]],
+    ["Junior",      2, 0, NIVEL_DEF["Junior"],      NIVEL_CURTO["Junior"]],
+    ["Pleno",       3, 0, NIVEL_DEF["Pleno"],       NIVEL_CURTO["Pleno"]],
+    ["Senior",      4, 0, NIVEL_DEF["Senior"],      NIVEL_CURTO["Senior"]],
+    ["Especialista",5, 0, NIVEL_DEF["Especialista"],NIVEL_CURTO["Especialista"]],
+    ["Coordenador", 6, 1, NIVEL_DEF["Coordenador"], NIVEL_CURTO["Coordenador"]],
+    ["Gerente",     7, 1, NIVEL_DEF["Gerente"],     NIVEL_CURTO["Gerente"]],
     ["Gestor",      8, 1, NIVEL_DEF["Gestor"],      NIVEL_CURTO["Gestor"]],
-    ["Gerente",     9, 1, NIVEL_DEF["Gerente"],     NIVEL_CURTO["Gerente"]],
+    ["Superintendente", 9, 1, "Superintendente — liderança estratégica operacional, acima de gestor, abaixo de diretor", "Superintendente"],
     ["Diretor",     10,1, NIVEL_DEF["Diretor"],     NIVEL_CURTO["Diretor"]],
   ]
   db.transaction(() => seed.forEach(([label, ordem, lider, desc, curta]) =>
@@ -1977,7 +1977,7 @@ app.get("/exportar/salarios-pdf", (req, res) => {
       3. Fator regional Sul Goiano = ×0.88 (defasagem 12%) = R$ 1.900<br>
       4. Faixas: Min = 1900×0.82 = R$ 1.558 | Max = 1900×1.18 = R$ 2.242<br>
       5. Remun. Total = 1900×1.15 = R$ 2.185 (VT, VR, convênio)<br><br>
-      Para outros níveis: Estágio ×0.35, Junior ×0.72, Senior ×1.30, Gerente ×2.40, Diretor ×3.50
+      Para outros níveis: Trainee ×0.60, Junior ×0.80, Senior ×1.25, Gerente ×1.80, Gestor ×2.10, Superintendente ×2.70, Diretor ×3.50
     </div>
   </div>
 </div>
@@ -2354,15 +2354,15 @@ app.post("/gerar-pesquisa-salarial", async (req, res) => {
 
     // Fator multiplicador por nível — base = Pleno (1.0)
     const FATORES_NIVEL = {
-      "Estágio":       0.35,
-      "Trainee":       0.50,
-      "Junior":        0.72,
+      "Trainee":       0.60,
+      "Junior":        0.80,
       "Pleno":         1.00,
-      "Senior":        1.30,
-      "Especialista":  1.45,
-      "Coordenador":   1.60,
-      "Gestor":        1.90,
-      "Gerente":       2.40,
+      "Senior":        1.25,
+      "Especialista":  1.40,
+      "Coordenador":   1.55,
+      "Gerente":       1.80,
+      "Gestor":        2.10,
+      "Superintendente": 2.70,
       "Diretor":       3.50
     }
     const fatorNivel = FATORES_NIVEL[nivelFinal] || 1.0
