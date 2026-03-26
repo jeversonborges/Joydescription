@@ -1897,6 +1897,20 @@ app.get("/exportar/salarios-pdf", (req, res) => {
   .rodape { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e2e8f0;
             display: flex; justify-content: space-between; font-size: 8.5px; color: #94a3b8; }
 
+  .section-titulo { font-size: 13px; font-weight: 800; color: #1e293b; margin-top: 20px; margin-bottom: 12px;
+                    padding-bottom: 8px; border-bottom: 3px solid #3b82f6; page-break-after: avoid; }
+
+  .auditoria-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .audit-item { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 10px 12px; }
+  .audit-label { font-size: 8px; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 4px; }
+  .audit-valor { font-size: 9.5px; color: #1e293b; font-weight: 600; }
+
+  .rastreabilidade-box {
+    background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px;
+    padding: 10px 12px; margin: 12px 0; font-size: 8.5px; color: #78350f;
+  }
+  .rastreabilidade-box strong { color: #65440e; }
+
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .no-print { display: none !important; }
@@ -1931,6 +1945,42 @@ app.get("/exportar/salarios-pdf", (req, res) => {
   </div>
 </div>
 
+<div style="page-break-inside: avoid;">
+  <div class="section-titulo">📋 RASTREABILIDADE E AUDITORIA</div>
+  <div class="auditoria-grid">
+    <div class="audit-item">
+      <div class="audit-label">Data do Relatório</div>
+      <div class="audit-valor">${formatDate(new Date().toISOString())}</div>
+    </div>
+    <div class="audit-item">
+      <div class="audit-label">Total de Cargos</div>
+      <div class="audit-valor">${pesquisas.length} cargo${pesquisas.length !== 1 ? "s" : ""}</div>
+    </div>
+    <div class="audit-item">
+      <div class="audit-label">Região Pesquisada</div>
+      <div class="audit-valor">Sul Goiano (Goiás)</div>
+    </div>
+    <div class="audit-item">
+      <div class="audit-label">Período de Referência</div>
+      <div class="audit-valor">2025-03</div>
+    </div>
+    <div class="audit-item">
+      <div class="audit-label">Versão Metodologia</div>
+      <div class="audit-valor">1.0 — CAGED 60% / Dissídio 25% / Glassdoor 15%</div>
+    </div>
+    <div class="audit-item">
+      <div class="audit-label">Rastreabilidade Completa</div>
+      <div class="audit-valor">Em: /pesquisas-salariais/:id/auditoria</div>
+    </div>
+  </div>
+
+  <div class="rastreabilidade-box">
+    <strong>📍 PARA AUDITAR QUALQUER VALOR:</strong> Acesse o endpoint <strong>/pesquisas-salariais/{ID}/auditoria</strong> para obter:
+    prompt enviado à IA, resposta bruta, tipo de fonte (manual/IA), e toda rastreabilidade.
+    Consulte <strong>AUDITORIA.md</strong> no repositório para metodologia completa.
+  </div>
+</div>
+
 <div class="metodologia-box">
   <div class="metodologia-title">Metodologia, Fontes e Cálculos</div>
   <div class="metodologia-text">
@@ -1938,7 +1988,7 @@ app.get("/exportar/salarios-pdf", (req, res) => {
     Dissídio.com.br (25% — pisos sindicais), Glassdoor Brasil (15% — autodeclarado).<br><br>
     <strong>Fórmulas de cálculo:</strong><br>
     • Salário base PLENO = CAGED×0.60 + Dissídio×0.25 + Glassdoor×0.15<br>
-    • Salário por nível = Base PLENO × fator (Estágio 0.35 ... Diretor 3.50)<br>
+    • Salário por nível = Base PLENO × fator (Trainee 0.60, Junior 0.80, Senior 1.25, Gerente 1.80, Gestor 2.10, Superintendente 2.70, Diretor 3.50)<br>
     • Faixas mínima/máxima = ±18% da mediana (quando não fornecido)<br>
     • Remuneração total = Salário base × 1.15 (VT, VR, convênio)<br><br>
     <strong>Ajuste regional:</strong> Defasagem de 12–25% aplicada para Sul Goiano (Quirinópolis, Jataí, Rio Verde) vs Interior de São Paulo,
