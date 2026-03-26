@@ -576,14 +576,14 @@ FRONTEIRA LEGAL:
 VERBOS PERMITIDOS: definir padrões técnicos, auditar, certificar, assessorar, conduzir pesquisas, implementar metodologias, emitir pareceres técnicos, validar projetos, estabelecer requisitos técnicos, representar a empresa em fóruns especializados.`,
 
   "Gestor":
-`PERFIL: Liderança tática de área — nível acima do Coordenador, abaixo do Gerente. Dono do resultado da área: aprova decisões operacionais e táticas, lidera coordenadores e responde pelo desempenho integral do seu escopo perante a gerência/diretoria. Cargo de confiança pleno (CLT art. 62, II) com poder disciplinar amplo.
+`PERFIL: Liderança sênior de área — nível acima do Gerente, abaixo do Superintendente. Nas usinas sucroenergéticas do Sul Goiano, o Gestor é o responsável máximo operacional de uma área quando não há Superintendente ou Diretor presente. Em áreas sem Gerente, o Gestor exerce também as funções gerenciais. Cargo de confiança pleno (CLT art. 62, II) com amplo poder decisório.
 
 OBRIGAÇÕES LEGAIS DO CARGO:
-- As FUNCOES DEVEM conter gestão de pessoas e gestão de resultados (coordenadores subordinados)
-- Deve exercer poder decisório real — sem decisões próprias, enquadramento pode ser contestado em reclamatória
+- As FUNCOES DEVEM conter gestão estratégica da área e decisões de alto impacto operacional
+- Deve exercer poder decisório real e autônomo — sem isso, enquadramento pode ser contestado em reclamatória
 
-FUNCOES OBRIGATÓRIAS: definir objetivos e metas da área com desdobramento para os coordenadores, gerir e desenvolver coordenadores (avaliação, feedback, plano de desenvolvimento), aprovar decisões operacionais e táticas dentro do escopo da área, gerir orçamento operacional e responder pelos indicadores da área, garantir o cumprimento de políticas, normas e procedimentos da empresa na área, representar a área em fóruns internos e prestar contas à gerência/diretoria.
-PODE TAMBÉM: participar de processos de contratação e desligamento da equipe, aprovar requisições de investimento dentro da alçada definida, representar a área em negociações operacionais com parceiros e fornecedores.`,
+FUNCOES OBRIGATÓRIAS: definir a estratégia operacional da área alinhada à superintendência/diretoria, liderar gerentes e coordenadores da área (quando existentes), gerir orçamento integral da área e responder pelos resultados perante a superintendência, tomar decisões de contratação e desligamento dentro da área, garantir conformidade com normas regulatórias e políticas da empresa, representar a área em instâncias internas e externas.
+PODE TAMBÉM: aprovar investimentos dentro da alçada da área, representar a empresa em negociações operacionais de médio e alto impacto, homologar políticas e procedimentos da área.`,
 
   "Coordenador":
 `PERFIL: Primeiro nível de liderança formal com subordinados diretos. Responde pelos resultados operacionais da equipe perante a gerência. Tem poder disciplinar dentro das políticas da empresa. Enquadra-se como CARGO DE CONFIANÇA (CLT art. 62, II) — diferenciado por padrão salarial superior e fidúcia do empregador.
@@ -650,7 +650,7 @@ const NIVEL_CURTO = {
   "Senior":       "6+ anos, define padrões técnicos, referência máxima da área, lidera projetos técnicos",
   "Especialista": "domínio profundo de especialidade, ponto focal consultivo, sem subordinados",
   "Coordenador":  "primeiro nível de liderança formal — DEVE ter funções de gestão de equipe",
-  "Gestor":       "liderança tática de área — acima do Coordenador, DEVE ter gestão de coordenadores e decisão sobre resultados da área",
+  "Gestor":       "liderança sênior de área — acima do Gerente, abaixo do Superintendente, DEVE ter autonomia decisória e gestão de gerentes/coordenadores",
   "Gerente":      "liderança de área com orçamento e decisão de pessoas",
   "Diretor":      "liderança executiva, estratégia, decisões de alto impacto",
 }
@@ -701,11 +701,17 @@ function seedNiveis(empresaId) {
   const temSuperintendente = db.prepare("SELECT COUNT(*) as n FROM niveis WHERE label='Superintendente' AND empresa_id='default'").get().n > 0
   if (!temSuperintendente) {
     db.prepare("INSERT INTO niveis (empresa_id,label,ordem,eh_lideranca,descricao,descricao_curta) VALUES (?,?,?,?,?,?)")
-      .run("default", "Superintendente", 9, 1, "Superintendente — liderança estratégica operacional, acima de gestor, abaixo de diretor", "Superintendente")
-    // Reordena Diretor
+      .run("default", "Superintendente", 9, 1, "Superintendente — liderança estratégica operacional, acima de Gestor, abaixo de Diretor", "Superintendente")
     db.prepare("UPDATE niveis SET ordem = 10 WHERE label = 'Diretor' AND empresa_id = 'default'").run()
-    console.log("✅ Nível Superintendente adicionado, hierarquia atualizada")
+    console.log("✅ Nível Superintendente adicionado")
   }
+
+  // Garante ordem correta: Gerente=7, Gestor=8, Superintendente=9, Diretor=10
+  db.prepare("UPDATE niveis SET ordem = 7 WHERE label = 'Gerente' AND empresa_id = 'default'").run()
+  db.prepare("UPDATE niveis SET ordem = 8 WHERE label = 'Gestor' AND empresa_id = 'default'").run()
+  db.prepare("UPDATE niveis SET ordem = 9 WHERE label = 'Superintendente' AND empresa_id = 'default'").run()
+  db.prepare("UPDATE niveis SET ordem = 10 WHERE label = 'Diretor' AND empresa_id = 'default'").run()
+  console.log("✅ Hierarquia de níveis reordenada: Gerente < Gestor < Superintendente < Diretor")
 })()
 
 // Prompt ultra-enxuto para Ollama — modelos pequenos perdem o fio em prompts longos
@@ -714,7 +720,7 @@ function montarPromptOllamaGen(cargo, area, nivel, tipo, candidatos, nm = {}, em
   const contextoArea = ctx?.universo?.slice(0, 300) || `Setor de uma usina sucroenergética.`
   const nivelRes = nm[nivel]?.descricao_curta || NIVEL_CURTO[nivel] || nivel
   const tipoRes  = TIPO_CURTO[tipo]  || tipo
-  const isLider  = nm[nivel]?.eh_lideranca === 1 || ["Coordenador","Gestor","Gerente","Diretor"].includes(nivel)
+  const isLider  = nm[nivel]?.eh_lideranca === 1 || ["Coordenador","Gerente","Gestor","Superintendente","Diretor"].includes(nivel)
   const regraLider = isLider
     ? "OBRIGATÓRIO: incluir funções de gestão de equipe, metas e reporte hierárquico."
     : "PROIBIDO: coordenar, liderar ou gerenciar pessoas."
@@ -749,7 +755,7 @@ function montarPromptOllamaDet(cargo, area, nivel, tipo, candidatos, nm = {}, em
   const contextoArea = ctx?.universo?.slice(0, 300) || `Setor de uma usina sucroenergética.`
   const nivelRes = nm[nivel]?.descricao_curta || NIVEL_CURTO[nivel] || nivel
   const tipoRes  = TIPO_CURTO[tipo]  || tipo
-  const isLider  = nm[nivel]?.eh_lideranca === 1 || ["Coordenador","Gestor","Gerente","Diretor"].includes(nivel)
+  const isLider  = nm[nivel]?.eh_lideranca === 1 || ["Coordenador","Gerente","Gestor","Superintendente","Diretor"].includes(nivel)
   const regraLider = isLider
     ? "OBRIGATÓRIO nas ATRIBUICOES: gestão de equipe, metas, delegação, reporte hierárquico."
     : `PROIBIDO nas ATRIBUICOES: coordenar equipe, gerir subordinados, negociar sindicato, aprovar salários de outros, demitir ou contratar. Nível técnico sem poder disciplinar.`
@@ -807,7 +813,7 @@ function montarPromptGenerica(cargo, area, nivel, tipo, candidatos, nm = {}, emp
     : "Nenhuma referência próxima encontrada."
 
   const nivelDef = nm[nivel]?.descricao || NIVEL_DEF[nivel] || `Nível ${nivel}`
-  const isLider  = nm[nivel]?.eh_lideranca === 1 || ["Coordenador","Gestor","Gerente","Diretor"].includes(nivel)
+  const isLider  = nm[nivel]?.eh_lideranca === 1 || ["Coordenador","Gerente","Gestor","Superintendente","Diretor"].includes(nivel)
   const regraLideranca = isLider
     ? `FUNCOES devem incluir: gestão de pessoas, metas, delegação, reporte à hierarquia.`
     : `PROIBIDO nas FUNCOES: liderar equipe, coordenar pessoas, delegar tarefas, gerir subordinados.`
@@ -855,7 +861,7 @@ function montarPrompt(cargo, area, nivel, tipo, candidatos, nm = {}, empresaId =
 
   const nivelDef = nm[nivel]?.descricao || NIVEL_DEF[nivel] || `Nível ${nivel} — adapte a complexidade das responsabilidades ao tempo de experiência esperado.`
 
-  const isLider = nm[nivel]?.eh_lideranca === 1 || ["Coordenador","Gestor","Gerente","Diretor"].includes(nivel)
+  const isLider = nm[nivel]?.eh_lideranca === 1 || ["Coordenador","Gerente","Gestor","Superintendente","Diretor"].includes(nivel)
 
   // Extrai fronteira legal do NIVEL_DEF para injetar no prompt
   const nivelDefCompleto = nm[nivel]?.descricao || NIVEL_DEF[nivel] || ""
@@ -2673,7 +2679,7 @@ app.post("/analisar", async (req, res) => {
     return res.status(400).json({ erro: "Campos obrigatórios: cargo, nivel, texto" })
 
   const niveisRows = db.prepare("SELECT * FROM niveis WHERE label = ? AND empresa_id = ?").get(nivel, req.empresaId)
-  const ehLider    = niveisRows?.eh_lideranca === 1 || ["Coordenador","Gestor","Gerente","Diretor"].includes(nivel)
+  const ehLider    = niveisRows?.eh_lideranca === 1 || ["Coordenador","Gerente","Gestor","Superintendente","Diretor"].includes(nivel)
 
   const descNivel = niveisRows?.descricao_curta || NIVEL_CURTO[nivel] || ""
   const descNivelCompleta = niveisRows?.descricao || NIVEL_DEF[nivel] || ""
