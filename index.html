@@ -370,7 +370,7 @@
             Gerenciar Cargos
           </div>
           <div class="tab" id="tab-salarios" onclick="trocarAba('salarios')">
-            <i class="uil uil-chart-line"></i>
+            <i class="uil uil-search-alt"></i>
             Pesquisa Salarial
           </div>
           <div class="tab" id="tab-areas" onclick="trocarAba('areas')">
@@ -443,7 +443,7 @@
               </div>
               <div class="salarios-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
                 <div class="sal-grupo" style="display:flex;flex-direction:column;gap:6px">
-                  <span class="sal-label" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase">💼 Salário Base</span>
+                  <span class="sal-label" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase"><i class="uil uil-briefcase-alt" style="font-size:11px"></i> Salario Base</span>
                   <div class="sal-linha" style="display:flex;gap:6px;flex-wrap:wrap">
                     <span class="sal-tag min" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--text-muted)">
                       <span>Mín</span><b id="sal-min" style="color:var(--text);font-size:12px">—</b>
@@ -457,7 +457,7 @@
                   </div>
                 </div>
                 <div class="sal-grupo" style="display:flex;flex-direction:column;gap:6px">
-                  <span class="sal-label" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase">💰 Remuneração Total</span>
+                  <span class="sal-label" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase"><i class="uil uil-money-bill" style="font-size:11px"></i> Remuneracao Total</span>
                   <div class="sal-linha" style="display:flex;gap:6px;flex-wrap:wrap">
                     <span class="sal-tag min" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--text-muted)">
                       <span>Mín</span><b id="rem-total-min" style="color:var(--text);font-size:12px">—</b>
@@ -473,10 +473,11 @@
                 </div>
               </div>
               <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;font-size:10px;color:var(--text-muted);line-height:1.5">
-                <strong style="display:block;margin-bottom:4px;color:var(--text)">📊 Fonte de dados:</strong>
-                <p style="margin:4px 0"><strong>Glassdoor Brasil</strong> (50%) — Salários reais de profissionais que trabalham no setor.</p>
-                <p style="margin:4px 0"><strong>Dissídio.com.br</strong> (50%) — Salários oficiais, dissídios coletivos e reajustes para Centro-Oeste.</p>
-                <p style="margin:4px 0;font-style:italic">Os valores apresentados são a média das duas fontes. Variações podem ocorrer conforme empresa e localização.</p>
+                <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+                  <i class="uil uil-search-alt" style="font-size:11px;color:var(--text)"></i>
+                  <strong style="color:var(--text)">Metodologia</strong>
+                </div>
+                <p style="margin:4px 0">Media ponderada: <strong>Glassdoor Brasil</strong> (50%) + <strong>Dissidio.com.br</strong> (50%). Setor sucroenergetico, Centro-Oeste.</p>
               </div>
             </div>
             <div id="resultado-gen" class="resultado_content" style="display:block"></div>
@@ -564,7 +565,7 @@
                   </div>
                   <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-size:11px">
                     <div style="display:flex;flex-direction:column;gap:4px">
-                      <span style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:9px">💼 Salário Base</span>
+                      <span style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:9px"><i class="uil uil-briefcase-alt" style="font-size:11px"></i> Salario Base</span>
                       <div style="display:flex;gap:4px;flex-wrap:wrap">
                         <span style="display:flex;flex-direction:column;font-size:9px;padding:4px;border-radius:3px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2)"><span style="color:var(--text-muted)">Mín</span><b id="cargos-sal-min" style="color:var(--text);font-size:10px">—</b></span>
                         <span style="display:flex;flex-direction:column;font-size:9px;padding:4px;border-radius:3px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2)"><span style="color:var(--text-muted)">Med</span><b id="cargos-sal-med" style="color:var(--text);font-size:10px;font-weight:700">—</b></span>
@@ -572,7 +573,7 @@
                       </div>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:4px">
-                      <span style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:9px">💰 Remuneração Total</span>
+                      <span style="font-weight:600;color:var(--text-muted);text-transform:uppercase;font-size:9px"><i class="uil uil-money-bill" style="font-size:11px"></i> Remuneracao Total</span>
                       <div style="display:flex;gap:4px;flex-wrap:wrap">
                         <span style="display:flex;flex-direction:column;font-size:9px;padding:4px;border-radius:3px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2)"><span style="color:var(--text-muted)">Mín</span><b id="cargos-rem-total-min" style="color:var(--text);font-size:10px">—</b></span>
                         <span style="display:flex;flex-direction:column;font-size:9px;padding:4px;border-radius:3px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2)"><span style="color:var(--text-muted)">Med</span><b id="cargos-rem-total-med" style="color:var(--text);font-size:10px;font-weight:700">—</b></span>
@@ -581,8 +582,11 @@
                     </div>
                   </div>
                   <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;font-size:9px;color:var(--text-muted);line-height:1.4">
-                    <strong style="display:block;margin-bottom:3px;color:var(--text)">📊 Fonte de dados:</strong>
-                    <p style="margin:3px 0"><strong>Glassdoor Brasil</strong> (50%) + <strong>Dissídio.com.br</strong> (50%)</p>
+                    <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">
+                      <i class="uil uil-search-alt" style="font-size:10px;color:var(--text)"></i>
+                      <strong style="color:var(--text)">Metodologia</strong>
+                    </div>
+                    <p style="margin:3px 0"><strong>Glassdoor Brasil</strong> (50%) + <strong>Dissidio.com.br</strong> (50%)</p>
                   </div>
                 </div>
                 <div class="areas-form-actions">
@@ -612,9 +616,9 @@
 
           <div class="areas-form-col">
             <div id="salarios-pesq-empty" class="areas-empty">
-              <i class="uil uil-chart-line"></i>
+              <i class="uil uil-search-alt"></i>
               <p>Pesquisa Salarial</p>
-              <span>Dados salariais do setor sucroenergético — Glassdoor + Dissídio.com.br</span>
+              <span>Levantamento salarial do setor sucroenergético</span>
             </div>
             <div id="salarios-pesq-form" style="display:none;flex-direction:column;height:100%">
               <div class="areas-form-header">
@@ -636,34 +640,40 @@
                   </div>
                   <div class="field">
                     <label>Área</label>
-                    <input type="text" id="pesq-area" class="field-input" placeholder="Ex: Manutenção" style="padding-left:10px">
+                    <div class="select-wrapper">
+                      <i class="uil uil-layer-group field-icon"></i>
+                      <select id="pesq-area" class="field-input"></select>
+                    </div>
                   </div>
                   <div class="field">
                     <label>Nível</label>
-                    <select id="pesq-nivel" class="field-input" style="padding-left:10px">
-                      <option value="Junior">Júnior</option>
-                      <option value="Pleno" selected>Pleno</option>
-                      <option value="Senior">Sênior</option>
-                      <option value="Coordenador">Coordenador</option>
-                      <option value="Gerente">Gerente</option>
-                      <option value="Especialista">Especialista</option>
-                    </select>
+                    <div class="select-wrapper">
+                      <i class="uil uil-chart-bar field-icon"></i>
+                      <select id="pesq-nivel" class="field-input">
+                        <option value="Junior">Junior</option>
+                        <option value="Pleno" selected>Pleno</option>
+                        <option value="Senior">Senior</option>
+                        <option value="Coordenador">Coordenador</option>
+                        <option value="Gerente">Gerente</option>
+                        <option value="Especialista">Especialista</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
                 <!-- Botão Gerar com IA -->
                 <div style="display:flex;justify-content:center">
                   <button type="button" id="btn-gerar-pesq-salarial" onclick="gerarPesquisaSalarialIA(this)" style="padding:8px 16px;border:1px solid var(--accent);border-radius:6px;background:var(--accent);color:white;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;font-weight:600">
-                    <i class="uil uil-processor"></i> Pesquisar salários com IA
+                    <i class="uil uil-processor"></i> Pesquisar salarios com IA
                   </button>
                 </div>
 
                 <!-- Salário Base -->
                 <div style="padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg)">
-                  <span style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:8px">💼 Salário Base Mensal</span>
+                  <span style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:8px"><i class="uil uil-briefcase-alt" style="font-size:12px"></i> Salario Base Mensal</span>
                   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
                     <div class="field">
-                      <label style="font-size:10px">Mínimo</label>
+                      <label style="font-size:10px">Minimo</label>
                       <input type="number" id="pesq-sal-min" class="field-input" placeholder="R$" style="padding-left:10px">
                     </div>
                     <div class="field">
@@ -671,7 +681,7 @@
                       <input type="number" id="pesq-sal-med" class="field-input" placeholder="R$" style="padding-left:10px;font-weight:700">
                     </div>
                     <div class="field">
-                      <label style="font-size:10px">Máximo</label>
+                      <label style="font-size:10px">Maximo</label>
                       <input type="number" id="pesq-sal-max" class="field-input" placeholder="R$" style="padding-left:10px">
                     </div>
                   </div>
@@ -679,10 +689,10 @@
 
                 <!-- Remuneração Total -->
                 <div style="padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg)">
-                  <span style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:8px">💰 Remuneração Total Mensal</span>
+                  <span style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:8px"><i class="uil uil-money-bill" style="font-size:12px"></i> Remuneracao Total Mensal</span>
                   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
                     <div class="field">
-                      <label style="font-size:10px">Mínimo</label>
+                      <label style="font-size:10px">Minimo</label>
                       <input type="number" id="pesq-rem-min" class="field-input" placeholder="R$" style="padding-left:10px">
                     </div>
                     <div class="field">
@@ -690,22 +700,26 @@
                       <input type="number" id="pesq-rem-med" class="field-input" placeholder="R$" style="padding-left:10px;font-weight:700">
                     </div>
                     <div class="field">
-                      <label style="font-size:10px">Máximo</label>
+                      <label style="font-size:10px">Maximo</label>
                       <input type="number" id="pesq-rem-max" class="field-input" placeholder="R$" style="padding-left:10px">
                     </div>
                   </div>
-                  <span style="font-size:9px;color:var(--text-muted);margin-top:6px;display:block">*Inclui VT, VR, convênio, PLR</span>
+                  <span style="font-size:9px;color:var(--text-muted);margin-top:6px;display:block">*Inclui VT, VR, convenio, PLR</span>
                 </div>
 
-                <!-- Fonte / Observações -->
+                <!-- Observações -->
                 <div class="field">
-                  <label>Observações</label>
+                  <label>Observacoes</label>
                   <textarea id="pesq-obs" class="field-input" style="min-height:60px;padding:8px 10px" placeholder="Notas sobre a pesquisa, contexto, data da coleta..."></textarea>
                 </div>
 
-                <div style="border-top:1px solid var(--border);padding-top:10px;font-size:10px;color:var(--text-muted);line-height:1.5">
-                  <strong style="color:var(--text)">📊 Fonte de dados:</strong>
-                  <strong>Glassdoor Brasil</strong> (50%) + <strong>Dissídio.com.br</strong> (50%) — Setor sucroenergético, Centro-Oeste.
+                <div style="border-top:1px solid var(--border);padding-top:10px;font-size:10px;color:var(--text-muted);line-height:1.6">
+                  <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+                    <i class="uil uil-search-alt" style="font-size:12px;color:var(--text)"></i>
+                    <strong style="color:var(--text)">Metodologia</strong>
+                  </div>
+                  Media ponderada entre <strong>Glassdoor Brasil</strong> (50%) e <strong>Dissidio.com.br</strong> (50%).
+                  Valores referentes ao setor sucroenergetico, regiao Centro-Oeste.
                 </div>
               </div>
 

@@ -2120,7 +2120,7 @@ function abrirPesquisaSalarial(id) {
   document.getElementById("salarios-pesq-meta").textContent    = `${p.nivel} · Atualizado em ${p.criado_em?.slice(0,10) || '—'}`
 
   document.getElementById("pesq-cargo").value   = p.cargo || ""
-  document.getElementById("pesq-area").value    = p.area || ""
+  popularSelectAreaPesquisa(p.area)
   document.getElementById("pesq-nivel").value   = p.nivel || "Pleno"
   document.getElementById("pesq-sal-min").value = p.sal_min || ""
   document.getElementById("pesq-sal-med").value = p.sal_med || ""
@@ -2133,14 +2133,27 @@ function abrirPesquisaSalarial(id) {
   renderizarListaPesquisasSalariais()
 }
 
+function popularSelectAreaPesquisa(valorAtual) {
+  const sel = document.getElementById("pesq-area")
+  sel.innerHTML = ""
+  areasData.forEach(a => {
+    const opt = document.createElement("option")
+    opt.value = a.key
+    opt.textContent = a.label
+    if (a.key === valorAtual) opt.selected = true
+    sel.appendChild(opt)
+  })
+}
+
 function novaPesquisaSalarial() {
   pesquisaEditando = null
   document.getElementById("salarios-pesq-empty").style.display = "none"
   document.getElementById("salarios-pesq-form").style.display  = "flex"
   document.getElementById("salarios-pesq-titulo").textContent  = "Nova Pesquisa Salarial"
-  document.getElementById("salarios-pesq-meta").textContent    = "Setor sucroenergético · Centro-Oeste"
+  document.getElementById("salarios-pesq-meta").textContent    = "Setor sucroenergetico - Centro-Oeste"
 
-  ;["pesq-cargo","pesq-area","pesq-sal-min","pesq-sal-med","pesq-sal-max","pesq-rem-min","pesq-rem-med","pesq-rem-max","pesq-obs"].forEach(id => {
+  popularSelectAreaPesquisa()
+  ;["pesq-cargo","pesq-sal-min","pesq-sal-med","pesq-sal-max","pesq-rem-min","pesq-rem-med","pesq-rem-max","pesq-obs"].forEach(id => {
     document.getElementById(id).value = ""
   })
   document.getElementById("pesq-nivel").value = "Pleno"
