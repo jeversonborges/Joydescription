@@ -500,6 +500,10 @@ html, body {
   box-shadow: 0 0 0 2px var(--accent-dim);
 }
 .field-input::placeholder { color: var(--text-sub); }
+/* Remove setas de input[type=number] em todos os browsers */
+.field-input::-webkit-outer-spin-button,
+.field-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.field-input[type=number] { -moz-appearance: textfield; }
 
 /* Select arrow */
 .select-wrapper::after {
