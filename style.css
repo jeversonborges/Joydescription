@@ -1669,6 +1669,15 @@ body.dark .cargos-count {
   margin: 2px 0;
 }
 
+.sp-version {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--accent);
+  font-weight: 600;
+  opacity: 0.7;
+  margin-top: -6px;
+}
+
 .sp-loading-msg {
   font-size: 11.5px;
   color: var(--text-sub);
