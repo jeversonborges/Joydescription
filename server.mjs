@@ -2238,20 +2238,15 @@ app.post("/gerar-pesquisa-salarial", async (req, res) => {
     const client = GROQ_KEY ? groqClient : togetherClient
     const model  = GROQ_KEY ? GROQ_MODEL : TOGETHER_MODEL
 
-    const prompt = `CONTEXTO: Pesquisa salarial para USINAS DE CANA-DE-AÇÚCAR no SUL GOIANO (Quirinópolis, Jataí, Rio Verde).
-
-Cargo: ${cargo.trim()} | Área: ${area.trim()} | Nível: ${nivel || "Pleno"}
-
-${defasagemSalarial ? "CONHECIMENTO DE DEFASAGEM REGIONAL:\n" + defasagemSalarial + "\n" : ""}
-INSTRUÇÃO CRÍTICA: Se os dados disponíveis forem de São Paulo ou centros urbanos, aplique OBRIGATORIAMENTE o FATOR DE AJUSTE do relatório acima para estimar o valor correto no Sul Goiano. O Sul Goiano paga MENOS que SP interior.
-Busque em Glassdoor Brasil + Dissídio.com.br e aplique o ajuste regional.
-NÃO considere hierarquia de cargo — salário é definido por ÁREA + NÍVEL.
-Retorne MÍNIMO, MEDIANA e MÁXIMO já ajustados para o Sul Goiano.
-JSON:
-{"sal_min":0,"sal_med":0,"sal_max":0}`
+    const nivelFinal = nivel || "Pleno"
+    const prompt = `Pesquisa salarial: USINAS DE CANA no SUL GOIANO.
+Cargo: ${cargo.trim()} | Área: ${area.trim()} | Nível: ${nivelFinal}
+Sul Goiano paga 12-25% MENOS que Interior SP. Fatores: Operacional x0.85-0.90, Técnico x0.80-0.88, Engenheiro x0.75-0.83, Gestor x0.78-0.85, Gerente/Diretor x0.68-0.78.
+Fontes: Glassdoor + Dissídio.com.br (média). Salário definido por ÁREA + NÍVEL (não por hierarquia de cargo).
+Responda SOMENTE o JSON: {"sal_min":0,"sal_med":0,"sal_max":0}`
 
     const resultado = await client.chat.completions.create({
-      model, stream: false, temperature: 0.1, max_tokens: 100,
+      model, stream: false, temperature: 0.1, max_tokens: 200,
       messages: [
         { role: "system", content: "Responda APENAS com JSON válido numérico. Aplique o ajuste regional Sul Goiano conforme o relatório de defasagem." },
         { role: "user", content: prompt }
@@ -2259,6 +2254,7 @@ JSON:
     })
 
     const text = resultado.choices?.[0]?.message?.content || "{}"
+    console.log(`🔍 IA retornou (pesquisa salarial): "${text}"`)
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     let dados = null
 
@@ -2779,22 +2775,16 @@ app.post("/gerar", async (req, res) => {
       if (!salarioRef) {
         pensar(`Gerando estimativa com base em tendências de mercado...`)
 
-        const promptSalarios = `CONTEXTO: Salário em USINAS DE CANA-DE-AÇÚCAR no SUL GOIANO (Quirinópolis, Jataí, Rio Verde).
-
+        const promptSalarios = `Pesquisa salarial: USINAS DE CANA no SUL GOIANO.
 Área: ${area} | Nível: ${nivel}
-
-${defasagemSalarial ? "CONHECIMENTO DE DEFASAGEM REGIONAL:\n" + defasagemSalarial + "\n" : ""}
-INSTRUÇÃO: Se os dados disponíveis forem de SP ou centros urbanos, aplique o FATOR DE AJUSTE do relatório acima para estimar o valor no Sul Goiano.
-Busque em Glassdoor Brasil + Dissídio.com.br e aplique o ajuste regional.
-NÃO considere hierarquia de cargo — salário é definido por ÁREA + NÍVEL.
-Retorne MÍNIMO, MEDIANA e MÁXIMO já ajustados para o Sul Goiano.
-JSON:
-{"sal_min":0,"sal_med":0,"sal_max":0}`
+Sul Goiano paga 12-25% MENOS que Interior SP. Fatores: Operacional x0.85-0.90, Técnico x0.80-0.88, Engenheiro x0.75-0.83, Gestor x0.78-0.85, Gerente/Diretor x0.68-0.78.
+Fontes: Glassdoor + Dissídio.com.br (média). Salário definido por ÁREA + NÍVEL.
+Responda SOMENTE o JSON: {"sal_min":0,"sal_med":0,"sal_max":0}`
 
         const streamSalarios = await criarStream({
           stream: false,
           temperature: 0.1,
-          max_tokens: 100,
+          max_tokens: 200,
           messages: [
             { role: "system", content: "Responda APENAS com JSON válido numérico. Aplique o ajuste regional Sul Goiano." },
             { role: "user", content: promptSalarios }
