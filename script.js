@@ -2221,6 +2221,10 @@ async function deletarPesquisaSalarial() {
   }
 }
 
+function exportarSalariosPDF() {
+  window.open("/exportar/salarios-pdf", "_blank")
+}
+
 function cancelarPesquisaSalarial() {
   pesquisaEditando = null
   document.getElementById("salarios-pesq-form").style.display  = "none"

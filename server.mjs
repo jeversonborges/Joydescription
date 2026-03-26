@@ -1745,6 +1745,211 @@ ${gruposHtml}
 })
 
 // ═══════════════════════════════════════════════════════════════
+//  EXPORTAR RELATÓRIO SALARIAL PDF
+// ═══════════════════════════════════════════════════════════════
+
+app.get("/exportar/salarios-pdf", (req, res) => {
+  const pesquisas = db.prepare("SELECT * FROM pesquisas_salariais WHERE empresa_id = ? ORDER BY area ASC, cargo ASC").all(req.empresaId)
+
+  const formatDate = iso => {
+    if (!iso) return ""
+    const d = new Date(iso)
+    return d.toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", year:"numeric" })
+  }
+
+  const fmt = v => v ? "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 0 }) : "—"
+
+  const linhasHtml = pesquisas.map((p, i) => `
+    <tr style="${i % 2 === 0 ? 'background:#f8fafc' : 'background:#fff'}">
+      <td style="font-weight:600">${p.cargo}</td>
+      <td>${p.area}</td>
+      <td><span class="nivel-pill">${p.nivel}</span></td>
+      <td class="num">${fmt(p.sal_min)}</td>
+      <td class="num med">${fmt(p.sal_med)}</td>
+      <td class="num">${fmt(p.sal_max)}</td>
+      <td class="num">${fmt(p.rem_total_min)}</td>
+      <td class="num med">${fmt(p.rem_total_med)}</td>
+      <td class="num">${fmt(p.rem_total_max)}</td>
+      <td class="obs">${p.observacoes || "—"}</td>
+    </tr>
+  `).join("")
+
+  // Agrupar por área para resumo
+  const porArea = {}
+  for (const p of pesquisas) {
+    if (!porArea[p.area]) porArea[p.area] = []
+    porArea[p.area].push(p)
+  }
+
+  const resumoHtml = Object.entries(porArea).map(([area, lista]) => {
+    const medias = lista.filter(p => p.sal_med)
+    const mediaSal = medias.length > 0 ? Math.round(medias.reduce((s, p) => s + p.sal_med, 0) / medias.length) : 0
+    return `
+      <div class="resumo-card">
+        <div class="resumo-area">${area}</div>
+        <div class="resumo-dados">
+          <span>${lista.length} cargo${lista.length > 1 ? "s" : ""}</span>
+          <span class="resumo-media">${mediaSal ? fmt(mediaSal) + " (media)" : "—"}</span>
+        </div>
+      </div>`
+  }).join("")
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Pesquisa Salarial — Setor Sucroenergetico</title>
+<style>
+  @page { margin: 15mm 18mm; size: A4 landscape; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; color: #1e293b; background: #fff; }
+
+  .cover { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #e2e8f0; }
+  .cover-brand { display: flex; align-items: baseline; gap: 4px; }
+  .cover-joy  { font-size: 24px; font-weight: 800; color: #1e293b; letter-spacing: -1px; }
+  .cover-desc { font-size: 24px; font-weight: 800; color: #94a3b8; letter-spacing: -1px; }
+  .cover-sub  { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #94a3b8; margin-top: -2px; }
+  .cover-title { font-size: 15px; font-weight: 700; color: #1e293b; margin-top: 10px; }
+  .cover-info { font-size: 10px; color: #64748b; margin-top: 4px; }
+
+  .metodologia-box {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #3b82f6;
+    border-radius: 6px; padding: 12px 14px; margin-bottom: 20px;
+  }
+  .metodologia-title { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #3b82f6; margin-bottom: 6px; }
+  .metodologia-text { font-size: 9.5px; color: #475569; line-height: 1.6; }
+  .metodologia-text strong { color: #1e293b; }
+
+  .fontes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+  .fonte-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; }
+  .fonte-nome { font-size: 10px; font-weight: 700; color: #1e293b; }
+  .fonte-desc { font-size: 8.5px; color: #64748b; margin-top: 2px; }
+  .fonte-url  { font-size: 8px; color: #3b82f6; margin-top: 2px; }
+
+  .resumo-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .resumo-card { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; min-width: 140px; }
+  .resumo-area { font-size: 11px; font-weight: 700; color: #1e293b; }
+  .resumo-dados { font-size: 9px; color: #64748b; margin-top: 4px; display: flex; flex-direction: column; gap: 2px; }
+  .resumo-media { font-weight: 700; color: #059669; }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  th { background: #1e293b; color: #fff; font-size: 8.5px; font-weight: 600; text-transform: uppercase;
+       letter-spacing: 0.5px; padding: 7px 6px; text-align: left; }
+  td { padding: 6px; font-size: 9.5px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  .num { text-align: right; font-family: 'Courier New', monospace; font-size: 9px; }
+  .med { font-weight: 700; color: #059669; }
+  .obs { font-size: 8.5px; color: #64748b; max-width: 120px; }
+  .nivel-pill { font-size: 8px; padding: 2px 6px; border-radius: 99px; background: #e0f2fe; color: #0369a1; font-weight: 600; }
+
+  .rodape { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e2e8f0;
+            display: flex; justify-content: space-between; font-size: 8.5px; color: #94a3b8; }
+
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-brand">
+    <span class="cover-joy">Joy</span><span class="cover-desc">Description</span>
+  </div>
+  <div class="cover-sub">Pesquisa Salarial</div>
+  <div class="cover-title">Levantamento Salarial — Setor Sucroenergetico</div>
+  <div class="cover-info">Regiao: Sul Goiano (Centro-Oeste) | Gerado em: ${formatDate(new Date().toISOString())} | ${pesquisas.length} cargo${pesquisas.length !== 1 ? "s" : ""} pesquisado${pesquisas.length !== 1 ? "s" : ""}</div>
+</div>
+
+<div class="metodologia-box">
+  <div class="metodologia-title">Metodologia e Fontes</div>
+  <div class="metodologia-text">
+    Os valores apresentados neste relatorio foram obtidos por meio de consulta as seguintes fontes de dados salariais,
+    com aplicacao de fator de ajuste regional para o Sul Goiano (Tier 3 — defasagem de 12% a 25% em relacao ao Interior de SP).
+    A metodologia consiste na media ponderada entre as fontes primarias (50% cada), com ajuste regional aplicado conforme
+    nivel hierarquico do cargo.
+  </div>
+
+  <div class="fontes-grid">
+    <div class="fonte-card">
+      <div class="fonte-nome">Glassdoor Brasil</div>
+      <div class="fonte-desc">Salarios reais informados por profissionais. Peso: 50%</div>
+      <div class="fonte-url">glassdoor.com.br</div>
+    </div>
+    <div class="fonte-card">
+      <div class="fonte-nome">Dissidio.com.br</div>
+      <div class="fonte-desc">Dissidios coletivos, acordos sindicais e reajustes. Peso: 50%</div>
+      <div class="fonte-url">dissidio.com.br/salario</div>
+    </div>
+    <div class="fonte-card">
+      <div class="fonte-nome">CAGED / MTE</div>
+      <div class="fonte-desc">Cadastro Geral de Empregados e Desempregados. Referencia cruzada.</div>
+      <div class="fonte-url">pdet.mte.gov.br</div>
+    </div>
+    <div class="fonte-card">
+      <div class="fonte-nome">Portal Salario</div>
+      <div class="fonte-desc">Pesquisa salarial aberta com dados do setor sucroenergetico.</div>
+      <div class="fonte-url">salario.com.br</div>
+    </div>
+    <div class="fonte-card">
+      <div class="fonte-nome">CEPEA / Esalq</div>
+      <div class="fonte-desc">Centro de Pesquisas Economicas — dados do agronegocio.</div>
+      <div class="fonte-url">cepea.esalq.usp.br</div>
+    </div>
+    <div class="fonte-card">
+      <div class="fonte-nome">Ajuste Regional</div>
+      <div class="fonte-desc">Fator de correcao Sul Goiano vs Interior SP: x0.75 a x0.90 conforme nivel.</div>
+      <div class="fonte-url">Relatorio interno de defasagem</div>
+    </div>
+  </div>
+</div>
+
+<h3 style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:10px">Resumo por Area</h3>
+<div class="resumo-grid">${resumoHtml}</div>
+
+<h3 style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:10px">Detalhamento por Cargo</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Cargo</th>
+      <th>Area</th>
+      <th>Nivel</th>
+      <th colspan="3" style="text-align:center">Salario Base (R$)</th>
+      <th colspan="3" style="text-align:center">Remuneracao Total (R$)</th>
+      <th>Obs.</th>
+    </tr>
+    <tr>
+      <th></th><th></th><th></th>
+      <th style="font-weight:400;font-size:7.5px">Min</th>
+      <th style="font-weight:400;font-size:7.5px">Med</th>
+      <th style="font-weight:400;font-size:7.5px">Max</th>
+      <th style="font-weight:400;font-size:7.5px">Min</th>
+      <th style="font-weight:400;font-size:7.5px">Med</th>
+      <th style="font-weight:400;font-size:7.5px">Max</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    ${linhasHtml || '<tr><td colspan="10" style="text-align:center;padding:20px;color:#94a3b8">Nenhuma pesquisa salarial cadastrada</td></tr>'}
+  </tbody>
+</table>
+
+<div class="rodape">
+  <span>JoyDescription — Pesquisa Salarial gerada automaticamente</span>
+  <span>Setor Sucroenergetico | Sul Goiano | ${formatDate(new Date().toISOString())}</span>
+</div>
+
+<script>
+  window.addEventListener("load", () => setTimeout(() => window.print(), 600))
+</script>
+</body>
+</html>`
+
+  res.setHeader("Content-Type", "text/html; charset=utf-8")
+  res.send(html)
+})
+
+// ═══════════════════════════════════════════════════════════════
 //  ROTAS — ÁREAS
 // ═══════════════════════════════════════════════════════════════
 

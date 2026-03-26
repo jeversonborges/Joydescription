@@ -607,9 +607,14 @@
           <div class="areas-list-col">
             <div class="areas-list-header">
               <span>Pesquisas salariais</span>
-              <button class="btn-nova-area" onclick="novaPesquisaSalarial()">
-                <i class="uil uil-plus"></i> Nova
-              </button>
+              <div style="display:flex;gap:4px">
+                <button class="btn-nova-area" onclick="exportarSalariosPDF()" title="Exportar relatorio PDF" style="background:transparent;border:1px solid var(--border);color:var(--text-muted)">
+                  <i class="uil uil-file-alt"></i>
+                </button>
+                <button class="btn-nova-area" onclick="novaPesquisaSalarial()">
+                  <i class="uil uil-plus"></i> Nova
+                </button>
+              </div>
             </div>
             <ul id="salarios-list" class="areas-list salarios-pesquisa-list"></ul>
           </div>
@@ -714,12 +719,29 @@
                 </div>
 
                 <div style="border-top:1px solid var(--border);padding-top:10px;font-size:10px;color:var(--text-muted);line-height:1.6">
-                  <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+                  <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
                     <i class="uil uil-search-alt" style="font-size:12px;color:var(--text)"></i>
-                    <strong style="color:var(--text)">Metodologia</strong>
+                    <strong style="color:var(--text)">Metodologia e Fontes</strong>
                   </div>
-                  Media ponderada entre <strong>Glassdoor Brasil</strong> (50%) e <strong>Dissidio.com.br</strong> (50%).
-                  Valores referentes ao setor sucroenergetico, regiao Centro-Oeste.
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+                    <div style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg)">
+                      <strong style="font-size:9px;color:var(--text)">Glassdoor Brasil</strong>
+                      <span style="display:block;font-size:8px">Salarios reais informados por profissionais (50%)</span>
+                    </div>
+                    <div style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg)">
+                      <strong style="font-size:9px;color:var(--text)">Dissidio.com.br</strong>
+                      <span style="display:block;font-size:8px">Dissidios coletivos e acordos sindicais (50%)</span>
+                    </div>
+                    <div style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg)">
+                      <strong style="font-size:9px;color:var(--text)">CAGED / MTE</strong>
+                      <span style="display:block;font-size:8px">Cadastro de empregados — referencia cruzada</span>
+                    </div>
+                    <div style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg)">
+                      <strong style="font-size:9px;color:var(--text)">Portal Salario</strong>
+                      <span style="display:block;font-size:8px">Pesquisa aberta do setor sucroenergetico</span>
+                    </div>
+                  </div>
+                  <span style="font-size:8.5px">Ajuste regional aplicado: Sul Goiano (Tier 3) vs Interior SP. Fator: x0.75 a x0.90 conforme nivel.</span>
                 </div>
               </div>
 
