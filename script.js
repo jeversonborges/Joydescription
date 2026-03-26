@@ -2871,41 +2871,33 @@ function menuAcao(acao) {
   const splash = document.getElementById("splash")
   if (!splash) return
 
-  const msgEl    = document.getElementById("sp-msg")
-  const barEl    = document.getElementById("sp-bar")
-  const pctEl    = document.getElementById("sp-pct")
-  const wordmark = document.querySelector(".sp-wordmark")
-  const setBar   = pct => { barEl.style.width = pct + "%"; if (pctEl) pctEl.textContent = pct + "%" }
-  const delay    = ms => new Promise(r => setTimeout(r, ms))
+  const msgEl = document.getElementById("sp-msg")
+  const delay = ms => new Promise(r => setTimeout(r, ms))
 
-  // ── Fade-in simples do logo ──
-  setBar(0)
   await delay(400)
-  setBar(48)
 
   // ── Verifica auth em paralelo com as mensagens ───────────────
   const authPromise = fetch("/auth/me")
     .then(r => r.ok ? r.json() : null)
     .catch(() => null)
 
-  // ── Mensagens de loading (continua de ~48% → 100%) ───────────
+  // ── Mensagens de loading ─────────────────────────────────────
   const msgs = [
-    { text: "Conectando ao Groq...",                pct: 56,  wait: 100 },
-    { text: "Indexando IA jurídica...",              pct: 64,  wait: 440 },
-    { text: "Carregando base CBO 2002...",           pct: 73,  wait: 420 },
-    { text: "11.097 ocupações indexadas",             pct: 82,  wait: 380 },
-    { text: "Verificando conformidade CLT...",       pct: 89,  wait: 400 },
-    { text: "Carregando base de conhecimento...",    pct: 95,  wait: 380 },
-    { text: "Calibrando análise de cargos...",       pct: 99,  wait: 340 },
-    { text: "Sistema pronto",                         pct: 100, wait: 320 },
+    { text: "Conectando ao Groq...",                wait: 100 },
+    { text: "Indexando IA jurídica...",              wait: 440 },
+    { text: "Carregando base CBO 2002...",           wait: 420 },
+    { text: "11.097 ocupações indexadas",             wait: 380 },
+    { text: "Verificando conformidade CLT...",       wait: 400 },
+    { text: "Carregando base de conhecimento...",    wait: 380 },
+    { text: "Calibrando análise de cargos...",       wait: 340 },
+    { text: "Sistema pronto",                         wait: 320 },
   ]
 
-  for (const { text, pct, wait } of msgs) {
+  for (const { text, wait } of msgs) {
     await delay(wait)
     msgEl.classList.add("sp-fading")
     await delay(150)
     msgEl.textContent = text
-    setBar(pct)
     msgEl.classList.remove("sp-fading")
   }
 
