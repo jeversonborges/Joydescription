@@ -1675,37 +1675,61 @@ body.dark .cargos-count {
 
 .sp-loading-msg.sp-fading { opacity: 0; }
 
-/* ── Spinner Win 11 ─────────────────────────────────────────── */
-.sp-ring {
+/* ── Spinner JoyDesc ────────────────────────────────────────── */
+.sp-spinner {
   position: relative;
-  width: 32px;
-  height: 32px;
-  margin-top: 12px;
+  width: 44px;
+  height: 44px;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.sp-dot {
+.sp-arc {
   position: absolute;
-  width: 4px;
-  height: 4px;
+  inset: 0;
   border-radius: 50%;
-  background: var(--accent);
-  top: 0;
-  left: 50%;
-  margin-left: -2px;
-  transform-origin: 2px 16px;
-  animation: sp-orbit 3s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  border: 2px solid transparent;
 }
 
-.sp-dot:nth-child(1) { animation-delay: 0s; }
-.sp-dot:nth-child(2) { animation-delay: -0.15s; }
-.sp-dot:nth-child(3) { animation-delay: -0.3s; }
-.sp-dot:nth-child(4) { animation-delay: -0.45s; }
-.sp-dot:nth-child(5) { animation-delay: -0.6s; }
+.sp-arc-outer {
+  border-top-color: var(--accent);
+  border-right-color: var(--accent);
+  animation: sp-spin 1.4s cubic-bezier(0.6, 0.15, 0.35, 0.85) infinite;
+}
 
-@keyframes sp-orbit {
-  0%   { transform: rotate(0deg);   opacity: 1; }
-  50%  { transform: rotate(540deg); opacity: 0.4; }
-  100% { transform: rotate(1080deg); opacity: 1; }
+.sp-arc-inner {
+  inset: 6px;
+  border-bottom-color: var(--accent);
+  border-left-color: var(--accent);
+  opacity: 0.45;
+  animation: sp-spin-rev 1.8s cubic-bezier(0.6, 0.15, 0.35, 0.85) infinite;
+}
+
+.sp-spinner-letter {
+  font-family: 'Dancing Script', cursive;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  opacity: 0.7;
+  animation: sp-pulse 2.4s ease-in-out infinite;
+  z-index: 1;
+}
+
+@keyframes sp-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes sp-spin-rev {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}
+
+@keyframes sp-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
 }
 
 /* ── Dots na title bar ───────────────────────────────────────── */

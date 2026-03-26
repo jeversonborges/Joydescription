@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JoyDesc — Gerador de Descrição de Cargos</title>
+  <title>JoyDesc — Workstation de Cargos & Salários</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap">
@@ -43,7 +43,7 @@
           <circle cx="50" cy="50" r="2" fill="#5b21b6"/>
         </svg><span style="padding-top:8px"><span class="tl-joy">Joy</span><span class="tl-desc">Desc</span></span>
       </div>
-      <div class="login-tagline">Gerador de Descrição de Cargos</div>
+      <div class="login-tagline">Workstation de Cargos &amp; Salários</div>
       <div class="login-tabs">
         <button class="login-tab active" id="login-tab-entrar" onclick="trocarAbaLogin('entrar')">Entrar</button>
         <button class="login-tab" id="login-tab-criar" onclick="trocarAbaLogin('criar')">Criar conta</button>
@@ -100,15 +100,13 @@
       <div class="sp-wordmark">
         <span class="sp-wm-joy">Joy</span><span class="sp-wm-desc">Desc</span>
       </div>
-      <div class="sp-tagline">Gerador de Descrição de Cargos</div>
+      <div class="sp-tagline">Workstation de Cargos &amp; Salários</div>
       <div class="sp-sep"></div>
       <div class="sp-loading-msg" id="sp-msg">Inicializando...</div>
-      <div class="sp-ring">
-        <div class="sp-dot"></div>
-        <div class="sp-dot"></div>
-        <div class="sp-dot"></div>
-        <div class="sp-dot"></div>
-        <div class="sp-dot"></div>
+      <div class="sp-spinner">
+        <div class="sp-arc sp-arc-outer"></div>
+        <div class="sp-arc sp-arc-inner"></div>
+        <span class="sp-spinner-letter">J</span>
       </div>
     </div>
   </div>
@@ -128,7 +126,7 @@
           <span class="tl-joy">Joy</span><span class="tl-desc">Desc</span>
         </span>
         <span class="title-sep">—</span>
-        <span class="title-doc">Gerador de Descrição de Cargos</span>
+        <span class="title-doc">Workstation de Cargos & Salários</span>
       </div>
       <div class="title-right">
         <!-- User info bar -->

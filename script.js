@@ -2854,7 +2854,7 @@ function menuAcao(acao) {
       break
 
     case "sobre":
-      showToast("JoyDesc v2.0 — Gerador de Descrição de Cargos", "info")
+      showToast("JoyDesc v2.0 — Workstation de Cargos & Salários", "info")
       break
 
     case "cbo":
@@ -2883,14 +2883,24 @@ function menuAcao(acao) {
 
   // ── Mensagens de loading ─────────────────────────────────────
   const msgs = [
-    { text: "Conectando ao Groq...",                wait: 100 },
-    { text: "Indexando IA jurídica...",              wait: 440 },
-    { text: "Carregando base CBO 2002...",           wait: 420 },
-    { text: "11.097 ocupações indexadas",             wait: 380 },
-    { text: "Verificando conformidade CLT...",       wait: 400 },
-    { text: "Carregando base de conhecimento...",    wait: 380 },
-    { text: "Calibrando análise de cargos...",       wait: 340 },
-    { text: "Sistema pronto",                         wait: 320 },
+    { text: "Conectando ao servidor...",               wait: 120 },
+    { text: "Autenticando sessão...",                  wait: 300 },
+    { text: "Inicializando motor de IA...",            wait: 380 },
+    { text: "Conectando ao Groq LLaMA 70B...",        wait: 350 },
+    { text: "Carregando base CBO 2002...",             wait: 320 },
+    { text: "11.097 ocupações indexadas",              wait: 280 },
+    { text: "Mapeando famílias ocupacionais...",       wait: 340 },
+    { text: "Indexando IA jurídica...",                wait: 360 },
+    { text: "Verificando conformidade CLT...",         wait: 300 },
+    { text: "Carregando tabela salarial CAGED/MTE...",  wait: 380 },
+    { text: "Processando defasagem regional...",       wait: 300 },
+    { text: "Calibrando faixas de remuneração...",     wait: 320 },
+    { text: "Carregando base de conhecimento...",      wait: 340 },
+    { text: "Sincronizando áreas e níveis...",         wait: 280 },
+    { text: "Montando painel de dashboards...",        wait: 300 },
+    { text: "Preparando exportação PDF...",            wait: 260 },
+    { text: "Validando integridade dos dados...",      wait: 300 },
+    { text: "Sistema pronto",                          wait: 280 },
   ]
 
   for (const { text, wait } of msgs) {
