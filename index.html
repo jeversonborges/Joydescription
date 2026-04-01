@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&family=Lato:ital,wght@0,400;0,700;1,400&family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&family=Poppins:ital,wght@0,400;0,500;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=Nunito:ital,wght@0,400;0,600;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Fira+Code&display=swap">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
 </head>
 <body>
 
@@ -260,9 +261,9 @@
           <i class="uil uil-file-pdf"></i>
           <span>PDF</span>
         </button>
-        <button class="tb-btn" onclick="exportarExcel()" title="Exportar como Excel">
-          <i class="uil uil-file-excel"></i>
-          <span>Excel</span>
+        <button class="tb-btn" onclick="exportarWord()" title="Exportar como Word">
+          <i class="uil uil-file-word"></i>
+          <span>Word</span>
         </button>
       </div>
       <div class="tb-sep"></div>
@@ -532,8 +533,8 @@
                     <button class="btn-salvar-area tb-btn" onclick="exportarCargoPDF()" title="Exportar como PDF">
                       <i class="uil uil-file-pdf"></i> PDF
                     </button>
-                    <button class="btn-salvar-area tb-btn" onclick="exportarCargoExcel()" title="Exportar como Excel">
-                      <i class="uil uil-file-excel"></i> Excel
+                    <button class="btn-salvar-area tb-btn" onclick="exportarCargoWord()" title="Exportar como Word">
+                      <i class="uil uil-file-word"></i> Word
                     </button>
                   </div>
                   <button class="btn-deletar-area" onclick="deletarCargo()" title="Deletar este cargo">

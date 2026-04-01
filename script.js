@@ -1701,57 +1701,154 @@ function exportarPDF() {
   showToast("PDF exportado!", "success");
 }
 
-function exportarExcel() {
+function exportarWord() {
   if (!textoGerado) {
     showToast("Nenhum texto gerado ainda.", "error")
     return
   }
 
-  if (typeof XLSX === "undefined") {
-    showToast("Biblioteca Excel não carregada. Tente novamente.", "error")
+  if (typeof docx === "undefined") {
+    showToast("Biblioteca Word não carregada. Tente novamente.", "error")
     return
   }
 
-  const cargo = cargoInput.value.trim() || "Cargo";
-  const area = document.getElementById("area").value;
-  const nivel = document.getElementById("nivel").value;
+  const cargo = cargoInput.value.trim() || "Cargo"
+  const area = document.getElementById("area").value || "Área"
+  const nivel = document.getElementById("nivel").value || "Nível"
 
-  const data = [
-    ["Campo", "Valor"],
-    ["Cargo", cargo],
-    ["Área", area],
-    ["Nível", nivel],
-    ["", ""],
-    ["Descrição", ""],
-  ];
+  const sections = [{
+    children: [
+      new docx.Paragraph({
+        text: "DESCRIÇÃO DE CARGO",
+        heading: docx.HeadingLevel.HEADING_1,
+        bold: true,
+        size: 28
+      }),
+      new docx.Paragraph({
+        text: cargo,
+        heading: docx.HeadingLevel.HEADING_2,
+        size: 24,
+        marginBottom: 200
+      }),
+      new docx.Paragraph({
+        text: `Área: ${area}`,
+        size: 22,
+        marginBottom: 100
+      }),
+      new docx.Paragraph({
+        text: `Nível: ${nivel}`,
+        size: 22,
+        marginBottom: 300
+      }),
+      new docx.Paragraph({
+        text: "Descrição Profissional",
+        heading: docx.HeadingLevel.HEADING_2,
+        bold: true,
+        size: 24,
+        marginBottom: 200
+      }),
+      ...textoGerado.split('\n').map(line =>
+        new docx.Paragraph({
+          text: line || "",
+          size: 22,
+          lineSpacing: { line: 360 }
+        })
+      ),
+      new docx.Paragraph({ text: "" }),
+      new docx.Paragraph({
+        text: `Gerado em: ${new Date().toLocaleString("pt-BR")}`,
+        size: 20,
+        italics: true,
+        color: "999999"
+      })
+    ]
+  }]
 
-  // Split description into lines
-  const descLines = textoGerado.split('\n');
-  descLines.forEach(line => {
-    data.push(["", line]);
-  });
-
-  // Add salary if visible
-  if (document.getElementById("salarios-wrap").style.display !== "none") {
-    data.push(["", ""]);
-    data.push(["Faixa Salarial", ""]);
-    data.push(["Salário Base Mín", document.getElementById("sal-min").textContent]);
-    data.push(["Salário Base Mediana", document.getElementById("sal-med").textContent]);
-    data.push(["Salário Base Máx", document.getElementById("sal-max").textContent]);
-    data.push(["Remuneração Total Mín", document.getElementById("rem-total-min").textContent]);
-    data.push(["Remuneração Total Mediana", document.getElementById("rem-total-med").textContent]);
-    data.push(["Remuneração Total Máx", document.getElementById("rem-total-max").textContent]);
-  }
-
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Descrição");
-
-  const fileName = `descricao_${cargo.replace(/\s+/g, "_").toLowerCase()}_${nivel}.xlsx`;
-  XLSX.writeFile(wb, fileName);
-  showToast("Excel exportado!", "success");
+  const doc = new docx.Document({ sections })
+  docx.Packer.toBlob(doc).then(blob => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${cargo.replace(/\s+/g, "_").toLowerCase()}_${nivel}.docx`
+    a.click()
+    URL.revokeObjectURL(url)
+    showToast("Word exportado!", "success")
+  })
 }
 
+function exportarCargoWord() {
+  if (!cargoEditando) {
+    showToast("Nenhum cargo selecionado.", "error")
+    return
+  }
+
+  if (typeof docx === "undefined") {
+    showToast("Biblioteca Word não carregada. Tente novamente.", "error")
+    return
+  }
+
+  const c = cargosData.find(x => x.id === cargoEditando)
+  if (!c) return
+
+  const sections = [{
+    children: [
+      new docx.Paragraph({
+        text: "DESCRIÇÃO DE CARGO",
+        heading: docx.HeadingLevel.HEADING_1,
+        bold: true,
+        size: 28
+      }),
+      new docx.Paragraph({
+        text: c.cargo,
+        heading: docx.HeadingLevel.HEADING_2,
+        size: 24,
+        marginBottom: 200
+      }),
+      new docx.Paragraph({
+        text: `Área: ${c.area}`,
+        size: 22,
+        marginBottom: 100
+      }),
+      new docx.Paragraph({
+        text: `Nível: ${c.nivel}`,
+        size: 22,
+        marginBottom: 300
+      }),
+      new docx.Paragraph({
+        text: "Descrição Profissional",
+        heading: docx.HeadingLevel.HEADING_2,
+        bold: true,
+        size: 24,
+        marginBottom: 200
+      }),
+      ...c.texto.split('\n').map(line =>
+        new docx.Paragraph({
+          text: line || "",
+          size: 22,
+          lineSpacing: { line: 360 }
+        })
+      ),
+      new docx.Paragraph({ text: "" }),
+      new docx.Paragraph({
+        text: `Criado em: ${new Date(c.criadoEm).toLocaleString("pt-BR")}`,
+        size: 20,
+        italics: true,
+        color: "999999"
+      })
+    ]
+  }]
+
+  const doc = new docx.Document({ sections })
+  docx.Packer.toBlob(doc).then(blob => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${c.cargo.replace(/\s+/g, "_").toLowerCase()}_${c.nivel}.docx`
+    a.click()
+    URL.revokeObjectURL(url)
+    showToast("Word exportado!", "success")
+  })
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  LIMPAR RESULTADO
@@ -2205,56 +2302,6 @@ function exportarCargoPDF() {
   const url = `/exportar/cargo-pdf/${cargoEditando}`
   window.open(url, "_blank")
   showToast("PDF gerado!", "success")
-}
-
-function exportarCargoExcel() {
-  if (!cargoEditando) {
-    showToast("Nenhum cargo selecionado.", "error")
-    return
-  }
-
-  if (typeof XLSX === "undefined") {
-    showToast("Biblioteca Excel não carregada. Tente novamente.", "error")
-    return
-  }
-
-  const c = cargosData.find(x => x.id === cargoEditando)
-  if (!c) return
-
-  const data = [
-    ["Campo", "Valor"],
-    ["Cargo", c.cargo],
-    ["Área", c.area],
-    ["Nível", c.nivel],
-    ["", ""],
-    ["Descrição", ""],
-  ];
-
-  // Split description into lines
-  const descLines = c.texto.split('\n');
-  descLines.forEach(line => {
-    data.push(["", line]);
-  });
-
-  // Add salary if available
-  if (document.getElementById("cargos-salarios-wrap").style.display !== "none") {
-    data.push(["", ""]);
-    data.push(["Faixa Salarial", ""]);
-    data.push(["Salário Base Mín", document.getElementById("cargos-sal-min").textContent]);
-    data.push(["Salário Base Mediana", document.getElementById("cargos-sal-med").textContent]);
-    data.push(["Salário Base Máx", document.getElementById("cargos-sal-max").textContent]);
-    data.push(["Remuneração Total Mín", document.getElementById("cargos-rem-total-min").textContent]);
-    data.push(["Remuneração Total Mediana", document.getElementById("cargos-rem-total-med").textContent]);
-    data.push(["Remuneração Total Máx", document.getElementById("cargos-rem-total-max").textContent]);
-  }
-
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Descrição");
-
-  const fileName = `descricao_${c.cargo.replace(/\s+/g, "_").toLowerCase()}_${c.nivel}.xlsx`;
-  XLSX.writeFile(wb, fileName);
-  showToast("Excel exportado!", "success");
 }
 
 async function renderizarListaCargos() {
