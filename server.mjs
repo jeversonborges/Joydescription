@@ -701,11 +701,75 @@ function seedNiveis(empresaId) {
   ))()
 }
 
+// ── Carrega salários do SIFAEG 2025 ─
+function carregarSIFAEG(empresaId) {
+  try {
+    const XLSX = require('xlsx')
+    const wb = XLSX.readFile('./meta/SIFAEG 2025 - Demonstrativo Salarial - FINAL.xlsx')
+    const ws = wb.Sheets['SIFAEG']
+    const range = XLSX.utils.decode_range(ws['!ref'])
+
+    const ins = db.prepare(`
+      INSERT OR REPLACE INTO pesquisas_salariais
+      (id, cargo, area, nivel, empresa_id, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max, fonte_tipo, criado_em, atualizado_em)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+
+    let count = 0
+    const agora = new Date().toISOString()
+
+    db.transaction(() => {
+      // Linha 3 em diante (0-indexed, então começamos em 3)
+      for (let row = 3; row <= range.e.r; row++) {
+        const codCargo = ws[XLSX.utils.encode_col(0) + (row + 1)]?.v
+        const tituloCargo = ws[XLSX.utils.encode_col(1) + (row + 1)]?.v
+        const salNomMed = ws[XLSX.utils.encode_col(2) + (row + 1)]?.v  // Média Nominal
+        const salNomMin = ws[XLSX.utils.encode_col(3) + (row + 1)]?.v  // Menor
+        const salNomMed_val = ws[XLSX.utils.encode_col(5) + (row + 1)]?.v  // Mediana Nominal
+        const salNomMax = ws[XLSX.utils.encode_col(7) + (row + 1)]?.v  // Maior
+        const salTotMed = ws[XLSX.utils.encode_col(9) + (row + 1)]?.v  // Média Total
+        const salTotMin = ws[XLSX.utils.encode_col(10) + (row + 1)]?.v  // Menor Total
+        const salTotMed_val = ws[XLSX.utils.encode_col(12) + (row + 1)]?.v  // Mediana Total
+        const salTotMax = ws[XLSX.utils.encode_col(14) + (row + 1)]?.v  // Maior Total
+
+        if (!codCargo || !tituloCargo) continue
+
+        const id = `sifaeg_${codCargo}_${empresaId}`
+        const salMinVal = salNomMin ? Math.round(salNomMin) : null
+        const salMedVal = salNomMed_val ? Math.round(salNomMed_val) : null
+        const salMaxVal = salNomMax ? Math.round(salNomMax) : null
+        const remMinVal = salTotMin ? Math.round(salTotMin) : null
+        const remMedVal = salTotMed_val ? Math.round(salTotMed_val) : null
+        const remMaxVal = salTotMax ? Math.round(salTotMax) : null
+
+        ins.run(id, tituloCargo, 'SIFAEG', 'Pleno', empresaId, salMinVal, salMedVal, salMaxVal, remMinVal, remMedVal, remMaxVal, 'sifaeg', agora, agora)
+        count++
+      }
+    })()
+
+    console.log(`✅ ${count} salários SIFAEG 2025 carregados para empresa ${empresaId}`)
+    return count
+  } catch (e) {
+    console.error("❌ Erro ao carregar SIFAEG:", e.message)
+    return 0
+  }
+}
+
 // ── Semeia níveis padrão na tabela se ainda estiver vazia (empresa default) ─
 ;(function semeiarNiveis() {
   if (db.prepare("SELECT COUNT(*) as n FROM niveis WHERE empresa_id = 'default'").get().n > 0) return
   seedNiveis("default")
   console.log("✅ Níveis padrão inseridos para empresa default")
+})()
+
+// ── Carrega SIFAEG na inicialização (força com JOY_FORCE_SIFAEG=1) ─
+;(function carregarSIFAEGInit() {
+  const forceSIFAEG = process.env.JOY_FORCE_SIFAEG === "1"
+  const jaPesquisas = db.prepare("SELECT COUNT(*) as n FROM pesquisas_salariais WHERE fonte_tipo = 'sifaeg'").get().n
+  if (!forceSIFAEG && jaPesquisas > 0) return
+
+  const empresas = db.prepare("SELECT DISTINCT empresa_id FROM niveis").all()
+  empresas.forEach(({ empresa_id }) => carregarSIFAEG(empresa_id))
 })()
 
 // Prompt ultra-enxuto para Ollama — modelos pequenos perdem o fio em prompts longos
@@ -1934,8 +1998,8 @@ app.get("/exportar/salarios-pdf", (req, res) => {
     <strong>1. Adequação para uso:</strong> Este relatório contém estimativas via inteligência artificial e dados interpolados.
     <strong>NÃO é adequado para decisões judiciais, processos trabalhistas ou conformidade legal sem verificação técnica independente.</strong><br><br>
 
-    <strong>2. Origem dos dados:</strong> Média ponderada de CAGED/MTE (60%), Dissídio.com.br (25%) e Glassdoor (15%).
-    Glassdoor é autodeclarado e pode conter vieses. CAGED é dado oficial mas com defasagem de 2–3 meses.<br><br>
+    <strong>2. Origem dos dados:</strong> Base de dados SIFAEG 2025 — Demonstrativo Salarial, fornecida pela empresa Goiasa.
+    Esta é a única fonte de referência utilizada para pesquisa de salários.<br><br>
 
     <strong>3. Interpolações:</strong> Valores gerados por IA (Groq LLaMA 70B) são validados dentro de limites de plausibilidade (R$ 1.200–50.000 para PLENO).
     Consulte AUDITORIA.md e endpoint /pesquisas-salariais/:id/auditoria para rastreabilidade completa.<br><br>
@@ -1966,7 +2030,7 @@ app.get("/exportar/salarios-pdf", (req, res) => {
     </div>
     <div class="audit-item">
       <div class="audit-label">Versão Metodologia</div>
-      <div class="audit-valor">1.0 — CAGED 60% / Dissídio 25% / Glassdoor 15%</div>
+      <div class="audit-valor">2.0 — SIFAEG 2025</div>
     </div>
     <div class="audit-item">
       <div class="audit-label">Rastreabilidade Completa</div>
