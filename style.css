@@ -1020,20 +1020,20 @@ body.dark .prov-btn-groq.active   { color: #86efac; }
 }
 .res-copy-btn:hover { border-color: var(--accent); color: var(--accent); }
 
+#resultado-scrollable {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-mid) transparent;
+}
+#resultado-scrollable::-webkit-scrollbar { width: 6px; }
+#resultado-scrollable::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 4px; }
+
 .resultado_content {
-  flex: 1;
-  overflow-y: auto;
   font-size: 13px;
   line-height: 1.9;
   color: var(--text);
   white-space: pre-wrap;
   word-break: break-word;
-  padding: 20px 28px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-mid) transparent;
 }
-.resultado_content::-webkit-scrollbar { width: 6px; }
-.resultado_content::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 4px; }
 
 /* Blocos renderizados pela IA */
 .bloco-titulo {

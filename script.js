@@ -1288,11 +1288,11 @@ async function gerarDescricao() {
           if (secaoAtual === "gen") {
             textoGen += data.texto
             elGen.textContent = textoGen
-            elGen.scrollTop   = elGen.scrollHeight
+            document.getElementById("resultado-scrollable").scrollTop = document.getElementById("resultado-scrollable").scrollHeight
           } else {
             textoDet += data.texto
             elDet.textContent = textoDet
-            elDet.scrollTop   = elDet.scrollHeight
+            document.getElementById("resultado-scrollable").scrollTop = document.getElementById("resultado-scrollable").scrollHeight
           }
         }
 
@@ -1553,7 +1553,7 @@ async function corrigirAlerta(i) {
 
   const elGen = document.getElementById("resultado-gen")
   elGen.classList.add("corrigindo")
-  elGen.scrollTop = 0
+  document.getElementById("resultado-scrollable").scrollTop = 0
 
   let textoCorrigido = ""
 
@@ -1584,7 +1584,7 @@ async function corrigirAlerta(i) {
         if (data.texto) {
           textoCorrigido += data.texto
           elGen.textContent = textoCorrigido
-          elGen.scrollTop   = elGen.scrollHeight
+          document.getElementById("resultado-scrollable").scrollTop = document.getElementById("resultado-scrollable").scrollHeight
         }
         if (data.fim) {
           textoGen    = textoCorrigido
