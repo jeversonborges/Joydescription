@@ -86,6 +86,9 @@ body.dark .toast.info { border-left-color: #a78bfa; }
   font-family: "Inter", sans-serif;
 }
 
+/* Ícones brancos por padrão */
+button i, a i { color: white; }
+
 html, body {
   height: 100%;
   overflow: hidden;
@@ -282,7 +285,7 @@ html, body {
   text-align: left;
   transition: background 0.12s, color 0.12s;
 }
-.menu-dd-item i { font-size: 14px; width: 16px; text-align: center; }
+.menu-dd-item i { font-size: 14px; width: 16px; text-align: center; color: white; }
 .menu-dd-item:hover { background: var(--accent-dim); color: var(--text); }
 
 .menu-dd-sep {
@@ -321,7 +324,7 @@ html, body {
   transition: all 0.15s;
   white-space: nowrap;
 }
-.tb-btn i { font-size: 14px; }
+.tb-btn i { font-size: 14px; color: white; }
 .tb-btn:hover {
   background: var(--bg-hover);
   border-color: var(--border-mid);
@@ -403,7 +406,7 @@ html, body {
   align-items: center;
   gap: 5px;
 }
-.tb-chip i { font-size: 13px; }
+.tb-chip i { font-size: 13px; color: white; }
 
 .tb-chip-active {
   border-color: rgba(22,163,74,0.3);
@@ -637,7 +640,7 @@ html, body {
   white-space: nowrap;
 }
 
-.prov-btn i { font-size: 13px; }
+.prov-btn i { font-size: 13px; color: white; }
 
 .prov-btn:hover { color: var(--text); border-color: var(--border-mid); }
 
@@ -693,7 +696,7 @@ body.dark .prov-btn-groq.active   { color: #86efac; }
   box-shadow: 0 0 18px var(--accent-glow);
 }
 .btn-gerar:disabled { opacity: 0.55; cursor: not-allowed; }
-.btn-gerar i { font-size: 16px; }
+.btn-gerar i { font-size: 16px; color: white; }
 
 /* Shimmer while loading */
 .btn-gerar.loading::after {
@@ -843,7 +846,7 @@ body.dark .prov-btn-groq.active   { color: #86efac; }
   transition: background 0.15s, color 0.15s;
   position: relative;
 }
-.tab i { font-size: 14px; }
+.tab i { font-size: 14px; color: white; }
 .tab:hover { background: var(--bg-hover); color: var(--text); }
 .tab.active {
   background: var(--bg-app);
@@ -996,6 +999,7 @@ body.dark .prov-btn-groq.active   { color: #86efac; }
   cursor: pointer;
   transition: all 0.15s;
 }
+.res-tab i { color: white; }
 .res-tab:hover { background: var(--bg-card); border-color: var(--border); }
 .res-tab.active {
   background: var(--bg-card);

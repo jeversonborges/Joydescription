@@ -1707,6 +1707,11 @@ function exportarExcel() {
     return
   }
 
+  if (typeof XLSX === "undefined") {
+    showToast("Biblioteca Excel não carregada. Tente novamente.", "error")
+    return
+  }
+
   const cargo = cargoInput.value.trim() || "Cargo";
   const area = document.getElementById("area").value;
   const nivel = document.getElementById("nivel").value;
@@ -2205,6 +2210,11 @@ function exportarCargoPDF() {
 function exportarCargoExcel() {
   if (!cargoEditando) {
     showToast("Nenhum cargo selecionado.", "error")
+    return
+  }
+
+  if (typeof XLSX === "undefined") {
+    showToast("Biblioteca Excel não carregada. Tente novamente.", "error")
     return
   }
 
