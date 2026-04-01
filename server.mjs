@@ -367,7 +367,7 @@ setInterval(() => {
 ;(function seedExperienciaMinima() {
   const empresas = db.prepare("SELECT DISTINCT empresa_id FROM niveis").all()
   const agora = new Date().toISOString()
-  const ins = db.prepare("INSERT OR IGNORE INTO conhecimento (id,titulo,categoria,ativo,conteudo,criadoEm,empresa_id) VALUES (?,?,?,?,?,?,?)")
+  const ins = db.prepare("INSERT OR REPLACE INTO conhecimento (id,titulo,categoria,ativo,conteudo,criadoEm,empresa_id) VALUES (?,?,?,?,?,?,?)")
   for (const { empresa_id } of empresas) {
     ins.run(
       `regra_exp_min_${empresa_id}`,
@@ -917,7 +917,7 @@ COMPETENCIAS COMPORTAMENTAIS
 
 REQUISITOS MINIMOS
 Formacao: [grau mínimo]
-Experiencia: [tempo e tipo para nível ${nivel}]
+Experiencia: [OBRIGATÓRIO: mínimo de 6 meses. Ex: Mínimo de 6 meses de experiência na área ou em funções correlatas]
 Diferenciais: [ou "Não exigido"]
 
 INDICACAO DE CBOS
@@ -1073,7 +1073,7 @@ Ex: proatividade, comunicação assertiva, trabalho em equipe, foco em resultado
 
 [REQUISITOS] Três linhas fixas:
 Formacao: [grau mínimo — Ex: Ensino Médio Completo / Superior em Engenharia / MBA]
-Experiencia: [tempo e tipo — Ex: Mínimo 3 anos em manutenção industrial]
+Experiencia: [OBRIGATÓRIO: mínimo de 6 meses. Ex: Mínimo de 6 meses de experiência na área ou em funções correlatas]
 Diferenciais: [certificações, ferramentas, idiomas — se não houver, escreva "Não exigido"]
 
 [CBO] Com base nas ATRIBUICOES que você acabou de escrever, escolha 3 CBOs da lista abaixo
