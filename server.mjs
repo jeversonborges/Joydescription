@@ -13,6 +13,7 @@ import { fileURLToPath } from "url"
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto"
 import OpenAI            from "openai"
 import Database          from "better-sqlite3"
+import XLSX              from "xlsx"
 
 dotenv.config()
 

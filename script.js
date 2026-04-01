@@ -1758,72 +1758,48 @@ function exportarCargoWord() {
     return
   }
 
-  if (typeof docx === "undefined") {
-    showToast("Biblioteca Word não carregada. Tente novamente.", "error")
-    return
-  }
-
   const c = cargosData.find(x => x.id === cargoEditando)
   if (!c) return
 
-  const sections = [{
-    children: [
-      new docx.Paragraph({
-        text: "DESCRIÇÃO DE CARGO",
-        heading: docx.HeadingLevel.HEADING_1,
-        bold: true,
-        size: 28
-      }),
-      new docx.Paragraph({
-        text: c.cargo,
-        heading: docx.HeadingLevel.HEADING_2,
-        size: 24,
-        marginBottom: 200
-      }),
-      new docx.Paragraph({
-        text: `Área: ${c.area}`,
-        size: 22,
-        marginBottom: 100
-      }),
-      new docx.Paragraph({
-        text: `Nível: ${c.nivel}`,
-        size: 22,
-        marginBottom: 300
-      }),
-      new docx.Paragraph({
-        text: "Descrição Profissional",
-        heading: docx.HeadingLevel.HEADING_2,
-        bold: true,
-        size: 24,
-        marginBottom: 200
-      }),
-      ...c.texto.split('\n').map(line =>
-        new docx.Paragraph({
-          text: line || "",
-          size: 22,
-          lineSpacing: { line: 360 }
-        })
-      ),
-      new docx.Paragraph({ text: "" }),
-      new docx.Paragraph({
-        text: `Criado em: ${new Date(c.criadoEm).toLocaleString("pt-BR")}`,
-        size: 20,
-        italics: true,
-        color: "999999"
-      })
-    ]
-  }]
+  const html = `
+    <html xmlns="http://www.w3.org/1999/xhtml" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; }
+        h1 { font-size: 18pt; font-weight: bold; margin-bottom: 12pt; border-bottom: 2pt solid #333; padding-bottom: 6pt; }
+        h2 { font-size: 14pt; font-weight: bold; margin-top: 12pt; margin-bottom: 6pt; }
+        .meta { font-size: 10pt; margin: 3pt 0; }
+        .content { line-height: 1.5; margin: 12pt 0; }
+        .footer { font-size: 9pt; color: #666; margin-top: 24pt; border-top: 1pt solid #ddd; padding-top: 6pt; }
+      </style>
+    </head>
+    <body>
+      <h1>DESCRIÇÃO DE CARGO</h1>
+      <h2>${c.cargo}</h2>
+      <div class="meta">Área: <strong>${c.area}</strong></div>
+      <div class="meta">Nível: <strong>${c.nivel}</strong></div>
 
-  const doc = new docx.Document({ sections })
-  docx.Packer.toBlob(doc).then(blob => {
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${c.cargo.replace(/\s+/g, "_").toLowerCase()}_${c.nivel}.docx`
-    a.click()
-    URL.revokeObjectURL(url)
-    showToast("Word exportado!", "success")
-  })
+      <h2>Descrição Profissional</h2>
+      <div class="content">
+        ${c.texto.split('\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('')}
+      </div>
+
+      <div class="footer">
+        <p>Criado em: ${new Date(c.criadoEm).toLocaleString("pt-BR")}</p>
+      </div>
+    </body>
+    </html>
+  `
+
+  const blob = new Blob([html], { type: "application/vnd.ms-word" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `${c.cargo.replace(/\s+/g, "_").toLowerCase()}_${c.nivel}.doc`
+  a.click()
+  URL.revokeObjectURL(url)
+  showToast("Word exportado!", "success")
 }
 
 // ═══════════════════════════════════════════════════════════════
