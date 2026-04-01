@@ -3284,22 +3284,13 @@ Responda SOMENTE o JSON: {"sal_min":0,"sal_med":0,"sal_max":0}`
         fonte: salarioRef.fonte
       } : null
 
-      // 4️⃣ Emitir dados salariais como texto + evento
+      // 4️⃣ Emitir dados salariais como evento estruturado (para barra visual + texto)
       if (salariesData) {
-        // Enviar também como evento estruturado (para compatibilidade com barra visual)
+        // Enviar evento com dados (atualiza barra visual)
         res.write(`data: ${JSON.stringify({ tipo: "salarios", dados: salariesData })}\n\n`)
 
-        // Enviar salários como texto no final da descrição
-        const fmt = (v) => "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 0 })
-        const textoSalarios = `
-
-── FAIXA SALARIAL ──
-Baseado em: SIFAEG 2025 — Demonstrativo Salarial
-Nível: ${nivel}
-Salário Base Mensal: ${fmt(salariesData.sal_min)} a ${fmt(salariesData.sal_max)} (mediana: ${fmt(salariesData.sal_med)})
-Remuneração Total Mensal: ${fmt(salariesData.rem_total_min)} a ${fmt(salariesData.rem_total_max)} (mediana: ${fmt(salariesData.rem_total_med)})`
-
-        res.write(`data: ${JSON.stringify({ texto: textoSalarios })}\n\n`)
+        // NÃO enviar como texto separado — deixa a barra visual fazer o trabalho
+        // O evento "salarios" vai renderizar a barra profissional dentro do resultado-scrollable
 
         // Salvar no banco de dados
         const salarioId = randomBytes(16).toString("hex")
