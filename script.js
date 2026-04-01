@@ -1733,20 +1733,24 @@ function exportarWord() {
       </table>
   ` : ""
 
-  // Formatar conteúdo: detectar seções (linhas MAIÚSCULAS) e itens com "-"
+  // Formatar conteúdo: detectar seções e limpar marcadores
   const linhas = textoGerado.split('\n')
   let conteudoHtml = ""
   for (const line of linhas) {
     const trimmed = line.trim()
-    if (!trimmed) continue // pula linhas em branco
-    if (trimmed === "---") continue // pula separadores
-    // Títulos de seção: tudo maiúsculo, sem "-" no início
-    if (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && !trimmed.startsWith("-") && /[A-ZÀ-Ú]/.test(trimmed)) {
-      conteudoHtml += `<p style="margin:8pt 0 2pt 0;font-weight:bold;font-size:10pt;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:2pt;">${trimmed}</p>`
-    } else if (trimmed.startsWith("- ")) {
-      conteudoHtml += `<p style="margin:1pt 0 1pt 14pt;text-indent:-10pt;">• ${trimmed.slice(2)}</p>`
+    if (!trimmed) continue
+    if (trimmed === "---" || trimmed === "**" || trimmed === "---\n") continue
+    // Remove **negrito** markdown
+    let texto = trimmed.replace(/\*\*(.*?)\*\*/g, '$1')
+    // Remove numeração no início (1. 2. 3.)
+    texto = texto.replace(/^\d+\.\s*/, '')
+    // Remove bullets/traços no início
+    texto = texto.replace(/^[-•]\s*/, '')
+    // Títulos de seção: tudo maiúsculo
+    if (texto === texto.toUpperCase() && texto.length > 3 && /[A-ZÀ-Ú]/.test(texto)) {
+      conteudoHtml += `<p style="margin:8pt 0 2pt 0;font-weight:bold;font-size:10pt;border-bottom:1px solid #ccc;padding-bottom:2pt;">${texto}</p>`
     } else {
-      conteudoHtml += `<p style="margin:2pt 0;">${trimmed}</p>`
+      conteudoHtml += `<p style="margin:1pt 0;">${texto}</p>`
     }
   }
 
@@ -1834,13 +1838,14 @@ async function exportarCargoWord() {
   for (const line of linhasC) {
     const trimmed = line.trim()
     if (!trimmed) continue
-    if (trimmed === "---") continue
-    if (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && !trimmed.startsWith("-") && /[A-ZÀ-Ú]/.test(trimmed)) {
-      conteudoHtmlC += `<p style="margin:8pt 0 2pt 0;font-weight:bold;font-size:10pt;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:2pt;">${trimmed}</p>`
-    } else if (trimmed.startsWith("- ")) {
-      conteudoHtmlC += `<p style="margin:1pt 0 1pt 14pt;text-indent:-10pt;">• ${trimmed.slice(2)}</p>`
+    if (trimmed === "---" || trimmed === "**" || trimmed === "---\n") continue
+    let texto = trimmed.replace(/\*\*(.*?)\*\*/g, '$1')
+    texto = texto.replace(/^\d+\.\s*/, '')
+    texto = texto.replace(/^[-•]\s*/, '')
+    if (texto === texto.toUpperCase() && texto.length > 3 && /[A-ZÀ-Ú]/.test(texto)) {
+      conteudoHtmlC += `<p style="margin:8pt 0 2pt 0;font-weight:bold;font-size:10pt;border-bottom:1px solid #ccc;padding-bottom:2pt;">${texto}</p>`
     } else {
-      conteudoHtmlC += `<p style="margin:2pt 0;">${trimmed}</p>`
+      conteudoHtmlC += `<p style="margin:1pt 0;">${texto}</p>`
     }
   }
 
