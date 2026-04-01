@@ -370,6 +370,25 @@ html, body {
   flex-shrink: 0;
 }
 
+.tb-btn-group {
+  display: flex;
+  gap: 0;
+}
+
+.tb-btn-group .tb-btn {
+  border-radius: 0;
+  border-left-width: 0;
+}
+
+.tb-btn-group .tb-btn:first-child {
+  border-left-width: 1px;
+  border-radius: 4px 0 0 4px;
+}
+
+.tb-btn-group .tb-btn:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
 .tb-spacer { flex: 1; }
 
 .tb-chip {

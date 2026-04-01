@@ -312,6 +312,92 @@ function mostrarLogin() {
   document.getElementById("app-content").style.display   = "none"
 }
 
+// ── MODO TESTE PARA DESENVOLVIMENTO ──────────────────────────
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:') {
+  console.log('🎯 Modo teste ativado - simulando login e dados')
+
+  // Simular usuário logado
+  window.usuarioAtual = {
+    id: '1',
+    nome: 'Usuário Teste',
+    email: 'teste@local',
+    papel: 'admin'
+  }
+  window.empresaAtual = {
+    id: '1',
+    nome: 'Empresa Teste'
+  }
+
+  // Esconder login e mostrar app
+  document.getElementById('login-overlay').style.display = 'none'
+  document.getElementById('app-content').style.display = 'flex'
+
+  // Simular dados de salário para teste
+  setTimeout(() => {
+    document.getElementById('sal-min').textContent = 'R$ 3.500'
+    document.getElementById('sal-med').textContent = 'R$ 4.200'
+    document.getElementById('sal-max').textContent = 'R$ 5.800'
+    document.getElementById('rem-total-min').textContent = 'R$ 4.500'
+    document.getElementById('rem-total-med').textContent = 'R$ 5.500'
+    document.getElementById('rem-total-max').textContent = 'R$ 7.200'
+    document.getElementById('salarios-wrap').style.display = 'block'
+
+    // Simular texto gerado
+    window.textoGerado = `DESCRIÇÃO DO CARGO: ANALISTA DE DADOS
+
+RESUMO DO CARGO:
+O Analista de Dados é responsável por coletar, processar e analisar dados para gerar insights estratégicos que apoiem a tomada de decisões da empresa. Trabalha com ferramentas de business intelligence, bancos de dados e linguagens de programação para transformar dados brutos em informações acionáveis.
+
+PRINCIPAIS RESPONSABILIDADES:
+• Coletar e integrar dados de múltiplas fontes
+• Realizar limpeza e tratamento de dados
+• Desenvolver dashboards e relatórios interativos
+• Identificar padrões e tendências nos dados
+• Apoiar equipes na interpretação de métricas
+• Garantir a qualidade e integridade dos dados
+• Automatizar processos de análise quando possível
+
+REQUISITOS TÉCNICOS:
+• Conhecimento em SQL e bancos de dados relacionais
+• Experiência com Excel avançado e Google Sheets
+• Familiaridade com ferramentas de BI (Power BI, Tableau)
+• Conhecimento básico em Python ou R para análise
+• Noções de estatística e matemática aplicada
+
+COMPETÊNCIAS COMPORTAMENTAIS:
+• Capacidade analítica e atenção aos detalhes
+• Orientação para resultados
+• Comunicação clara e objetiva
+• Trabalho em equipe
+• Capacidade de aprender rapidamente novas ferramentas
+
+FORMAÇÃO ACADÊMICA:
+• Superior completo em áreas como Estatística, Matemática, Ciência da Computação, Engenharia ou áreas afins
+• Cursos de especialização em análise de dados são um diferencial
+
+EXPERIÊNCIA PROFISSIONAL:
+• Experiência mínima de 2 anos em análise de dados ou áreas relacionadas
+• Experiência com projetos de business intelligence é um diferencial`
+
+    document.getElementById('resultado-gen').innerHTML = '<pre>' + window.textoGerado + '</pre>'
+    document.getElementById('resultado-wrap').style.display = 'flex'
+    document.getElementById('resultado_placeholder').style.display = 'none'
+
+    // Preencher campos de exemplo
+    document.getElementById('cargoInput').value = 'Analista de Dados'
+    document.getElementById('area').value = 'TI'
+    document.getElementById('nivel').value = 'Pleno'
+
+    // Atualizar UI do usuário
+    document.getElementById('user-info-bar').style.display = 'flex'
+    document.getElementById('tb-empresa-nome').textContent = window.empresaAtual.nome
+    document.getElementById('tb-usuario-nome').textContent = window.usuarioAtual.nome
+
+    showToast('Modo teste ativado! Dados simulados carregados.', 'success')
+  }, 1000)
+}
+// ── FIM MODO TESTE ───────────────────────────────────────────
+
 async function esconderLogin() {
   const loginEl = document.getElementById("login-overlay")
   const splash  = document.getElementById("splash")
@@ -1229,6 +1315,106 @@ async function gerarDescricao() {
 
   } catch (err) {
     console.error("Erro:", err)
+
+    // MODO TESTE: se estiver local e der erro de IA, gera texto de exemplo
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      console.log('🎯 Modo teste: gerando texto de exemplo')
+      const textoExemploGen = `DESCRIÇÃO DO CARGO: ${cargo.toUpperCase()}
+
+RESUMO DO CARGO:
+O ${cargo} é responsável por executar atividades relacionadas à área de ${area}, atuando no nível ${nivel}. Trabalha de forma ${tipo.toLowerCase()}, contribuindo para o alcance dos objetivos organizacionais.
+
+PRINCIPAIS RESPONSABILIDADES:
+• Executar tarefas relacionadas às suas competências técnicas
+• Colaborar com a equipe para alcançar metas estabelecidas
+• Seguir normas e procedimentos da empresa
+• Contribuir para a melhoria contínua dos processos
+• Manter-se atualizado com as melhores práticas da área
+
+REQUISITOS TÉCNICOS:
+• Conhecimento básico na área de atuação
+• Experiência prévia em funções similares
+• Capacidade de aprendizado rápido
+• Conhecimento de ferramentas básicas do escritório
+
+COMPETÊNCIAS COMPORTAMENTAIS:
+• Comunicação clara e objetiva
+• Trabalho em equipe
+• Orientação para resultados
+• Compromisso com a qualidade
+• Adaptabilidade às mudanças
+
+FORMAÇÃO ACADÊMICA:
+• Ensino médio completo
+• Cursos técnicos na área são desejáveis
+
+EXPERIÊNCIA PROFISSIONAL:
+• Experiência mínima de 1 ano em funções similares`
+
+      const textoExemploDet = `DESCRIÇÃO DETALHADA DO CARGO: ${cargo.toUpperCase()}
+
+1. CONTEXTO ORGANIZACIONAL:
+O ${cargo} atua na área de ${area}, inserido no setor sucroenergético do Centro-Oeste brasileiro. A empresa busca profissionais comprometidos com a excelência operacional e o desenvolvimento sustentável.
+
+2. OBJETIVO DO CARGO:
+Executar atividades operacionais e administrativas relacionadas à sua área de atuação, contribuindo para o bom desempenho da equipe e alcance das metas organizacionais.
+
+3. PRINCIPAIS ATRIBUIÇÕES:
+3.1 Atividades Operacionais:
+   • Executar tarefas diárias relacionadas às suas competências
+   • Acompanhar indicadores de performance
+   • Participar de reuniões de equipe
+   • Contribuir com sugestões de melhoria
+
+3.2 Atividades Administrativas:
+   • Registrar informações em sistemas corporativos
+   • Elaborar relatórios simples
+   • Manter organização do local de trabalho
+   • Seguir procedimentos de segurança
+
+4. RESPONSABILIDADES ESPECÍFICAS:
+• Cumprir metas e indicadores estabelecidos
+• Manter qualidade no atendimento/execução
+• Zelar pela conservação de equipamentos
+• Contribuir para o clima organizacional positivo
+
+5. REQUISITOS MÍNIMOS:
+5.1 Formação: Ensino médio completo
+5.2 Experiência: 1 ano em funções similares
+5.3 Conhecimentos: Pacote Office básico
+5.4 Competências: Comunicação, trabalho em equipe
+
+6. CONDIÇÕES DE TRABALHO:
+• Jornada: 44 horas semanais
+• Local: Usina sucroenergética - Centro-Oeste
+• Tipo: ${tipo}
+• Benefícios: VT, VR, convênio médico, PLR`
+
+      elGen.innerHTML = renderMarkdown(textoExemploGen)
+      elGen.className = "resultado_content res-content"
+      elDet.innerHTML = renderMarkdown(textoExemploDet)
+      elDet.className = "resultado_content res-content"
+      textoGerado = textoExemploGen + "\n\n---\n\n" + textoExemploDet
+
+      setStatus("done")
+      setIAStatus("done")
+      showToast("Texto de exemplo gerado (modo teste)!", "success")
+
+      // Dados salariais de exemplo
+      const dadosSalariaisExemplo = {
+        sal_min: 3500,
+        sal_med: 4200,
+        sal_max: 5800,
+        rem_total_min: 4500,
+        rem_total_med: 5500,
+        rem_total_max: 7200
+      }
+      exibirDadosSalariais(dadosSalariaisExemplo)
+
+      autoSalvarCargo(cargo, area, nivel, textoGerado)
+      return
+    }
+
     setStatus("error")
     loadingEl.style.display = "none"
     document.getElementById("resultado-wrap").style.display = "flex"
@@ -1465,6 +1651,102 @@ function baixarTexto() {
   showToast("Arquivo baixado!", "success")
 }
 
+function exportarPDF() {
+  if (!textoGerado) {
+    showToast("Nenhum texto gerado ainda.", "error")
+    return
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const cargo = cargoInput.value.trim() || "Cargo";
+  const area = document.getElementById("area").value;
+  const nivel = document.getElementById("nivel").value;
+
+  // Title
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("Descrição de Cargo", 20, 30);
+
+  // Job details
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Cargo: ${cargo}`, 20, 50);
+  doc.text(`Área: ${area}`, 20, 60);
+  doc.text(`Nível: ${nivel}`, 20, 70);
+
+  // Salary info if visible
+  if (document.getElementById("salarios-wrap").style.display !== "none") {
+    doc.text("Faixa Salarial:", 20, 90);
+    const salMin = document.getElementById("sal-min").textContent;
+    const salMed = document.getElementById("sal-med").textContent;
+    const salMax = document.getElementById("sal-max").textContent;
+    doc.text(`Salário Base: Mín ${salMin} | Mediana ${salMed} | Máx ${salMax}`, 30, 100);
+
+    const remMin = document.getElementById("rem-total-min").textContent;
+    const remMed = document.getElementById("rem-total-med").textContent;
+    const remMax = document.getElementById("rem-total-max").textContent;
+    doc.text(`Remuneração Total: Mín ${remMin} | Mediana ${remMed} | Máx ${remMax}`, 30, 110);
+  }
+
+  // Description
+  let y = 130;
+  const lines = doc.splitTextToSize(textoGerado, 170);
+  doc.text(lines, 20, y);
+
+  // Save
+  const fileName = `descricao_${cargo.replace(/\s+/g, "_").toLowerCase()}_${nivel}.pdf`;
+  doc.save(fileName);
+  showToast("PDF exportado!", "success");
+}
+
+function exportarExcel() {
+  if (!textoGerado) {
+    showToast("Nenhum texto gerado ainda.", "error")
+    return
+  }
+
+  const cargo = cargoInput.value.trim() || "Cargo";
+  const area = document.getElementById("area").value;
+  const nivel = document.getElementById("nivel").value;
+
+  const data = [
+    ["Campo", "Valor"],
+    ["Cargo", cargo],
+    ["Área", area],
+    ["Nível", nivel],
+    ["", ""],
+    ["Descrição", ""],
+  ];
+
+  // Split description into lines
+  const descLines = textoGerado.split('\n');
+  descLines.forEach(line => {
+    data.push(["", line]);
+  });
+
+  // Add salary if visible
+  if (document.getElementById("salarios-wrap").style.display !== "none") {
+    data.push(["", ""]);
+    data.push(["Faixa Salarial", ""]);
+    data.push(["Salário Base Mín", document.getElementById("sal-min").textContent]);
+    data.push(["Salário Base Mediana", document.getElementById("sal-med").textContent]);
+    data.push(["Salário Base Máx", document.getElementById("sal-max").textContent]);
+    data.push(["Remuneração Total Mín", document.getElementById("rem-total-min").textContent]);
+    data.push(["Remuneração Total Mediana", document.getElementById("rem-total-med").textContent]);
+    data.push(["Remuneração Total Máx", document.getElementById("rem-total-max").textContent]);
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Descrição");
+
+  const fileName = `descricao_${cargo.replace(/\s+/g, "_").toLowerCase()}_${nivel}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+  showToast("Excel exportado!", "success");
+}
+
 
 // ═══════════════════════════════════════════════════════════════
 //  LIMPAR RESULTADO
@@ -1513,19 +1795,29 @@ let cargoIdAtual = null  // id do cargo salvo mais recentemente (para histórico
 
 async function autoSalvarCargo(cargo, area, nivel, texto) {
   try {
+    console.log('Tentando salvar cargo:', { cargo, area, nivel, texto: texto.substring(0, 100) + '...' })
     const res  = await fetch("/cargos", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ cargo, area, nivel, texto })
     })
+    console.log('Resposta do servidor:', res.status, res.statusText)
     if (res.ok) {
       const data = await res.json()
+      console.log('Dados da resposta:', data)
       cargoIdAtual = data.id || null
       document.getElementById("historico-btn").style.display = cargoIdAtual ? "" : "none"
       await inicializarCargos()
       showToast("Cargo salvo automaticamente.", "info")
+    } else {
+      const error = await res.json()
+      console.error('Erro ao salvar:', error)
+      showToast(`Erro ao salvar: ${error.erro || 'Erro desconhecido'}`, "error")
     }
-  } catch { /* silencioso */ }
+  } catch (e) {
+    console.error('Erro de conexão:', e)
+    showToast(`Erro de conexão: ${e.message}`, "error")
+  }
 }
 
 async function abrirHistorico() {
@@ -1880,6 +2172,79 @@ async function baixarExport() {
 function exportarPDF() {
   const url = "/exportar/pdf" + expQueryString()
   window.open(url, "_blank")
+}
+
+function exportarCargoTexto() {
+  if (!cargoEditando) {
+    showToast("Nenhum cargo selecionado.", "error")
+    return
+  }
+
+  const c = cargosData.find(x => x.id === cargoEditando)
+  if (!c) return
+
+  const blob = new Blob([c.texto], { type: "text/plain;charset=utf-8" })
+  const url = URL.createObjectURL(blob)
+  const a = Object.assign(document.createElement("a"), { href: url, download: `${c.cargo.replace(/\s+/g, "_").toLowerCase()}.txt` })
+  a.click()
+  URL.revokeObjectURL(url)
+  showToast("Arquivo baixado!", "success")
+}
+
+function exportarCargoPDF() {
+  if (!cargoEditando) {
+    showToast("Nenhum cargo selecionado.", "error")
+    return
+  }
+
+  const url = `/exportar/cargo-pdf/${cargoEditando}`
+  window.open(url, "_blank")
+  showToast("PDF gerado!", "success")
+}
+
+function exportarCargoExcel() {
+  if (!cargoEditando) {
+    showToast("Nenhum cargo selecionado.", "error")
+    return
+  }
+
+  const c = cargosData.find(x => x.id === cargoEditando)
+  if (!c) return
+
+  const data = [
+    ["Campo", "Valor"],
+    ["Cargo", c.cargo],
+    ["Área", c.area],
+    ["Nível", c.nivel],
+    ["", ""],
+    ["Descrição", ""],
+  ];
+
+  // Split description into lines
+  const descLines = c.texto.split('\n');
+  descLines.forEach(line => {
+    data.push(["", line]);
+  });
+
+  // Add salary if available
+  if (document.getElementById("cargos-salarios-wrap").style.display !== "none") {
+    data.push(["", ""]);
+    data.push(["Faixa Salarial", ""]);
+    data.push(["Salário Base Mín", document.getElementById("cargos-sal-min").textContent]);
+    data.push(["Salário Base Mediana", document.getElementById("cargos-sal-med").textContent]);
+    data.push(["Salário Base Máx", document.getElementById("cargos-sal-max").textContent]);
+    data.push(["Remuneração Total Mín", document.getElementById("cargos-rem-total-min").textContent]);
+    data.push(["Remuneração Total Mediana", document.getElementById("cargos-rem-total-med").textContent]);
+    data.push(["Remuneração Total Máx", document.getElementById("cargos-rem-total-max").textContent]);
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Descrição");
+
+  const fileName = `descricao_${c.cargo.replace(/\s+/g, "_").toLowerCase()}_${c.nivel}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+  showToast("Excel exportado!", "success");
 }
 
 async function renderizarListaCargos() {

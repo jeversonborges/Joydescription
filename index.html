@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&family=Lato:ital,wght@0,400;0,700;1,400&family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&family=Poppins:ital,wght@0,400;0,500;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=Nunito:ital,wght@0,400;0,600;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Fira+Code&display=swap">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -161,6 +163,8 @@
           <button class="menu-dd-item" onclick="menuAcao('novo')"><i class="uil uil-file-alt"></i> Novo</button>
           <div class="menu-dd-sep"></div>
           <button class="menu-dd-item" onclick="baixarTexto()"><i class="uil uil-download-alt"></i> Exportar como .txt</button>
+          <button class="menu-dd-item" onclick="exportarPDF()"><i class="uil uil-file-pdf"></i> Exportar como PDF</button>
+          <button class="menu-dd-item" onclick="exportarExcel()"><i class="uil uil-file-excel"></i> Exportar como Excel</button>
           <div class="menu-dd-sep"></div>
           <button class="menu-dd-item" onclick="menuAcao('fechar')"><i class="uil uil-times-circle"></i> Fechar</button>
         </div>
@@ -247,10 +251,20 @@
         <i class="uil uil-copy"></i>
         <span>Copiar</span>
       </button>
-      <button class="tb-btn" onclick="baixarTexto()" title="Baixar como .txt">
-        <i class="uil uil-download-alt"></i>
-        <span>Exportar</span>
-      </button>
+      <div class="tb-btn-group">
+        <button class="tb-btn" onclick="baixarTexto()" title="Exportar como .txt">
+          <i class="uil uil-download-alt"></i>
+          <span>.txt</span>
+        </button>
+        <button class="tb-btn" onclick="exportarPDF()" title="Exportar como PDF">
+          <i class="uil uil-file-pdf"></i>
+          <span>PDF</span>
+        </button>
+        <button class="tb-btn" onclick="exportarExcel()" title="Exportar como Excel">
+          <i class="uil uil-file-excel"></i>
+          <span>Excel</span>
+        </button>
+      </div>
       <div class="tb-sep"></div>
       <button class="tb-btn" onclick="limparResultado()" title="Limpar">
         <i class="uil uil-redo"></i>
@@ -434,53 +448,55 @@
                 <i class="uil uil-history"></i>
               </button>
             </div>
-            <div id="salarios-wrap" style="display:none;padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;background:var(--bg-hover)">
-              <div class="salarios-header" style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-                <i class="uil uil-chart-line" style="font-size:18px;color:var(--accent)"></i>
-                <span style="font-weight:600;color:var(--text)">Faixa Salarial</span>
-                <span class="salarios-badge" style="margin-left:auto;font-size:11px;background:var(--accent);color:white;padding:4px 8px;border-radius:12px">Sucroenergético · Centro-Oeste</span>
-              </div>
-              <div class="salarios-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
-                <div class="sal-grupo" style="display:flex;flex-direction:column;gap:6px">
-                  <span class="sal-label" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase"><i class="uil uil-briefcase-alt" style="font-size:11px"></i> Salario Base</span>
-                  <div class="sal-linha" style="display:flex;gap:6px;flex-wrap:wrap">
-                    <span class="sal-tag min" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--text-muted)">
-                      <span>Mín</span><b id="sal-min" style="color:var(--text);font-size:12px">—</b>
-                    </span>
-                    <span class="sal-tag med" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--text-muted)">
-                      <span>Mediana</span><b id="sal-med" style="color:var(--text);font-size:12px;font-weight:700">—</b>
-                    </span>
-                    <span class="sal-tag max" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);color:var(--text-muted)">
-                      <span>Máx</span><b id="sal-max" style="color:var(--text);font-size:12px">—</b>
-                    </span>
+            <div id="resultado-scrollable" style="flex:1; overflow-y: auto;">
+              <div id="salarios-wrap" style="display:none;padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;background:var(--bg-hover)">
+                <div class="salarios-header" style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+                  <i class="uil uil-chart-line" style="font-size:18px;color:var(--accent)"></i>
+                  <span style="font-weight:600;color:var(--text)">Faixa Salarial</span>
+                  <span class="salarios-badge" style="margin-left:auto;font-size:11px;background:var(--accent);color:white;padding:4px 8px;border-radius:12px">Sucroenergético · Centro-Oeste</span>
+                </div>
+                <div class="salarios-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+                  <div class="sal-grupo" style="display:flex;flex-direction:column;gap:6px">
+                    <span class="sal-label" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase"><i class="uil uil-briefcase-alt" style="font-size:11px"></i> Salario Base</span>
+                    <div class="sal-linha" style="display:flex;gap:6px;flex-wrap:wrap">
+                      <span class="sal-tag min" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--text-muted)">
+                        <span>Mín</span><b id="sal-min" style="color:var(--text);font-size:12px">—</b>
+                      </span>
+                      <span class="sal-tag med" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--text-muted)">
+                        <span>Mediana</span><b id="sal-med" style="color:var(--text);font-size:12px;font-weight:700">—</b>
+                      </span>
+                      <span class="sal-tag max" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);color:var(--text-muted)">
+                        <span>Máx</span><b id="sal-max" style="color:var(--text);font-size:12px">—</b>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="sal-grupo" style="display:flex;flex-direction:column;gap:6px">
+                    <span class="sal-label" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase"><i class="uil uil-money-bill" style="font-size:11px"></i> Remuneracao Total</span>
+                    <div class="sal-linha" style="display:flex;gap:6px;flex-wrap:wrap">
+                      <span class="sal-tag min" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--text-muted)">
+                        <span>Mín</span><b id="rem-total-min" style="color:var(--text);font-size:12px">—</b>
+                      </span>
+                      <span class="sal-tag med" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--text-muted)">
+                        <span>Mediana</span><b id="rem-total-med" style="color:var(--text);font-size:12px;font-weight:700">—</b>
+                      </span>
+                      <span class="sal-tag max" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);color:var(--text-muted)">
+                        <span>Máx</span><b id="rem-total-max" style="color:var(--text);font-size:12px">—</b>
+                      </span>
+                    </div>
+                    <span style="font-size:9px;color:var(--text-muted);margin-top:4px">*Inclui VT, VR, convênio, PLR</span>
                   </div>
                 </div>
-                <div class="sal-grupo" style="display:flex;flex-direction:column;gap:6px">
-                  <span class="sal-label" style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase"><i class="uil uil-money-bill" style="font-size:11px"></i> Remuneracao Total</span>
-                  <div class="sal-linha" style="display:flex;gap:6px;flex-wrap:wrap">
-                    <span class="sal-tag min" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--text-muted)">
-                      <span>Mín</span><b id="rem-total-min" style="color:var(--text);font-size:12px">—</b>
-                    </span>
-                    <span class="sal-tag med" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--text-muted)">
-                      <span>Mediana</span><b id="rem-total-med" style="color:var(--text);font-size:12px;font-weight:700">—</b>
-                    </span>
-                    <span class="sal-tag max" style="display:flex;flex-direction:column;font-size:10px;padding:6px;border-radius:4px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);color:var(--text-muted)">
-                      <span>Máx</span><b id="rem-total-max" style="color:var(--text);font-size:12px">—</b>
-                    </span>
+                <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;font-size:10px;color:var(--text-muted);line-height:1.5">
+                  <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+                    <i class="uil uil-search-alt" style="font-size:11px;color:var(--text)"></i>
+                    <strong style="color:var(--text)">Metodologia</strong>
                   </div>
-                  <span style="font-size:9px;color:var(--text-muted);margin-top:4px">*Inclui VT, VR, convênio, PLR</span>
+                  <p style="margin:4px 0">Media ponderada: <strong>Glassdoor Brasil</strong> (50%) + <strong>Dissidio.com.br</strong> (50%). Setor sucroenergetico, Centro-Oeste.</p>
                 </div>
               </div>
-              <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;font-size:10px;color:var(--text-muted);line-height:1.5">
-                <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-                  <i class="uil uil-search-alt" style="font-size:11px;color:var(--text)"></i>
-                  <strong style="color:var(--text)">Metodologia</strong>
-                </div>
-                <p style="margin:4px 0">Media ponderada: <strong>Glassdoor Brasil</strong> (50%) + <strong>Dissidio.com.br</strong> (50%). Setor sucroenergetico, Centro-Oeste.</p>
-              </div>
+              <div id="resultado-gen" class="resultado_content" style="display:block; overflow: visible;"></div>
+              <div id="resultado-det" class="resultado_content" style="display:none; overflow: visible;"></div>
             </div>
-            <div id="resultado-gen" class="resultado_content" style="display:block"></div>
-            <div id="resultado-det" class="resultado_content" style="display:none"></div>
           </div>
 
         </div>
@@ -509,9 +525,17 @@
                   <span id="cargos-form-meta" style="font-size:11px;color:var(--text-muted)"></span>
                 </div>
                 <div style="display:flex;gap:6px">
-                  <button class="btn-salvar-area" onclick="exportarCargo()" title="Exportar como .txt" style="background:var(--bg-hover);color:var(--text-muted);border-color:var(--border)">
-                    <i class="uil uil-download-alt"></i> Exportar
-                  </button>
+                  <div class="tb-btn-group">
+                    <button class="btn-salvar-area tb-btn" onclick="exportarCargoTexto()" title="Exportar como .txt" style="background:var(--bg-hover);color:var(--text-muted);border-color:var(--border)">
+                      <i class="uil uil-download-alt"></i> .txt
+                    </button>
+                    <button class="btn-salvar-area tb-btn" onclick="exportarCargoPDF()" title="Exportar como PDF">
+                      <i class="uil uil-file-pdf"></i> PDF
+                    </button>
+                    <button class="btn-salvar-area tb-btn" onclick="exportarCargoExcel()" title="Exportar como Excel">
+                      <i class="uil uil-file-excel"></i> Excel
+                    </button>
+                  </div>
                   <button class="btn-deletar-area" onclick="deletarCargo()" title="Deletar este cargo">
                     <i class="uil uil-trash-alt"></i> Deletar
                   </button>

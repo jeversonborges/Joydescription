@@ -306,6 +306,26 @@ db.exec(`
     db.exec("ALTER TABLE pesquisas_salariais ADD COLUMN versao_ref TEXT DEFAULT '1.0'")
     console.log("✅ Migração: versao_ref adicionado a pesquisas_salariais")
   }
+
+  // ── Migração: adiciona coluna fator_salarial se não existir ──
+  const colsNiveisFator = db.prepare("PRAGMA table_info(niveis)").all().map(c => c.name)
+  if (!colsNiveisFator.includes("fator_salarial")) {
+    db.exec("ALTER TABLE niveis ADD COLUMN fator_salarial REAL NOT NULL DEFAULT 1.0")
+    console.log("✅ Migração: coluna fator_salarial adicionada a niveis")
+    // Popula fatores padrão para todos os registros existentes
+    const FATORES_DEFAULT = {
+      "Trainee": 0.60, "Junior": 0.80, "Pleno": 1.00, "Senior": 1.25,
+      "Especialista": 1.40, "Coordenador": 1.55, "Gestor": 1.70,
+      "Gerente": 2.10, "Superintendente": 2.70, "Diretor": 3.50
+    }
+    const upd = db.prepare("UPDATE niveis SET fator_salarial = ? WHERE label = ?")
+    db.transaction(() => {
+      for (const [label, fator] of Object.entries(FATORES_DEFAULT)) {
+        upd.run(fator, label)
+      }
+    })()
+    console.log("✅ Fatores salariais padrão populados")
+  }
 })()
 
 // ── Limpeza periódica de sessões expiradas (1h) ────────────────────────────
@@ -686,52 +706,6 @@ function seedNiveis(empresaId) {
   if (db.prepare("SELECT COUNT(*) as n FROM niveis WHERE empresa_id = 'default'").get().n > 0) return
   seedNiveis("default")
   console.log("✅ Níveis padrão inseridos para empresa default")
-})()
-
-// ── Migração: adiciona coluna fator_salarial + corrige hierarquia (TODAS as empresas) ──
-;(function migrateHierarchyAndFator() {
-  // 1. Adiciona coluna fator_salarial se não existir
-  const cols = db.prepare("PRAGMA table_info(niveis)").all().map(c => c.name)
-  if (!cols.includes("fator_salarial")) {
-    db.exec("ALTER TABLE niveis ADD COLUMN fator_salarial REAL NOT NULL DEFAULT 1.0")
-    console.log("✅ Migração: coluna fator_salarial adicionada a niveis")
-    // Popula fatores padrão para todos os registros existentes
-    const FATORES_DEFAULT = {
-      "Trainee": 0.60, "Junior": 0.80, "Pleno": 1.00, "Senior": 1.25,
-      "Especialista": 1.40, "Coordenador": 1.55, "Gestor": 1.70,
-      "Gerente": 2.10, "Superintendente": 2.70, "Diretor": 3.50
-    }
-    const upd = db.prepare("UPDATE niveis SET fator_salarial = ? WHERE label = ?")
-    db.transaction(() => {
-      for (const [label, fator] of Object.entries(FATORES_DEFAULT)) {
-        upd.run(fator, label)
-      }
-    })()
-    console.log("✅ Fatores salariais padrão populados")
-  }
-
-  // 2. Corrige hierarquia em TODAS as empresas
-  const empresas = db.prepare("SELECT DISTINCT empresa_id FROM niveis").all()
-  for (const { empresa_id } of empresas) {
-    // Remove Estágio se existir
-    const removido = db.prepare("DELETE FROM niveis WHERE label='Estágio' AND empresa_id=?").run(empresa_id)
-    if (removido.changes > 0) console.log(`✅ Estágio removido (empresa ${empresa_id})`)
-
-    // Adiciona Superintendente se não existir
-    const temSup = db.prepare("SELECT COUNT(*) as n FROM niveis WHERE label='Superintendente' AND empresa_id=?").get(empresa_id).n > 0
-    if (!temSup) {
-      db.prepare("INSERT INTO niveis (empresa_id,label,ordem,eh_lideranca,descricao,descricao_curta,fator_salarial) VALUES (?,?,?,?,?,?,?)")
-        .run(empresa_id, "Superintendente", 9, 1, "Superintendente — liderança estratégica operacional, acima de Gestor, abaixo de Diretor", "Superintendente", 2.70)
-      console.log(`✅ Superintendente adicionado (empresa ${empresa_id})`)
-    }
-
-    // Garante ordem correta: Gestor=7, Gerente=8, Superintendente=9, Diretor=10
-    db.prepare("UPDATE niveis SET ordem = 7 WHERE label = 'Gestor' AND empresa_id = ?").run(empresa_id)
-    db.prepare("UPDATE niveis SET ordem = 8 WHERE label = 'Gerente' AND empresa_id = ?").run(empresa_id)
-    db.prepare("UPDATE niveis SET ordem = 9 WHERE label = 'Superintendente' AND empresa_id = ?").run(empresa_id)
-    db.prepare("UPDATE niveis SET ordem = 10 WHERE label = 'Diretor' AND empresa_id = ?").run(empresa_id)
-  }
-  if (empresas.length > 0) console.log(`✅ Hierarquia corrigida para ${empresas.length} empresa(s)`)
 })()
 
 // Prompt ultra-enxuto para Ollama — modelos pequenos perdem o fio em prompts longos
@@ -2275,6 +2249,157 @@ app.get("/exportar/salario-pdf/:id", (req, res) => {
 <div class="rodape">
   <span>JoyDescription — Pesquisa Salarial</span>
   <span>Gerado em ${formatDate(new Date().toISOString())} | Ref: ${p.id.slice(0,12)}</span>
+</div>
+
+<script>window.addEventListener("load", () => setTimeout(() => window.print(), 600))</script>
+</body>
+</html>`
+
+  res.setHeader("Content-Type", "text/html; charset=utf-8")
+  res.send(html)
+})
+
+// ── PDF individual de descrição de cargo ──────────────────────
+app.get("/exportar/cargo-pdf/:id", (req, res) => {
+  const c = db.prepare("SELECT * FROM cargos WHERE id = ? AND empresa_id = ?").get(req.params.id, req.empresaId)
+  if (!c) return res.status(404).json({ erro: "Cargo não encontrado." })
+
+  // Buscar pesquisa salarial correspondente
+  const pesquisa = db.prepare("SELECT * FROM pesquisas_salariais WHERE cargo = ? AND area = ? AND nivel = ? AND empresa_id = ? ORDER BY criado_em DESC LIMIT 1")
+    .get(c.cargo, c.area, c.nivel, req.empresaId)
+
+  const formatDate = iso => iso ? new Date(iso).toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" }) : "—"
+  const fmt = v => v ? "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 0 }) : "—"
+
+  const salarioHtml = pesquisa ? `
+    <div class="section">
+      <div class="section-title">Faixa Salarial</div>
+      <div class="sal-card">
+        <div class="sal-card-header">
+          <div class="sal-card-icon base">S</div>
+          <div>
+            <div class="sal-card-title">Salario Base Mensal</div>
+            <div class="sal-card-subtitle">Valor registrado em carteira, sem adicionais</div>
+          </div>
+        </div>
+        <div class="sal-values">
+          <div class="sal-item"><span class="sal-item-label">Minimo</span><span class="sal-item-value">${fmt(pesquisa.sal_min)}</span></div>
+          <div class="sal-item"><span class="sal-item-label">Mediana</span><span class="sal-item-value med">${fmt(pesquisa.sal_med)}</span></div>
+          <div class="sal-item"><span class="sal-item-label">Maximo</span><span class="sal-item-value">${fmt(pesquisa.sal_max)}</span></div>
+        </div>
+      </div>
+      <div class="sal-card">
+        <div class="sal-card-header">
+          <div class="sal-card-icon total">R</div>
+          <div>
+            <div class="sal-card-title">Remuneracao Total Mensal</div>
+            <div class="sal-card-subtitle">Salario base + VT, VR, convenio, PLR e beneficios</div>
+          </div>
+        </div>
+        <div class="sal-values">
+          <div class="sal-item"><span class="sal-item-label">Minimo</span><span class="sal-item-value">${fmt(pesquisa.rem_total_min)}</span></div>
+          <div class="sal-item"><span class="sal-item-label">Mediana</span><span class="sal-item-value med">${fmt(pesquisa.rem_total_med)}</span></div>
+          <div class="sal-item"><span class="sal-item-label">Maximo</span><span class="sal-item-value">${fmt(pesquisa.rem_total_max)}</span></div>
+        </div>
+      </div>
+    </div>` : ""
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Descrição de Cargo — ${c.cargo}</title>
+<style>
+  @page { margin: 20mm; size: A4; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; line-height: 1.7; color: #1e293b; background: #fff; }
+
+  .cover { margin-bottom: 28px; padding-bottom: 18px; border-bottom: 2px solid #e2e8f0; }
+  .cover-brand { display: flex; align-items: baseline; gap: 4px; margin-bottom: 14px; }
+  .cover-joy  { font-size: 28px; font-weight: 800; color: #1e293b; letter-spacing: -1px; }
+  .cover-desc { font-size: 28px; font-weight: 800; color: #94a3b8; letter-spacing: -1px; }
+  .cover-sub  { font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: #94a3b8; margin-bottom: 12px; }
+  .cover-title { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+  .cover-meta  { font-size: 10px; color: #64748b; }
+
+  .cargo-header { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: #fff; padding: 20px 18px; border-radius: 8px; margin-bottom: 24px; }
+  .cargo-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+  .cargo-meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 10px; opacity: 0.85; }
+  .meta-item { display: flex; flex-direction: column; }
+  .meta-label { font-size: 9px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px; }
+  .meta-value { font-weight: 600; font-size: 11px; }
+
+  .section { margin-bottom: 24px; }
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #3b82f6; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+  .section-content { font-size: 11px; line-height: 1.8; color: #334155; }
+
+  .sal-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 14px; }
+  .sal-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; }
+  .sal-card-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; }
+  .sal-card-icon.base { background: #eff6ff; color: #3b82f6; }
+  .sal-card-icon.total { background: #f0fdf4; color: #059669; }
+  .sal-card-title { font-size: 12px; font-weight: 700; color: #1e293b; }
+  .sal-card-subtitle { font-size: 9px; color: #94a3b8; }
+  .sal-values { display: flex; gap: 10px; }
+  .sal-item { flex: 1; text-align: center; padding: 12px 8px; background: #f8fafc; border-radius: 8px; border: 1px solid #f1f5f9; }
+  .sal-item-label { font-size: 9px; color: #94a3b8; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .sal-item-value { font-size: 14px; font-weight: 700; color: #1e293b; font-family: 'Courier New', monospace; }
+  .sal-item-value.med { color: #059669; font-size: 15px; }
+
+  .rodape { margin-top: 32px; padding-top: 14px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #94a3b8; }
+  .rodape-meta { display: flex; gap: 16px; }
+
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-brand"><span class="cover-joy">Joy</span><span class="cover-desc">Description</span></div>
+  <div class="cover-sub">Descrição de Cargo</div>
+  <div class="cover-title">${c.cargo}</div>
+  <div class="cover-meta">
+    ${c.area ? `<span><strong>Área:</strong> ${c.area}</span>` : ""}
+    ${c.nivel ? `<span><strong>Nível:</strong> ${c.nivel}</span>` : ""}
+    <span><strong>Data:</strong> ${formatDate(c.criadoEm)}</span>
+  </div>
+</div>
+
+<div class="cargo-header">
+  <div class="cargo-title">${c.cargo}</div>
+  <div class="cargo-meta">
+    <div class="meta-item">
+      <span class="meta-label">Área</span>
+      <span class="meta-value">${c.area || "—"}</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Nível</span>
+      <span class="meta-value">${c.nivel || "—"}</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Contexto</span>
+      <span class="meta-value">Setor Sucroenergetico</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Referência</span>
+      <span class="meta-value">${c.id.slice(0, 12)}</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Descrição Profissional</div>
+  <div class="section-content">${c.texto.replace(/\n/g, "<br>")}</div>
+</div>
+
+${salarioHtml}
+
+<div class="rodape">
+  <span>JoyDescription — Descrição de Cargo</span>
+  <div class="rodape-meta">
+    <span>Ref: ${c.id.slice(0, 12)}</span>
+    <span>Gerado em ${formatDate(c.criadoEm)}</span>
+  </div>
 </div>
 
 <script>window.addEventListener("load", () => setTimeout(() => window.print(), 600))</script>
