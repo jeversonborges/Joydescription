@@ -138,6 +138,9 @@
           <span class="user-info-sep">·</span>
           <i class="uil uil-user-circle"></i>
           <span id="tb-usuario-nome" class="tb-usuario"></span>
+          <button class="btn-logout" onclick="abrirModalSenha()" title="Alterar senha" style="background:var(--bg-hover);color:var(--text-muted);border-color:var(--border);margin-right:4px;">
+            <i class="uil uil-lock"></i>
+          </button>
           <button class="btn-logout" onclick="fazerLogout()" title="Sair">
             <i class="uil uil-sign-out-alt"></i> Sair
           </button>
@@ -1233,6 +1236,33 @@
         <button class="modal-close" onclick="fecharHistorico()">&times;</button>
       </div>
       <div id="modal-historico-body" class="modal-body modal-historico-body"></div>
+    </div>
+  </div>
+
+  <!-- ── MODAL ALTERAR SENHA ─────────────────────────────────── -->
+  <div id="modal-senha" class="modal-overlay" style="display:none" onclick="fecharModalSenha(event)">
+    <div class="modal-box" style="max-width:380px;">
+      <div class="modal-header">
+        <span><i class="uil uil-lock" style="color:var(--accent);margin-right:6px;"></i>Alterar Senha</span>
+        <button class="modal-close" onclick="fecharModalSenha()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:16px 20px;">
+        <div class="field" style="margin-bottom:12px;">
+          <label style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px;display:block;">Senha atual</label>
+          <input type="password" id="senha-atual" class="field-input" style="padding-left:10px;width:100%;" placeholder="Digite sua senha atual">
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <label style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px;display:block;">Nova senha</label>
+          <input type="password" id="senha-nova" class="field-input" style="padding-left:10px;width:100%;" placeholder="Mín. 8 caracteres, 1 maiúscula, 1 número, 1 símbolo">
+        </div>
+        <div class="field" style="margin-bottom:16px;">
+          <label style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px;display:block;">Confirmar nova senha</label>
+          <input type="password" id="senha-confirmar" class="field-input" style="padding-left:10px;width:100%;" placeholder="Repita a nova senha">
+        </div>
+        <button class="btn-gerar" onclick="alterarSenha()" style="width:100%;justify-content:center;">
+          <i class="uil uil-check"></i> Alterar Senha
+        </button>
+      </div>
     </div>
   </div>
 

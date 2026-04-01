@@ -547,6 +547,51 @@ async function fazerLogout() {
   mostrarLogin()
 }
 
+// ── Alterar senha ──────────────────────────────────────────────
+function abrirModalSenha() {
+  document.getElementById("senha-atual").value = ""
+  document.getElementById("senha-nova").value = ""
+  document.getElementById("senha-confirmar").value = ""
+  document.getElementById("modal-senha").style.display = "flex"
+}
+
+function fecharModalSenha(e) {
+  if (!e || e.target === document.getElementById("modal-senha"))
+    document.getElementById("modal-senha").style.display = "none"
+}
+
+async function alterarSenha() {
+  const senhaAtual = document.getElementById("senha-atual").value
+  const novaSenha = document.getElementById("senha-nova").value
+  const confirmar = document.getElementById("senha-confirmar").value
+
+  if (!senhaAtual || !novaSenha || !confirmar) {
+    showToast("Preencha todos os campos.", "error")
+    return
+  }
+  if (novaSenha !== confirmar) {
+    showToast("As senhas não coincidem.", "error")
+    return
+  }
+
+  try {
+    const res = await fetch("/auth/alterar-senha", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ senhaAtual, novaSenha })
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      showToast(data.erro || "Erro ao alterar senha.", "error")
+      return
+    }
+    showToast("Senha alterada com sucesso!", "success")
+    document.getElementById("modal-senha").style.display = "none"
+  } catch (e) {
+    showToast("Erro de conexão.", "error")
+  }
+}
+
 // ── Atalho: Enter nos campos de login/registro ─────────────────
 document.addEventListener("keydown", e => {
   if (e.key === "Enter") {

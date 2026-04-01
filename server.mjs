@@ -1334,6 +1334,28 @@ app.get("/auth/me", (req, res) => {
   res.json({ user: { id: sessao.usuario_id, nome: sessao.nome, email: sessao.email, papel: sessao.papel }, empresa })
 })
 
+// ── Alterar senha do próprio usuário ──────────────────────────
+app.post("/auth/alterar-senha", (req, res) => {
+  const { senhaAtual, novaSenha } = req.body
+  if (!senhaAtual || !novaSenha)
+    return res.status(400).json({ erro: "Senha atual e nova senha são obrigatórios." })
+
+  if (!/^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}$/.test(novaSenha))
+    return res.status(400).json({ erro: "A nova senha deve ter no mínimo 8 caracteres, uma letra maiúscula, um número e um símbolo." })
+
+  const usuario = db.prepare("SELECT * FROM usuarios WHERE id = ? AND empresa_id = ?").get(req.user.id, req.empresaId)
+  if (!usuario) return res.status(404).json({ erro: "Usuário não encontrado." })
+
+  let senhaOk
+  try { senhaOk = verificarSenha(senhaAtual, usuario.senha_hash) } catch { senhaOk = false }
+  if (!senhaOk) return res.status(401).json({ erro: "Senha atual incorreta." })
+
+  const novoHash = hashSenha(novaSenha)
+  db.prepare("UPDATE usuarios SET senha_hash = ? WHERE id = ?").run(novoHash, req.user.id)
+  auditReq(req, "auth.alterar_senha", "Senha alterada pelo próprio usuário")
+  res.json({ ok: true })
+})
+
 // ═══════════════════════════════════════════════════════════════
 //  ROTAS — GERENCIAMENTO DE USUÁRIOS (admin only)
 // ═══════════════════════════════════════════════════════════════
