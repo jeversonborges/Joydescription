@@ -1711,6 +1711,24 @@ function exportarWord() {
   const area = document.getElementById("area").value || "Área"
   const nivel = document.getElementById("nivel").value || "Nível"
 
+  const fmt = (v) => v ? "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 0 }) : "—"
+  const salarioSeção = dadosSalariaisAtuais ? `
+      <h2>Faixa Salarial</h2>
+      <div style="margin: 12pt 0; font-size: 10pt;">
+        <div style="margin-bottom: 8pt;">
+          <strong>Salário Base Mensal:</strong><br>
+          Mínimo: ${fmt(dadosSalariaisAtuais.sal_min)} | Mediana: ${fmt(dadosSalariaisAtuais.sal_med)} | Máximo: ${fmt(dadosSalariaisAtuais.sal_max)}
+        </div>
+        <div style="margin-bottom: 8pt;">
+          <strong>Remuneração Total Mensal:</strong><br>
+          Mínimo: ${fmt(dadosSalariaisAtuais.rem_total_min)} | Mediana: ${fmt(dadosSalariaisAtuais.rem_total_med)} | Máximo: ${fmt(dadosSalariaisAtuais.rem_total_max)}
+        </div>
+        <div style="margin-top: 8pt; color: #666; font-size: 9pt;">
+          <strong>Metodologia:</strong> SIFAEG 2025 — Demonstrativo Salarial. Setor sucroenergético, Centro-Oeste.
+        </div>
+      </div>
+  ` : ""
+
   const html = `
     <html xmlns="http://www.w3.org/1999/xhtml" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
     <head>
@@ -1735,6 +1753,8 @@ function exportarWord() {
         ${textoGerado.split('\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('')}
       </div>
 
+      ${salarioSeção}
+
       <div class="footer">
         <p>Gerado em: ${new Date().toLocaleString("pt-BR")}</p>
       </div>
@@ -1752,7 +1772,7 @@ function exportarWord() {
   showToast("Word exportado!", "success")
 }
 
-function exportarCargoWord() {
+async function exportarCargoWord() {
   if (!cargoEditando) {
     showToast("Nenhum cargo selecionado.", "error")
     return
@@ -1760,6 +1780,36 @@ function exportarCargoWord() {
 
   const c = cargosData.find(x => x.id === cargoEditando)
   if (!c) return
+
+  // Buscar dados salariais do cargo
+  let salarioData = null
+  try {
+    const res = await fetch(`/gerar/cargo/${cargoEditando}`)
+    const data = await res.json()
+    if (data && data.pesquisas_salariais) {
+      salarioData = data.pesquisas_salariais
+    }
+  } catch (e) {
+    console.warn("Não foi possível buscar dados salariais:", e.message)
+  }
+
+  const fmt = (v) => v ? "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 0 }) : "—"
+  const salarioSeção = salarioData ? `
+      <h2>Faixa Salarial</h2>
+      <div style="margin: 12pt 0; font-size: 10pt;">
+        <div style="margin-bottom: 8pt;">
+          <strong>Salário Base Mensal:</strong><br>
+          Mínimo: ${fmt(salarioData.sal_min)} | Mediana: ${fmt(salarioData.sal_med)} | Máximo: ${fmt(salarioData.sal_max)}
+        </div>
+        <div style="margin-bottom: 8pt;">
+          <strong>Remuneração Total Mensal:</strong><br>
+          Mínimo: ${fmt(salarioData.rem_total_min)} | Mediana: ${fmt(salarioData.rem_total_med)} | Máximo: ${fmt(salarioData.rem_total_max)}
+        </div>
+        <div style="margin-top: 8pt; color: #666; font-size: 9pt;">
+          <strong>Metodologia:</strong> SIFAEG 2025 — Demonstrativo Salarial. Setor sucroenergético, Centro-Oeste.
+        </div>
+      </div>
+  ` : ""
 
   const html = `
     <html xmlns="http://www.w3.org/1999/xhtml" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
@@ -1784,6 +1834,8 @@ function exportarCargoWord() {
       <div class="content">
         ${c.texto.split('\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('')}
       </div>
+
+      ${salarioSeção}
 
       <div class="footer">
         <p>Criado em: ${new Date(c.criadoEm).toLocaleString("pt-BR")}</p>
