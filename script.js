@@ -644,6 +644,9 @@ function renderizarUsuarios() {
           <button class="btn-salvar-area" style="padding:3px 8px;font-size:11px" onclick="alternarPapel('${u.id}','${u.papel}')">
             ${u.papel === "admin" ? "Tornar membro" : "Tornar admin"}
           </button>
+          <button class="btn-salvar-area" style="padding:3px 8px;font-size:11px;background:var(--bg-hover);color:var(--text-muted);border-color:var(--border)" onclick="resetarSenhaUsuario('${u.id}','${u.nome}')">
+            <i class="uil uil-lock"></i> Senha
+          </button>
           ${u.ativo ? `<button class="btn-deletar-area" style="padding:3px 8px;font-size:11px" onclick="desativarUsuario('${u.id}')">Desativar</button>` : ""}
           <button class="btn-deletar-area" style="padding:3px 8px;font-size:11px;opacity:0.6" onclick="excluirUsuario('${u.id}','${u.nome}')"><i class="uil uil-trash-alt"></i></button>
         ` : `<span style="font-size:11px;color:var(--text-sub)">(você)</span>`}
@@ -689,6 +692,24 @@ async function alternarPapel(id, papelAtual) {
     showToast("Papel atualizado.", "success")
     await carregarUsuarios()
   } catch { showToast("Erro ao atualizar papel.", "error") }
+}
+
+async function resetarSenhaUsuario(id, nome) {
+  if (!await confirmar(`Definir nova senha para <strong>${nome}</strong>?`, { titulo: "Resetar senha", tipo: "aviso", labelOk: "Continuar" })) return
+
+  const novaSenha = prompt("Digite a nova senha para " + nome + ":\n(Mín. 8 caracteres, 1 maiúscula, 1 número, 1 símbolo)")
+  if (!novaSenha) return
+
+  try {
+    const res = await fetch(`/usuarios/${id}/resetar-senha`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ novaSenha })
+    })
+    const data = await res.json()
+    if (!res.ok) { showToast(data.erro || "Erro ao resetar senha.", "error"); return }
+    showToast(`Senha de ${nome} alterada com sucesso!`, "success")
+  } catch { showToast("Erro de conexão.", "error") }
 }
 
 async function desativarUsuario(id) {

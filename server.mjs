@@ -1424,6 +1424,25 @@ app.delete("/usuarios/:id/excluir", (req, res) => {
   res.json({ ok: true })
 })
 
+// ── Resetar senha de outro usuário (admin only) ──────────────
+app.post("/usuarios/:id/resetar-senha", (req, res) => {
+  if (req.user.papel !== "admin") return res.status(403).json({ erro: "Acesso restrito a administradores." })
+
+  const { novaSenha } = req.body
+  if (!novaSenha) return res.status(400).json({ erro: "Nova senha é obrigatória." })
+
+  if (!/^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}$/.test(novaSenha))
+    return res.status(400).json({ erro: "A senha deve ter no mínimo 8 caracteres, uma letra maiúscula, um número e um símbolo." })
+
+  const alvo = db.prepare("SELECT * FROM usuarios WHERE id = ? AND empresa_id = ?").get(req.params.id, req.empresaId)
+  if (!alvo) return res.status(404).json({ erro: "Usuário não encontrado." })
+
+  const novoHash = hashSenha(novaSenha)
+  db.prepare("UPDATE usuarios SET senha_hash = ? WHERE id = ?").run(novoHash, req.params.id)
+  auditReq(req, "usuario.resetar_senha", alvo.nome)
+  res.json({ ok: true })
+})
+
 // ═══════════════════════════════════════════════════════════════
 //  ROTAS — BACKUP
 // ═══════════════════════════════════════════════════════════════
