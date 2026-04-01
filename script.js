@@ -1781,13 +1781,13 @@ async function exportarCargoWord() {
   const c = cargosData.find(x => x.id === cargoEditando)
   if (!c) return
 
-  // Buscar dados salariais do cargo
+  // Buscar dados salariais do cargo via rota /salarios
   let salarioData = null
   try {
-    const res = await fetch(`/gerar/cargo/${cargoEditando}`)
+    const res = await fetch(`/salarios?cargo=${encodeURIComponent(c.cargo)}&area=${encodeURIComponent(c.area)}&nivel=${encodeURIComponent(c.nivel)}`)
     const data = await res.json()
-    if (data && data.pesquisas_salariais) {
-      salarioData = data.pesquisas_salariais
+    if (data && data.sal_med) {
+      salarioData = data
     }
   } catch (e) {
     console.warn("Não foi possível buscar dados salariais:", e.message)

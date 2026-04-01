@@ -410,10 +410,10 @@ function extrairTermos(texto, minLen = 5) {
 
 // ── Buscar salários de referência (RAIS, CAGED, UNICA, SINDICAR) ──
 function buscarSalarioReferencia(cargoNome, areaNome, nivelNome, empresaId = "default") {
-  // 1️⃣ Buscar primeiro em SIFAEG (prioridade)
+  // 1️⃣ Buscar em SIFAEG (prioridade) — match exato primeiro
   try {
-    const pesquisa = db.prepare(`
-      SELECT sal_min, sal_med, sal_max
+    let pesquisa = db.prepare(`
+      SELECT sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max
       FROM pesquisas_salariais
       WHERE LOWER(cargo) LIKE LOWER(?)
         AND fonte_tipo = 'sifaeg'
@@ -421,11 +421,42 @@ function buscarSalarioReferencia(cargoNome, areaNome, nivelNome, empresaId = "de
       LIMIT 1
     `).get("%" + cargoNome.toLowerCase().trim() + "%", empresaId)
 
+    // Se não encontrou, buscar por palavras-chave do cargo
+    if (!pesquisa) {
+      const palavras = cargoNome.toLowerCase().trim().split(/\s+/).filter(p => p.length >= 3 && !["de","da","do","em","para","com","dos","das"].includes(p))
+      if (palavras.length > 0) {
+        const todos = db.prepare(`
+          SELECT cargo, sal_min, sal_med, sal_max, rem_total_min, rem_total_med, rem_total_max
+          FROM pesquisas_salariais
+          WHERE fonte_tipo = 'sifaeg' AND empresa_id = ?
+        `).all(empresaId)
+
+        let melhorScore = 0
+        let melhorMatch = null
+        for (const row of todos) {
+          const cargoLower = row.cargo.toLowerCase()
+          let score = 0
+          for (const p of palavras) {
+            if (cargoLower.includes(p)) score++
+          }
+          if (score > melhorScore) {
+            melhorScore = score
+            melhorMatch = row
+          }
+        }
+        if (melhorScore >= 1) pesquisa = melhorMatch
+      }
+    }
+
     if (pesquisa) {
+      console.log(`✅ SIFAEG match: "${cargoNome}" → "${pesquisa.cargo || 'found'}" (sal_med: ${pesquisa.sal_med})`)
       return {
         sal_min: pesquisa.sal_min,
         sal_med: pesquisa.sal_med,
         sal_max: pesquisa.sal_max,
+        rem_total_min: pesquisa.rem_total_min,
+        rem_total_med: pesquisa.rem_total_med,
+        rem_total_max: pesquisa.rem_total_max,
         fonte: "SIFAEG 2025"
       }
     }
@@ -440,12 +471,10 @@ function buscarSalarioReferencia(cargoNome, areaNome, nivelNome, empresaId = "de
   const area = areaNome.toUpperCase().trim()
   const nivel = nivelNome.toLowerCase().trim()
 
-  // Buscar na base por cargo exato
   for (const [cargoKey, areas] of Object.entries(salarioBase.salarios_por_cargo)) {
     if (cargo.includes(cargoKey) || cargoKey.includes(cargo)) {
       for (const [areaKey, niveis] of Object.entries(areas)) {
         if (area.includes(areaKey.toUpperCase()) || areaKey.toUpperCase().includes(area)) {
-          // Se tem dados por nível
           if (niveis[nivel]) {
             const dados = niveis[nivel]
             return {
@@ -455,7 +484,6 @@ function buscarSalarioReferencia(cargoNome, areaNome, nivelNome, empresaId = "de
               fonte: "Base de Referência"
             }
           }
-          // Se tem apenas mediana (para cargos sem nivél)
           if (niveis.med) {
             return {
               sal_min: Math.round(niveis.med * 0.8),
@@ -729,7 +757,6 @@ function seedNiveis(empresaId) {
 // ── Carrega salários do SIFAEG 2025 ─
 function carregarSIFAEG(empresaId) {
   try {
-    const XLSX = require('xlsx')
     const wb = XLSX.readFile('./meta/SIFAEG 2025 - Demonstrativo Salarial - FINAL.xlsx')
     const ws = wb.Sheets['SIFAEG']
     const range = XLSX.utils.decode_range(ws['!ref'])
@@ -1555,11 +1582,28 @@ app.get("/salarios", (req, res) => {
   if (!cargo || !area || !nivel)
     return res.status(400).json({ erro: "Parâmetros obrigatórios: cargo, area, nivel" })
 
-  const row = db.prepare(
+  // 1️⃣ Buscar em salarios_cargo (salvos na geração)
+  let row = db.prepare(
     `SELECT * FROM salarios_cargo
      WHERE cargo = ? AND area = ? AND nivel = ? AND empresa_id = ?
      ORDER BY criado_em DESC LIMIT 1`
   ).get(cargo, area, nivel, req.empresaId)
+
+  // 2️⃣ Se não encontrou, buscar via SIFAEG
+  if (!row) {
+    const sifaeg = buscarSalarioReferencia(cargo, area, nivel, req.empresaId)
+    if (sifaeg) {
+      row = {
+        sal_min: sifaeg.sal_min,
+        sal_med: sifaeg.sal_med,
+        sal_max: sifaeg.sal_max,
+        rem_total_min: sifaeg.rem_total_min,
+        rem_total_med: sifaeg.rem_total_med,
+        rem_total_max: sifaeg.rem_total_max,
+        fonte: sifaeg.fonte
+      }
+    }
+  }
 
   res.json(row || null)
 })
@@ -2353,9 +2397,13 @@ app.get("/exportar/cargo-pdf/:id", (req, res) => {
   const c = db.prepare("SELECT * FROM cargos WHERE id = ? AND empresa_id = ?").get(req.params.id, req.empresaId)
   if (!c) return res.status(404).json({ erro: "Cargo não encontrado." })
 
-  // Buscar pesquisa salarial correspondente
-  const pesquisa = db.prepare("SELECT * FROM pesquisas_salariais WHERE cargo = ? AND area = ? AND nivel = ? AND empresa_id = ? ORDER BY criado_em DESC LIMIT 1")
+  // Buscar pesquisa salarial correspondente (salarios_cargo primeiro, depois SIFAEG)
+  let pesquisa = db.prepare("SELECT * FROM salarios_cargo WHERE cargo = ? AND area = ? AND nivel = ? AND empresa_id = ? ORDER BY criado_em DESC LIMIT 1")
     .get(c.cargo, c.area, c.nivel, req.empresaId)
+  if (!pesquisa) {
+    const sifaeg = buscarSalarioReferencia(c.cargo, c.area, c.nivel, req.empresaId)
+    if (sifaeg) pesquisa = sifaeg
+  }
 
   const formatDate = iso => iso ? new Date(iso).toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" }) : "—"
   const fmt = v => v ? "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 0 }) : "—"
@@ -3272,15 +3320,15 @@ Responda SOMENTE o JSON: {"sal_min":0,"sal_med":0,"sal_max":0}`
         }
       }
 
-      // 3️⃣ Calcular remuneração total (salário + benefícios mínimos)
-      const FATOR_BENEFICIOS = 1.15 // VT + VR (média 15%)
+      // 3️⃣ Calcular remuneração total (usa SIFAEG direto se disponível, senão estima)
+      const FATOR_BENEFICIOS = 1.15
       const salariesData = salarioRef ? {
         sal_min: salarioRef.sal_min,
         sal_med: salarioRef.sal_med,
         sal_max: salarioRef.sal_max,
-        rem_total_min: Math.round(salarioRef.sal_min * FATOR_BENEFICIOS),
-        rem_total_med: Math.round(salarioRef.sal_med * FATOR_BENEFICIOS),
-        rem_total_max: Math.round(salarioRef.sal_max * FATOR_BENEFICIOS),
+        rem_total_min: salarioRef.rem_total_min || Math.round(salarioRef.sal_min * FATOR_BENEFICIOS),
+        rem_total_med: salarioRef.rem_total_med || Math.round(salarioRef.sal_med * FATOR_BENEFICIOS),
+        rem_total_max: salarioRef.rem_total_max || Math.round(salarioRef.sal_max * FATOR_BENEFICIOS),
         fonte: salarioRef.fonte
       } : null
 
