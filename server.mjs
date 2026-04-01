@@ -409,7 +409,31 @@ function extrairTermos(texto, minLen = 5) {
 }
 
 // ── Buscar salários de referência (RAIS, CAGED, UNICA, SINDICAR) ──
-function buscarSalarioReferencia(cargoNome, areaNome, nivelNome) {
+function buscarSalarioReferencia(cargoNome, areaNome, nivelNome, empresaId = "default") {
+  // 1️⃣ Buscar primeiro em SIFAEG (prioridade)
+  try {
+    const pesquisa = db.prepare(`
+      SELECT sal_min, sal_med, sal_max
+      FROM pesquisas_salariais
+      WHERE LOWER(cargo) LIKE LOWER(?)
+        AND fonte_tipo = 'sifaeg'
+        AND empresa_id = ?
+      LIMIT 1
+    `).get("%" + cargoNome.toLowerCase().trim() + "%", empresaId)
+
+    if (pesquisa) {
+      return {
+        sal_min: pesquisa.sal_min,
+        sal_med: pesquisa.sal_med,
+        sal_max: pesquisa.sal_max,
+        fonte: "SIFAEG 2025"
+      }
+    }
+  } catch (e) {
+    console.warn("⚠️  Erro ao buscar SIFAEG:", e.message)
+  }
+
+  // 2️⃣ Fallback para base JSON (salarios-referencia.json)
   if (!salarioBase.salarios_por_cargo) return null
 
   const cargo = cargoNome.toLowerCase().trim()
@@ -428,7 +452,7 @@ function buscarSalarioReferencia(cargoNome, areaNome, nivelNome) {
               sal_min: Math.round(dados.min),
               sal_med: Math.round(dados.med),
               sal_max: Math.round(dados.max),
-              fonte: "RAIS/CAGED/UNICA/SINDICAR"
+              fonte: "Base de Referência"
             }
           }
           // Se tem apenas mediana (para cargos sem nivél)
@@ -437,7 +461,7 @@ function buscarSalarioReferencia(cargoNome, areaNome, nivelNome) {
               sal_min: Math.round(niveis.med * 0.8),
               sal_med: Math.round(niveis.med),
               sal_max: Math.round(niveis.med * 1.3),
-              fonte: "RAIS/CAGED/UNICA/SINDICAR"
+              fonte: "Base de Referência"
             }
           }
         }
@@ -3184,10 +3208,10 @@ app.post("/gerar", async (req, res) => {
 
     // ── Gerar dados salariais (Base + IA Ponderada) ──────────────────
     try {
-      pensar(`Consultando RAIS, CAGED, UNICA para faixa salarial...`)
+      pensar(`Consultando SIFAEG 2025 para faixa salarial...`)
 
-      // 1️⃣ Buscar na base de referência (RAIS, CAGED, UNICA, SINDICAR)
-      let salarioRef = buscarSalarioReferencia(cargo, area, nivel)
+      // 1️⃣ Buscar na base de referência (SIFAEG primeiro, depois fallback)
+      let salarioRef = buscarSalarioReferencia(cargo, area, nivel, req.empresaId)
 
       // 2️⃣ Se não encontrar, chamar IA com contexto de dados oficiais
       if (!salarioRef) {
@@ -3260,9 +3284,22 @@ Responda SOMENTE o JSON: {"sal_min":0,"sal_med":0,"sal_max":0}`
         fonte: salarioRef.fonte
       } : null
 
-      // 4️⃣ Emitir dados salariais
+      // 4️⃣ Emitir dados salariais como texto + evento
       if (salariesData) {
+        // Enviar também como evento estruturado (para compatibilidade com barra visual)
         res.write(`data: ${JSON.stringify({ tipo: "salarios", dados: salariesData })}\n\n`)
+
+        // Enviar salários como texto no final da descrição
+        const fmt = (v) => "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 0 })
+        const textoSalarios = `
+
+── FAIXA SALARIAL ──
+Baseado em: SIFAEG 2025 — Demonstrativo Salarial
+Nível: ${nivel}
+Salário Base Mensal: ${fmt(salariesData.sal_min)} a ${fmt(salariesData.sal_max)} (mediana: ${fmt(salariesData.sal_med)})
+Remuneração Total Mensal: ${fmt(salariesData.rem_total_min)} a ${fmt(salariesData.rem_total_max)} (mediana: ${fmt(salariesData.rem_total_med)})`
+
+        res.write(`data: ${JSON.stringify({ texto: textoSalarios })}\n\n`)
 
         // Salvar no banco de dados
         const salarioId = randomBytes(16).toString("hex")
