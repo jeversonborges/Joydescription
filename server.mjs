@@ -2067,7 +2067,7 @@ app.get("/exportar/salarios-pdf", (req, res) => {
     <strong>1. Adequação para uso:</strong> Este relatório contém estimativas via inteligência artificial e dados interpolados.
     <strong>NÃO é adequado para decisões judiciais, processos trabalhistas ou conformidade legal sem verificação técnica independente.</strong><br><br>
 
-    <strong>2. Origem dos dados:</strong> Base de dados SIFAEG 2025 — Demonstrativo Salarial, fornecida pela empresa Goiasa.
+    <strong>2. Origem dos dados:</strong> Wiabiliza
     Esta é a única fonte de referência utilizada para pesquisa de salários.<br><br>
 
     <strong>3. Interpolações:</strong> Valores gerados por IA (Groq LLaMA 70B) são validados dentro de limites de plausibilidade (R$ 1.200–50.000 para PLENO).
@@ -2099,7 +2099,7 @@ app.get("/exportar/salarios-pdf", (req, res) => {
     </div>
     <div class="audit-item">
       <div class="audit-label">Versão Metodologia</div>
-      <div class="audit-valor">2.0 — SIFAEG 2025</div>
+      <div class="audit-valor">2.0 — Wiabiliza</div>
     </div>
     <div class="audit-item">
       <div class="audit-label">Rastreabilidade Completa</div>
@@ -2524,12 +2524,12 @@ app.get("/exportar/cargo-pdf/:id", (req, res) => {
   </div>
 </div>
 
+${salarioHtml}
+
 <div class="section">
   <div class="section-title">Descrição Profissional</div>
   <div class="section-content">${c.texto.replace(/\n/g, "<br>")}</div>
 </div>
-
-${salarioHtml}
 
 <div class="rodape">
   <span>JoyDescription — Descrição de Cargo</span>

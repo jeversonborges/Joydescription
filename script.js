@@ -1724,7 +1724,7 @@ function exportarWord() {
           Mínimo: ${fmt(dadosSalariaisAtuais.rem_total_min)} | Mediana: ${fmt(dadosSalariaisAtuais.rem_total_med)} | Máximo: ${fmt(dadosSalariaisAtuais.rem_total_max)}
         </div>
         <div style="margin-top: 8pt; color: #666; font-size: 9pt;">
-          <strong>Metodologia:</strong> SIFAEG 2025 — Demonstrativo Salarial. Setor sucroenergético, Centro-Oeste.
+          <strong>Metodologia:</strong> Wiabiliza
         </div>
       </div>
   ` : ""
@@ -1748,12 +1748,12 @@ function exportarWord() {
       <div class="meta">Área: <strong>${area}</strong></div>
       <div class="meta">Nível: <strong>${nivel}</strong></div>
 
+      ${salarioSeção}
+
       <h2>Descrição Profissional</h2>
       <div class="content">
         ${textoGerado.split('\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('')}
       </div>
-
-      ${salarioSeção}
 
       <div class="footer">
         <p>Gerado em: ${new Date().toLocaleString("pt-BR")}</p>
@@ -1806,7 +1806,7 @@ async function exportarCargoWord() {
           Mínimo: ${fmt(salarioData.rem_total_min)} | Mediana: ${fmt(salarioData.rem_total_med)} | Máximo: ${fmt(salarioData.rem_total_max)}
         </div>
         <div style="margin-top: 8pt; color: #666; font-size: 9pt;">
-          <strong>Metodologia:</strong> SIFAEG 2025 — Demonstrativo Salarial. Setor sucroenergético, Centro-Oeste.
+          <strong>Metodologia:</strong> Wiabiliza
         </div>
       </div>
   ` : ""
@@ -1830,12 +1830,12 @@ async function exportarCargoWord() {
       <div class="meta">Área: <strong>${c.area}</strong></div>
       <div class="meta">Nível: <strong>${c.nivel}</strong></div>
 
+      ${salarioSeção}
+
       <h2>Descrição Profissional</h2>
       <div class="content">
         ${c.texto.split('\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('')}
       </div>
-
-      ${salarioSeção}
 
       <div class="footer">
         <p>Criado em: ${new Date(c.criadoEm).toLocaleString("pt-BR")}</p>
