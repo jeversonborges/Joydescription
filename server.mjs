@@ -2410,6 +2410,35 @@ app.get("/exportar/salario-pdf/:id", (req, res) => {
   res.send(html)
 })
 
+// ── Formatar texto para PDF (limpa markdown, separa seções) ──
+function formatarTextoPDF(texto) {
+  const partes = texto.split(/\n---\n|\n---$/)
+  const blocos = partes.length >= 2
+    ? [{ titulo: "Descrição Genérica", texto: partes[0] }, { titulo: "Descrição Detalhada", texto: partes[1] }]
+    : [{ titulo: "Descrição Profissional", texto }]
+
+  return blocos.map(bloco => {
+    const linhas = bloco.texto.split('\n')
+    let html = ""
+    for (const line of linhas) {
+      let t = line.trim()
+      if (!t) continue
+      // Remove **markdown**
+      t = t.replace(/\*\*(.*?)\*\*/g, '$1')
+      // Remove numeração e bullets
+      t = t.replace(/^\d+\.\s*/, '')
+      t = t.replace(/^[-•]\s*/, '')
+      // Seção em maiúsculo
+      if (t === t.toUpperCase() && t.length > 3 && /[A-ZÀ-Ú]/.test(t)) {
+        html += `<div style="font-weight:700;font-size:11px;margin:12px 0 4px 0;padding-bottom:3px;border-bottom:1px solid #e2e8f0;text-transform:uppercase;">${t}</div>`
+      } else {
+        html += `<div style="margin:2px 0;font-size:11px;line-height:1.7;">${t}</div>`
+      }
+    }
+    return `<div class="section"><div class="section-title">${bloco.titulo}</div><div class="section-content">${html}</div></div>`
+  }).join('')
+}
+
 // ── PDF individual de descrição de cargo ──────────────────────
 app.get("/exportar/cargo-pdf/:id", (req, res) => {
   const c = db.prepare("SELECT * FROM cargos WHERE id = ? AND empresa_id = ?").get(req.params.id, req.empresaId)
@@ -2544,10 +2573,7 @@ app.get("/exportar/cargo-pdf/:id", (req, res) => {
 
 ${salarioHtml}
 
-<div class="section">
-  <div class="section-title">Descrição Profissional</div>
-  <div class="section-content">${c.texto.replace(/\n/g, "<br>")}</div>
-</div>
+${formatarTextoPDF(c.texto)}
 
 <div class="rodape">
   <span>JoyDescription — Descrição de Cargo</span>
