@@ -1713,51 +1713,65 @@ function exportarWord() {
 
   const fmt = (v) => v ? "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 0 }) : "—"
   const salarioSeção = dadosSalariaisAtuais ? `
-      <h2>Faixa Salarial</h2>
-      <div style="margin: 12pt 0; font-size: 10pt;">
-        <div style="margin-bottom: 8pt;">
-          <strong>Salário Base Mensal:</strong><br>
-          Mínimo: ${fmt(dadosSalariaisAtuais.sal_min)} | Mediana: ${fmt(dadosSalariaisAtuais.sal_med)} | Máximo: ${fmt(dadosSalariaisAtuais.sal_max)}
-        </div>
-        <div style="margin-bottom: 8pt;">
-          <strong>Remuneração Total Mensal:</strong><br>
-          Mínimo: ${fmt(dadosSalariaisAtuais.rem_total_min)} | Mediana: ${fmt(dadosSalariaisAtuais.rem_total_med)} | Máximo: ${fmt(dadosSalariaisAtuais.rem_total_max)}
-        </div>
-        <div style="margin-top: 8pt; color: #666; font-size: 9pt;">
-          <strong>Metodologia:</strong> Wiabiliza
-        </div>
-      </div>
+      <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:9pt;margin:6pt 0 10pt 0;border-color:#bbb;">
+        <tr style="background:#f0f0f0;"><td colspan="4" style="font-weight:bold;font-size:10pt;">FAIXA SALARIAL <span style="font-weight:normal;font-size:8pt;color:#666;">(Metodologia: Wiabiliza)</span></td></tr>
+        <tr style="background:#f8f8f8;font-weight:bold;font-size:8pt;text-transform:uppercase;color:#555;">
+          <td></td><td style="text-align:center;">Mínimo</td><td style="text-align:center;">Mediana</td><td style="text-align:center;">Máximo</td>
+        </tr>
+        <tr>
+          <td style="font-weight:bold;font-size:8pt;">Salário Base</td>
+          <td style="text-align:center;">${fmt(dadosSalariaisAtuais.sal_min)}</td>
+          <td style="text-align:center;font-weight:bold;">${fmt(dadosSalariaisAtuais.sal_med)}</td>
+          <td style="text-align:center;">${fmt(dadosSalariaisAtuais.sal_max)}</td>
+        </tr>
+        <tr>
+          <td style="font-weight:bold;font-size:8pt;">Remuneração Total</td>
+          <td style="text-align:center;">${fmt(dadosSalariaisAtuais.rem_total_min)}</td>
+          <td style="text-align:center;font-weight:bold;">${fmt(dadosSalariaisAtuais.rem_total_med)}</td>
+          <td style="text-align:center;">${fmt(dadosSalariaisAtuais.rem_total_max)}</td>
+        </tr>
+      </table>
   ` : ""
+
+  // Formatar conteúdo: detectar seções (linhas MAIÚSCULAS) e itens com "-"
+  const linhas = textoGerado.split('\n')
+  let conteudoHtml = ""
+  for (const line of linhas) {
+    const trimmed = line.trim()
+    if (!trimmed) continue // pula linhas em branco
+    if (trimmed === "---") continue // pula separadores
+    // Títulos de seção: tudo maiúsculo, sem "-" no início
+    if (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && !trimmed.startsWith("-") && /[A-ZÀ-Ú]/.test(trimmed)) {
+      conteudoHtml += `<p style="margin:8pt 0 2pt 0;font-weight:bold;font-size:10pt;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:2pt;">${trimmed}</p>`
+    } else if (trimmed.startsWith("- ")) {
+      conteudoHtml += `<p style="margin:1pt 0 1pt 14pt;text-indent:-10pt;">• ${trimmed.slice(2)}</p>`
+    } else {
+      conteudoHtml += `<p style="margin:2pt 0;">${trimmed}</p>`
+    }
+  }
 
   const html = `
     <html xmlns="http://www.w3.org/1999/xhtml" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
     <head>
       <meta charset="UTF-8">
       <style>
-        body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; }
-        h1 { font-size: 18pt; font-weight: bold; margin-bottom: 12pt; border-bottom: 2pt solid #333; padding-bottom: 6pt; }
-        h2 { font-size: 14pt; font-weight: bold; margin-top: 12pt; margin-bottom: 6pt; }
-        .meta { font-size: 10pt; margin: 3pt 0; }
-        .content { line-height: 1.5; margin: 12pt 0; }
-        .footer { font-size: 9pt; color: #666; margin-top: 24pt; border-top: 1pt solid #ddd; padding-top: 6pt; }
+        @page { margin: 2cm; }
+        body { font-family: Calibri, Arial, sans-serif; font-size: 9.5pt; line-height: 1.3; color: #222; }
+        p { margin: 2pt 0; }
+        table { page-break-inside: avoid; }
       </style>
     </head>
     <body>
-      <h1>DESCRIÇÃO DE CARGO</h1>
-      <h2>${cargo}</h2>
-      <div class="meta">Área: <strong>${area}</strong></div>
-      <div class="meta">Nível: <strong>${nivel}</strong></div>
+      <div style="border-bottom:2pt solid #333;padding-bottom:6pt;margin-bottom:8pt;">
+        <p style="font-size:16pt;font-weight:bold;margin:0;">${cargo}</p>
+        <p style="font-size:9pt;color:#555;margin:2pt 0 0 0;">Área: ${area} &nbsp;|&nbsp; Nível: ${nivel}</p>
+      </div>
 
       ${salarioSeção}
 
-      <h2>Descrição Profissional</h2>
-      <div class="content">
-        ${textoGerado.split('\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('')}
-      </div>
+      ${conteudoHtml}
 
-      <div class="footer">
-        <p>Gerado em: ${new Date().toLocaleString("pt-BR")}</p>
-      </div>
+      <p style="margin-top:14pt;padding-top:6pt;border-top:1px solid #ccc;font-size:7.5pt;color:#999;">Gerado em ${new Date().toLocaleString("pt-BR")} — JoyDescription</p>
     </body>
     </html>
   `
@@ -1795,51 +1809,63 @@ async function exportarCargoWord() {
 
   const fmt = (v) => v ? "R$ " + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 0 }) : "—"
   const salarioSeção = salarioData ? `
-      <h2>Faixa Salarial</h2>
-      <div style="margin: 12pt 0; font-size: 10pt;">
-        <div style="margin-bottom: 8pt;">
-          <strong>Salário Base Mensal:</strong><br>
-          Mínimo: ${fmt(salarioData.sal_min)} | Mediana: ${fmt(salarioData.sal_med)} | Máximo: ${fmt(salarioData.sal_max)}
-        </div>
-        <div style="margin-bottom: 8pt;">
-          <strong>Remuneração Total Mensal:</strong><br>
-          Mínimo: ${fmt(salarioData.rem_total_min)} | Mediana: ${fmt(salarioData.rem_total_med)} | Máximo: ${fmt(salarioData.rem_total_max)}
-        </div>
-        <div style="margin-top: 8pt; color: #666; font-size: 9pt;">
-          <strong>Metodologia:</strong> Wiabiliza
-        </div>
-      </div>
+      <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:9pt;margin:6pt 0 10pt 0;border-color:#bbb;">
+        <tr style="background:#f0f0f0;"><td colspan="4" style="font-weight:bold;font-size:10pt;">FAIXA SALARIAL <span style="font-weight:normal;font-size:8pt;color:#666;">(Metodologia: Wiabiliza)</span></td></tr>
+        <tr style="background:#f8f8f8;font-weight:bold;font-size:8pt;text-transform:uppercase;color:#555;">
+          <td></td><td style="text-align:center;">Mínimo</td><td style="text-align:center;">Mediana</td><td style="text-align:center;">Máximo</td>
+        </tr>
+        <tr>
+          <td style="font-weight:bold;font-size:8pt;">Salário Base</td>
+          <td style="text-align:center;">${fmt(salarioData.sal_min)}</td>
+          <td style="text-align:center;font-weight:bold;">${fmt(salarioData.sal_med)}</td>
+          <td style="text-align:center;">${fmt(salarioData.sal_max)}</td>
+        </tr>
+        <tr>
+          <td style="font-weight:bold;font-size:8pt;">Remuneração Total</td>
+          <td style="text-align:center;">${fmt(salarioData.rem_total_min)}</td>
+          <td style="text-align:center;font-weight:bold;">${fmt(salarioData.rem_total_med)}</td>
+          <td style="text-align:center;">${fmt(salarioData.rem_total_max)}</td>
+        </tr>
+      </table>
   ` : ""
+
+  const linhasC = c.texto.split('\n')
+  let conteudoHtmlC = ""
+  for (const line of linhasC) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+    if (trimmed === "---") continue
+    if (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && !trimmed.startsWith("-") && /[A-ZÀ-Ú]/.test(trimmed)) {
+      conteudoHtmlC += `<p style="margin:8pt 0 2pt 0;font-weight:bold;font-size:10pt;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:2pt;">${trimmed}</p>`
+    } else if (trimmed.startsWith("- ")) {
+      conteudoHtmlC += `<p style="margin:1pt 0 1pt 14pt;text-indent:-10pt;">• ${trimmed.slice(2)}</p>`
+    } else {
+      conteudoHtmlC += `<p style="margin:2pt 0;">${trimmed}</p>`
+    }
+  }
 
   const html = `
     <html xmlns="http://www.w3.org/1999/xhtml" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
     <head>
       <meta charset="UTF-8">
       <style>
-        body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; }
-        h1 { font-size: 18pt; font-weight: bold; margin-bottom: 12pt; border-bottom: 2pt solid #333; padding-bottom: 6pt; }
-        h2 { font-size: 14pt; font-weight: bold; margin-top: 12pt; margin-bottom: 6pt; }
-        .meta { font-size: 10pt; margin: 3pt 0; }
-        .content { line-height: 1.5; margin: 12pt 0; }
-        .footer { font-size: 9pt; color: #666; margin-top: 24pt; border-top: 1pt solid #ddd; padding-top: 6pt; }
+        @page { margin: 2cm; }
+        body { font-family: Calibri, Arial, sans-serif; font-size: 9.5pt; line-height: 1.3; color: #222; }
+        p { margin: 2pt 0; }
+        table { page-break-inside: avoid; }
       </style>
     </head>
     <body>
-      <h1>DESCRIÇÃO DE CARGO</h1>
-      <h2>${c.cargo}</h2>
-      <div class="meta">Área: <strong>${c.area}</strong></div>
-      <div class="meta">Nível: <strong>${c.nivel}</strong></div>
+      <div style="border-bottom:2pt solid #333;padding-bottom:6pt;margin-bottom:8pt;">
+        <p style="font-size:16pt;font-weight:bold;margin:0;">${c.cargo}</p>
+        <p style="font-size:9pt;color:#555;margin:2pt 0 0 0;">Área: ${c.area} &nbsp;|&nbsp; Nível: ${c.nivel}</p>
+      </div>
 
       ${salarioSeção}
 
-      <h2>Descrição Profissional</h2>
-      <div class="content">
-        ${c.texto.split('\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('')}
-      </div>
+      ${conteudoHtmlC}
 
-      <div class="footer">
-        <p>Criado em: ${new Date(c.criadoEm).toLocaleString("pt-BR")}</p>
-      </div>
+      <p style="margin-top:14pt;padding-top:6pt;border-top:1px solid #ccc;font-size:7.5pt;color:#999;">Criado em ${new Date(c.criadoEm).toLocaleString("pt-BR")} — JoyDescription</p>
     </body>
     </html>
   `
