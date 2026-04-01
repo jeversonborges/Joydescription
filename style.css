@@ -7,25 +7,25 @@
 
 /* ── Tokens ──────────────────────────────────────────────────── */
 :root {
-  --bg-app:       #f0f2f5;
-  --bg-bar:       #ffffff;
-  --bg-panel:     #fafafa;
-  --bg-input:     #ffffff;
-  --bg-card:      #ffffff;
-  --bg-hover:     #eef0f5;
+  --bg-app:       #eef1f6;
+  --bg-bar:       #f5f6f9;
+  --bg-panel:     #f2f3f7;
+  --bg-input:     #f8f9fb;
+  --bg-card:      #f5f6f9;
+  --bg-hover:     #e8ebf2;
 
-  --border:       #d8dce5;
-  --border-mid:   #c5cad6;
-  --border-lit:   #a8b0c0;
+  --border:       #d0d5e0;
+  --border-mid:   #bec4d4;
+  --border-lit:   #a0a8be;
 
   --accent:       #1e5fa8;
   --accent-hover: #174e8e;
   --accent-glow:  rgba(30,95,168,0.18);
   --accent-dim:   rgba(30,95,168,0.08);
 
-  --text:         #1a1d23;
+  --text:         #1e2330;
   --text-muted:   #4a5568;
-  --text-sub:     #9aa3b2;
+  --text-sub:     #8a92a6;
   --text-label:   #5a6478;
 
   --success:      #16a34a;
@@ -41,30 +41,30 @@
 
 /* ── Tema escuro ─────────────────────────────────────────────── */
 body.dark {
-  --bg-app:       #0e1016;
-  --bg-bar:       #13161f;
-  --bg-panel:     #161a28;
-  --bg-input:     #0d1020;
-  --bg-card:      #1a1e2e;
-  --bg-hover:     #1f2438;
+  --bg-app:       #0b0f1a;
+  --bg-bar:       #101626;
+  --bg-panel:     #131a2e;
+  --bg-input:     #0c1120;
+  --bg-card:      #162036;
+  --bg-hover:     #1a2640;
 
-  --border:       #252a3d;
-  --border-mid:   #2e3452;
-  --border-lit:   #3d4578;
+  --border:       #1e2d4a;
+  --border-mid:   #283a5c;
+  --border-lit:   #35497a;
 
-  --accent:       #7c3aed;
-  --accent-hover: #8b47f5;
-  --accent-glow:  rgba(124,58,237,0.25);
-  --accent-dim:   rgba(124,58,237,0.12);
+  --accent:       #2563eb;
+  --accent-hover: #3b82f6;
+  --accent-glow:  rgba(37,99,235,0.25);
+  --accent-dim:   rgba(37,99,235,0.12);
 
-  --text:         #dde2f0;
-  --text-muted:   #7b84a8;
-  --text-sub:     #454e6e;
-  --text-label:   #9298b8;
+  --text:         #dce2f0;
+  --text-muted:   #7889b0;
+  --text-sub:     #3d4e70;
+  --text-label:   #8a9ac0;
 }
 
 body.dark .tl-joy  { color: #ffffff; }
-body.dark .tl-desc { color: #9d6ff5; }
+body.dark .tl-desc { color: #60a5fa; }
 
 body.dark .loading-state { background: rgba(14,16,22,0.75); }
 
@@ -75,9 +75,9 @@ body.dark .tb-chip-active {
 }
 body.dark .tb-dot { box-shadow: 0 0 6px var(--success); }
 body.dark .asb-live-dot { background: #86efac; box-shadow: 0 0 5px #86efac; }
-body.dark .result-placeholder p strong { color: #9d6ff5; }
-body.dark .resultado_content h3 { color: #a78bfa; }
-body.dark .toast.info { border-left-color: #a78bfa; }
+body.dark .result-placeholder p strong { color: #60a5fa; }
+body.dark .resultado_content h3 { color: #93bbfc; }
+body.dark .toast.info { border-left-color: #60a5fa; }
 
 /* ── Reset ───────────────────────────────────────────────────── */
 *, *::before, *::after {
@@ -157,7 +157,7 @@ html, body {
   letter-spacing: -0.2px;
 }
 .tl-joy  { color: #1e3a6e; transition: color 0.3s; }
-.tl-desc { color: #6d28d9; transition: color 0.3s; }
+.tl-desc { color: #1e5fa8; transition: color 0.3s; }
 
 .title-sep { color: var(--text-sub); font-size: 12px; }
 .title-doc { color: var(--text-muted); font-size: 12px; font-weight: 400; }
@@ -946,7 +946,7 @@ body.dark .prov-btn-groq.active   { color: #86efac; }
 }
 .loading-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), #a78bfa);
+  background: linear-gradient(90deg, var(--accent), #60a5fa);
   animation: indeterminate 1.4s ease-in-out infinite;
   transform-origin: left;
 }
