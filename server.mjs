@@ -363,6 +363,24 @@ setInterval(() => {
 
 })()
 
+// ── Seed: regra de experiência mínima em todas as empresas ──
+;(function seedExperienciaMinima() {
+  const empresas = db.prepare("SELECT DISTINCT empresa_id FROM niveis").all()
+  const agora = new Date().toISOString()
+  const ins = db.prepare("INSERT OR IGNORE INTO conhecimento (id,titulo,categoria,ativo,conteudo,criadoEm,empresa_id) VALUES (?,?,?,?,?,?,?)")
+  for (const { empresa_id } of empresas) {
+    ins.run(
+      `regra_exp_min_${empresa_id}`,
+      "Experiência Mínima Obrigatória",
+      "Regras Gerais",
+      1,
+      "REGRA OBRIGATÓRIA: Todos os cargos, sem exceção, devem exigir experiência mínima de 6 meses na área ou função correlata. Na seção REQUISITOS MÍNIMOS, o campo Experiência deve conter no mínimo: \"Mínimo de 6 meses de experiência na área ou em funções correlatas.\" Isso se aplica a todos os níveis hierárquicos, incluindo Trainee e Junior.",
+      agora,
+      empresa_id
+    )
+  }
+})()
+
 
 // ── Clientes IA ────────────────────────────────────────────────
 const groqClient     = new OpenAI({ baseURL: "https://api.groq.com/openai/v1",      apiKey: GROQ_KEY })
