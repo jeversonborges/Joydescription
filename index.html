@@ -644,7 +644,7 @@
             <div id="salarios-pesq-empty" class="areas-empty">
               <i class="uil uil-search-alt"></i>
               <p>Pesquisa Salarial</p>
-              <span>Levantamento salarial do setor sucroenergético</span>
+              <span>Digite um cargo para consultar a faixa salarial</span>
             </div>
             <div id="salarios-pesq-form" style="display:none;flex-direction:column;height:100%">
               <div class="areas-form-header">
@@ -658,250 +658,113 @@
               </div>
 
               <div class="areas-fields" style="overflow-y:auto;flex:1;gap:12px">
-                <!-- Cargo / Área / Nível -->
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-                  <div class="field">
-                    <label>Cargo</label>
-                    <input type="text" id="pesq-cargo" class="field-input" placeholder="Ex: Mecânico" style="padding-left:10px">
-                  </div>
-                  <div class="field">
-                    <label>Área</label>
-                    <div class="select-wrapper">
-                      <i class="uil uil-layer-group field-icon"></i>
-                      <select id="pesq-area" class="field-input"></select>
-                    </div>
-                  </div>
-                  <div class="field">
-                    <label>Nível</label>
-                    <div class="select-wrapper">
-                      <i class="uil uil-chart-bar field-icon"></i>
-                      <select id="pesq-nivel" class="field-input">
-                        <option value="Trainee">Trainee</option>
-                        <option value="Junior">Junior</option>
-                        <option value="Pleno" selected>Pleno</option>
-                        <option value="Senior">Senior</option>
-                        <option value="Especialista">Especialista</option>
-                        <option value="Coordenador">Coordenador</option>
-                        <option value="Gestor">Gestor</option>
-                        <option value="Gerente">Gerente</option>
-                        <option value="Superintendente">Superintendente</option>
-                        <option value="Diretor">Diretor</option>
-                        <!-- Hierarquia Goiasa: Gestor < Gerente < Superintendente < Diretor -->
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Botão Gerar com IA -->
-                <div style="display:flex;justify-content:center">
-                  <button type="button" id="btn-gerar-pesq-salarial" onclick="gerarPesquisaSalarialIA(this)" style="padding:8px 16px;border:1px solid var(--accent);border-radius:6px;background:var(--accent);color:white;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;font-weight:600">
-                    <i class="uil uil-processor"></i> Pesquisar salarios com IA
-                  </button>
-                </div>
-
-                <!-- Salário Base -->
-                <div style="padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg)">
-                  <span style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:8px"><i class="uil uil-briefcase-alt" style="font-size:12px"></i> Salario Base Mensal</span>
-                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-                    <div class="field">
-                      <label style="font-size:10px">Minimo</label>
-                      <input type="number" id="pesq-sal-min" class="field-input" placeholder="R$" style="padding-left:10px">
-                    </div>
-                    <div class="field">
-                      <label style="font-size:10px">Mediana</label>
-                      <input type="number" id="pesq-sal-med" class="field-input" placeholder="R$" style="padding-left:10px;font-weight:700">
-                    </div>
-                    <div class="field">
-                      <label style="font-size:10px">Maximo</label>
-                      <input type="number" id="pesq-sal-max" class="field-input" placeholder="R$" style="padding-left:10px">
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Remuneração Total -->
-                <div style="padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg)">
-                  <span style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:8px"><i class="uil uil-money-bill" style="font-size:12px"></i> Remuneracao Total Mensal</span>
-                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-                    <div class="field">
-                      <label style="font-size:10px">Minimo</label>
-                      <input type="number" id="pesq-rem-min" class="field-input" placeholder="R$" style="padding-left:10px">
-                    </div>
-                    <div class="field">
-                      <label style="font-size:10px">Mediana</label>
-                      <input type="number" id="pesq-rem-med" class="field-input" placeholder="R$" style="padding-left:10px;font-weight:700">
-                    </div>
-                    <div class="field">
-                      <label style="font-size:10px">Maximo</label>
-                      <input type="number" id="pesq-rem-max" class="field-input" placeholder="R$" style="padding-left:10px">
-                    </div>
-                  </div>
-                  <span style="font-size:9px;color:var(--text-muted);margin-top:6px;display:block">*Inclui VT, VR, convenio, PLR</span>
-                </div>
-
-                <!-- ── PAINEL ANALÍTICO ── -->
-                <div id="pesq-dashboard" class="pesq-analitico">
-
-                  <!-- Comparativo por Fonte — Donut + Legenda -->
-                  <div class="pesq-section">
-                    <div class="pesq-section-header">
-                      <div class="pesq-section-title">
-                        <i class="uil uil-chart-pie"></i>
-                        <span>Distribuicao por Fonte</span>
-                      </div>
-                      <span class="pesq-section-badge">Salario Base</span>
-                    </div>
-
-                    <div class="pesq-pie-wrap">
-                      <!-- Donut Chart -->
-                      <div class="pesq-donut-container">
-                        <div class="pesq-donut" id="pesq-donut">
-                          <div class="pesq-donut-center">
-                            <span class="pesq-donut-label">Mediana</span>
-                            <span class="pesq-donut-value" id="chart-media-val">--</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Legenda -->
-                      <div class="pesq-pie-legend" id="pesq-chart">
-                        <div class="pesq-legend-item">
-                          <div class="pesq-legend-dot" style="background:#3b82f6"></div>
-                          <div class="pesq-legend-info">
-                            <span class="pesq-legend-name">Glassdoor Brasil</span>
-                            <span class="pesq-legend-desc">Informado por profissionais</span>
-                          </div>
-                          <span class="pesq-legend-val" id="chart-glassdoor-val">--</span>
-                          <span class="pesq-legend-pct" id="chart-glassdoor-pct">50%</span>
-                        </div>
-
-                        <div class="pesq-legend-item">
-                          <div class="pesq-legend-dot" style="background:#8b5cf6"></div>
-                          <div class="pesq-legend-info">
-                            <span class="pesq-legend-name">Dissidio.com.br</span>
-                            <span class="pesq-legend-desc">Acordos sindicais</span>
-                          </div>
-                          <span class="pesq-legend-val" id="chart-dissidio-val">--</span>
-                          <span class="pesq-legend-pct" id="chart-dissidio-pct">50%</span>
-                        </div>
-
-                        <div class="pesq-legend-item pesq-legend-ref">
-                          <div class="pesq-legend-dot" style="background:#f59e0b"></div>
-                          <div class="pesq-legend-info">
-                            <span class="pesq-legend-name">CAGED / MTE</span>
-                            <span class="pesq-legend-desc">Referencia cruzada</span>
-                          </div>
-                          <span class="pesq-legend-val" id="chart-caged-val">--</span>
-                          <span class="pesq-legend-pct pesq-legend-tag">Ref.</span>
-                        </div>
-
-                        <div class="pesq-legend-item pesq-legend-ref">
-                          <div class="pesq-legend-dot" style="background:#ec4899"></div>
-                          <div class="pesq-legend-info">
-                            <span class="pesq-legend-name">Portal Salario</span>
-                            <span class="pesq-legend-desc">Pesquisa setorial</span>
-                          </div>
-                          <span class="pesq-legend-val" id="chart-portal-val">--</span>
-                          <span class="pesq-legend-pct pesq-legend-tag">Ref.</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Faixa min-max -->
-                    <div class="pesq-range-bar" id="pesq-range-bar" style="display:none">
-                      <div class="pesq-range-track">
-                        <div class="pesq-range-fill" id="pesq-range-fill"></div>
-                        <div class="pesq-range-marker" id="pesq-range-marker-med" title="Mediana"></div>
-                        <div class="pesq-range-marker pesq-range-marker-usina" id="pesq-range-marker-usina" style="display:none" title="Sua usina"></div>
-                      </div>
-                      <div class="pesq-range-labels">
-                        <span id="pesq-range-min">--</span>
-                        <span style="font-weight:700;color:var(--accent)" id="pesq-range-med">Mediana</span>
-                        <span id="pesq-range-max">--</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Posicionamento da Usina -->
-                  <div class="pesq-section">
-                    <div class="pesq-section-header">
-                      <div class="pesq-section-title">
-                        <i class="uil uil-crosshair"></i>
-                        <span>Posicionamento da Usina</span>
-                      </div>
-                    </div>
-
-                    <div style="padding:14px;display:flex;flex-direction:column;gap:12px">
-                      <div class="pesq-usina-input">
-                        <div class="pesq-usina-icon"><i class="uil uil-building"></i></div>
-                        <div style="flex:1">
-                          <label class="pesq-usina-label">Valor praticado pela usina</label>
-                          <input type="number" id="pesq-val-usina" class="field-input pesq-usina-field" placeholder="Informe o salario (R$)" oninput="atualizarDashboardSalarial()">
-                        </div>
-                      </div>
-
-                      <div id="chart-usina-row" style="display:none">
-                        <span class="pesq-legend-val" id="chart-usina-val" style="display:none">--</span>
-                      </div>
-
-                      <!-- Indicador de posicionamento -->
-                      <div id="pesq-posicionamento" class="pesq-posicionamento" style="display:none"></div>
-                    </div>
-                  </div>
-
-                  <!-- Texto explicativo -->
-                  <div id="pesq-explicacao" class="pesq-explicacao" style="display:none"></div>
-                </div>
-
-                <!-- Observações -->
+                <!-- Cargo -->
                 <div class="field">
-                  <label>Observacoes</label>
-                  <textarea id="pesq-obs" class="field-input" style="min-height:60px;padding:8px 10px" placeholder="Notas sobre a pesquisa, contexto, data da coleta..."></textarea>
+                  <label>Cargo</label>
+                  <div style="display:flex;gap:8px;align-items:end;">
+                    <input type="text" id="pesq-cargo" class="field-input" placeholder="Ex: Mecânico Industrial" style="padding-left:10px;flex:1;">
+                    <button type="button" id="btn-gerar-pesq-salarial" onclick="pesquisarSalario()" style="padding:8px 16px;border:1px solid var(--accent);border-radius:6px;background:var(--accent);color:white;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;font-weight:600;white-space:nowrap;">
+                      <i class="uil uil-search"></i> Pesquisar
+                    </button>
+                  </div>
                 </div>
 
-                <!-- Metodologia -->
-                <div class="pesq-metodologia">
-                  <div class="pesq-section-header" style="border:none;padding:0 0 8px 0">
-                    <div class="pesq-section-title">
-                      <i class="uil uil-file-search-alt"></i>
-                      <span>Metodologia e Fontes</span>
+                <!-- Resultado -->
+                <div id="pesq-resultado" style="display:none;">
+                  <!-- Faixa Salarial -->
+                  <div style="padding:16px;border:1px solid var(--border);border-radius:8px;background:var(--bg-hover);margin-bottom:12px;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+                      <i class="uil uil-chart-line" style="font-size:16px;color:var(--accent)"></i>
+                      <span style="font-weight:600;font-size:13px;color:var(--text);" id="pesq-resultado-cargo">—</span>
+                      <span style="margin-left:auto;font-size:10px;background:var(--accent);color:white;padding:3px 8px;border-radius:12px;display:flex;align-items:center;gap:4px;"><img src="/wiabiliza-icon.png" style="width:12px;height:12px;border-radius:2px;">Wiabiliza</span>
+                    </div>
+
+                    <!-- Salário Base -->
+                    <div style="margin-bottom:12px;">
+                      <span style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:6px;"><i class="uil uil-briefcase-alt" style="font-size:11px"></i> Salário Base Mensal</span>
+                      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                        <div style="text-align:center;padding:10px 6px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:6px;">
+                          <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;">Mínimo</div>
+                          <div style="font-size:14px;font-weight:700;color:var(--text);" id="pesq-sal-min">—</div>
+                        </div>
+                        <div style="text-align:center;padding:10px 6px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:6px;">
+                          <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;">Mediana</div>
+                          <div style="font-size:15px;font-weight:700;color:#16a34a;" id="pesq-sal-med">—</div>
+                        </div>
+                        <div style="text-align:center;padding:10px 6px;background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.15);border-radius:6px;">
+                          <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;">Máximo</div>
+                          <div style="font-size:14px;font-weight:700;color:var(--text);" id="pesq-sal-max">—</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Remuneração Total -->
+                    <div>
+                      <span style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:6px;"><i class="uil uil-money-bill" style="font-size:11px"></i> Remuneração Total Mensal</span>
+                      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                        <div style="text-align:center;padding:10px 6px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:6px;">
+                          <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;">Mínimo</div>
+                          <div style="font-size:14px;font-weight:700;color:var(--text);" id="pesq-rem-min">—</div>
+                        </div>
+                        <div style="text-align:center;padding:10px 6px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:6px;">
+                          <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;">Mediana</div>
+                          <div style="font-size:15px;font-weight:700;color:#16a34a;" id="pesq-rem-med">—</div>
+                        </div>
+                        <div style="text-align:center;padding:10px 6px;background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.15);border-radius:6px;">
+                          <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;">Máximo</div>
+                          <div style="font-size:14px;font-weight:700;color:var(--text);" id="pesq-rem-max">—</div>
+                        </div>
+                      </div>
+                      <span style="font-size:9px;color:var(--text-muted);margin-top:6px;display:block">*Inclui VT, VR, convênio, PLR</span>
                     </div>
                   </div>
 
-                  <div class="pesq-metodo-grid">
-                    <div class="pesq-metodo-card">
-                      <div class="pesq-metodo-icon" style="background:rgba(59,130,246,0.08);color:#3b82f6">G</div>
-                      <div>
-                        <strong>Glassdoor Brasil</strong>
-                        <span>Salarios reais informados por profissionais do setor. Peso: 50%</span>
-                      </div>
+                  <!-- Comparativo por fonte -->
+                  <div id="pesq-comparativo" style="margin-top:4px;">
+                    <div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:5px;">
+                      <i class="uil uil-layers-alt" style="font-size:12px"></i> Comparativo por Fonte
                     </div>
-                    <div class="pesq-metodo-card">
-                      <div class="pesq-metodo-icon" style="background:rgba(139,92,246,0.08);color:#8b5cf6">D</div>
-                      <div>
-                        <strong>Dissidio.com.br</strong>
-                        <span>Dissidios coletivos, acordos e convencoes sindicais. Peso: 50%</span>
-                      </div>
-                    </div>
-                    <div class="pesq-metodo-card">
-                      <div class="pesq-metodo-icon" style="background:rgba(245,158,11,0.08);color:#f59e0b">C</div>
-                      <div>
-                        <strong>CAGED / MTE</strong>
-                        <span>Cadastro geral de empregados e desempregados. Referencia cruzada</span>
-                      </div>
-                    </div>
-                    <div class="pesq-metodo-card">
-                      <div class="pesq-metodo-icon" style="background:rgba(236,72,153,0.08);color:#ec4899">P</div>
-                      <div>
-                        <strong>Portal Salario / CEPEA</strong>
-                        <span>Pesquisa aberta do setor sucroenergetico e indicadores Esalq</span>
-                      </div>
-                    </div>
-                  </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
 
-                  <div class="pesq-metodo-nota">
-                    <i class="uil uil-info-circle"></i>
-                    <span>Ajuste regional aplicado: <strong>Sul Goiano (Tier 3)</strong> vs Interior SP. Fator de correcao: x0.75 a x0.90 conforme nivel hierarquico. Grandes grupos (BP Bunge, Raizen) podem ter defasagem menor (-5% a -10%).</span>
+                      <!-- Card SIFAEG / Wiabiliza -->
+                      <div style="border:1px solid rgba(34,197,94,0.35);border-radius:8px;padding:12px;background:rgba(34,197,94,0.04);">
+                        <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">
+                          <img src="/wiabiliza-icon.png" style="width:13px;height:13px;border-radius:2px;">
+                          <span style="font-size:11px;font-weight:700;color:#16a34a;">SIFAEG / Wiabiliza</span>
+                        </div>
+                        <div style="font-size:9px;color:var(--text-muted);margin-bottom:10px;line-height:1.4;">Planilha salarial do setor sucroalcooleiro em Goiás (2025)</div>
+                        <div style="display:flex;justify-content:space-between;text-align:center;">
+                          <div><div style="font-size:8px;color:var(--text-muted);text-transform:uppercase;margin-bottom:2px;">Mín</div><div style="font-size:11px;font-weight:700;color:var(--text);" id="cmp-sifaeg-min">—</div></div>
+                          <div><div style="font-size:8px;color:var(--text-muted);text-transform:uppercase;margin-bottom:2px;">Med</div><div style="font-size:13px;font-weight:700;color:#16a34a;" id="cmp-sifaeg-med">—</div></div>
+                          <div><div style="font-size:8px;color:var(--text-muted);text-transform:uppercase;margin-bottom:2px;">Máx</div><div style="font-size:11px;font-weight:700;color:var(--text);" id="cmp-sifaeg-max">—</div></div>
+                        </div>
+                      </div>
+
+                      <!-- Card Dissídio -->
+                      <div style="border:1px solid rgba(99,102,241,0.35);border-radius:8px;padding:12px;background:rgba(99,102,241,0.04);">
+                        <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">
+                          <i class="uil uil-chart-bar-alt" style="font-size:13px;color:#6366f1"></i>
+                          <span style="font-size:11px;font-weight:700;color:#6366f1;">Dissídio.com.br</span>
+                          <span id="pesq-dissidio-loading" style="font-size:9px;color:var(--text-muted);margin-left:auto;display:none;">buscando...</span>
+                        </div>
+                        <div style="font-size:9px;color:var(--text-muted);margin-bottom:10px;line-height:1.4;" id="pesq-dissidio-descricao">Média nacional — setor sucroalcooleiro</div>
+                        <div id="pesq-dissidio-valores" style="display:none;justify-content:space-between;text-align:center;">
+                          <div><div style="font-size:8px;color:var(--text-muted);text-transform:uppercase;margin-bottom:2px;">Mín</div><div style="font-size:11px;font-weight:700;color:var(--text);" id="cmp-dissidio-min">—</div></div>
+                          <div><div style="font-size:8px;color:var(--text-muted);text-transform:uppercase;margin-bottom:2px;">Med</div><div style="font-size:13px;font-weight:700;color:#6366f1;" id="cmp-dissidio-med">—</div></div>
+                          <div><div style="font-size:8px;color:var(--text-muted);text-transform:uppercase;margin-bottom:2px;">Máx</div><div style="font-size:11px;font-weight:700;color:var(--text);" id="cmp-dissidio-max">—</div></div>
+                        </div>
+                        <div id="pesq-dissidio-indisponivel" style="display:none;font-size:9px;color:var(--text-muted);padding:4px 0;">Cargo não localizado no Dissídio</div>
+                        <a id="pesq-dissidio-link" href="#" target="_blank" rel="noopener" style="font-size:9px;color:#6366f1;display:none;margin-top:6px;text-decoration:none;"><i class="uil uil-external-link-alt" style="font-size:9px"></i> Ver no Dissídio</a>
+                      </div>
+
+                    </div>
                   </div>
+                </div>
+
+                <!-- Sem resultado -->
+                <div id="pesq-sem-resultado" style="display:none;text-align:center;padding:24px;color:var(--text-muted);font-size:12px;">
+                  <i class="uil uil-exclamation-triangle" style="font-size:24px;display:block;margin-bottom:8px;color:var(--warning)"></i>
+                  <span>Cargo não encontrado na base Wiabiliza.</span>
                 </div>
               </div>
 

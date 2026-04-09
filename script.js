@@ -2866,6 +2866,92 @@ function cancelarPesquisaSalarial() {
   renderizarListaPesquisasSalariais()
 }
 
+async function pesquisarSalario() {
+  const cargo = document.getElementById("pesq-cargo").value.trim()
+  if (!cargo) { showToast("Digite o nome do cargo.", "error"); return }
+
+  const btn = document.getElementById("btn-gerar-pesq-salarial")
+  btn.disabled = true
+  btn.innerHTML = "<i class=\"uil uil-spin\" style=\"animation:spin 1s linear infinite\"></i> Buscando..."
+
+  const fmt = v => v ? "R$\u00a0" + Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 0 }) : "—"
+
+  document.getElementById("pesq-resultado").style.display = "none"
+  document.getElementById("pesq-sem-resultado").style.display = "none"
+  document.getElementById("pesq-comparativo").style.display = "none"
+  document.getElementById("pesq-dissidio-valores").style.display = "none"
+  document.getElementById("pesq-dissidio-indisponivel").style.display = "none"
+  document.getElementById("pesq-dissidio-link").style.display = "none"
+
+  try {
+    // 1. Buscar SIFAEG / Wiabiliza
+    const resSifaeg = await fetch(`/salarios?cargo=${encodeURIComponent(cargo)}&area=&nivel=`)
+    const sifaeg = resSifaeg.ok ? await resSifaeg.json() : null
+
+    if (sifaeg && sifaeg.sal_med) {
+      document.getElementById("pesq-resultado-cargo").textContent = cargo
+
+      // Exibir valores SIFAEG
+      document.getElementById("pesq-sal-min").textContent = fmt(sifaeg.sal_min)
+      document.getElementById("pesq-sal-med").textContent = fmt(sifaeg.sal_med)
+      document.getElementById("pesq-sal-max").textContent = fmt(sifaeg.sal_max)
+      document.getElementById("pesq-rem-min").textContent = fmt(sifaeg.rem_total_min)
+      document.getElementById("pesq-rem-med").textContent = fmt(sifaeg.rem_total_med)
+      document.getElementById("pesq-rem-max").textContent = fmt(sifaeg.rem_total_max)
+
+      // Manter .value nos divs para a função salvarPesquisaSalarial
+      document.getElementById("pesq-sal-min").value = sifaeg.sal_min || ""
+      document.getElementById("pesq-sal-med").value = sifaeg.sal_med || ""
+      document.getElementById("pesq-sal-max").value = sifaeg.sal_max || ""
+      document.getElementById("pesq-rem-min").value = sifaeg.rem_total_min || ""
+      document.getElementById("pesq-rem-med").value = sifaeg.rem_total_med || ""
+      document.getElementById("pesq-rem-max").value = sifaeg.rem_total_max || ""
+
+      // Card SIFAEG no comparativo
+      document.getElementById("cmp-sifaeg-min").textContent = fmt(sifaeg.sal_min)
+      document.getElementById("cmp-sifaeg-med").textContent = fmt(sifaeg.sal_med)
+      document.getElementById("cmp-sifaeg-max").textContent = fmt(sifaeg.sal_max)
+
+      document.getElementById("pesq-resultado").style.display = "block"
+      document.getElementById("pesq-comparativo").style.display = "block"
+    } else {
+      document.getElementById("pesq-sem-resultado").style.display = "block"
+    }
+
+    // 2. Buscar Dissídio em paralelo (não bloqueia o resultado SIFAEG)
+    document.getElementById("pesq-dissidio-loading").style.display = "inline"
+    document.getElementById("pesq-dissidio-descricao").textContent = "Média nacional — setor sucroalcooleiro"
+    document.getElementById("pesq-comparativo").style.display = "block"
+
+    fetch(`/dissidio-salarial?cargo=${encodeURIComponent(cargo)}`)
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById("pesq-dissidio-loading").style.display = "none"
+        if (d && d.sal_med) {
+          document.getElementById("pesq-dissidio-descricao").textContent = d.descricao
+          document.getElementById("cmp-dissidio-min").textContent = fmt(d.sal_min)
+          document.getElementById("cmp-dissidio-med").textContent = fmt(d.sal_med)
+          document.getElementById("cmp-dissidio-max").textContent = fmt(d.sal_max)
+          document.getElementById("pesq-dissidio-valores").style.display = "flex"
+          document.getElementById("pesq-dissidio-link").href = d.url
+          document.getElementById("pesq-dissidio-link").style.display = "inline"
+        } else {
+          document.getElementById("pesq-dissidio-indisponivel").style.display = "block"
+        }
+      })
+      .catch(() => {
+        document.getElementById("pesq-dissidio-loading").style.display = "none"
+        document.getElementById("pesq-dissidio-indisponivel").style.display = "block"
+      })
+
+  } catch (err) {
+    showToast("Erro ao buscar salário: " + err.message, "error")
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = "<i class=\"uil uil-search\"></i> Pesquisar"
+  }
+}
+
 async function gerarPesquisaSalarialIA(btnElement) {
   const cargo = document.getElementById("pesq-cargo").value.trim()
   const area  = document.getElementById("pesq-area").value.trim()
